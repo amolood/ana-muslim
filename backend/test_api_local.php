@@ -1,0 +1,2 @@
+<?php require __DIR__."/vendor/autoload.php"; $app = require_once __DIR__."/bootstrap/app.php"; $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class); $kernel->bootstrap(); $catCount = \DB::table("ana_muslim_categories")->count(); echo "Found $catCount Categories locally.
+"; $cat = \DB::table("ana_muslim_categories")->whereNotNull("source_id")->first(); $url = "https://api3.islamhouse.com/v3/paV29H2gm56kvLPy/main/get-category-items/{$cat->source_id}/ar/ar/1/5/json"; $data = \Illuminate\Support\Facades\Http::get($url)->json(); print_r($data);

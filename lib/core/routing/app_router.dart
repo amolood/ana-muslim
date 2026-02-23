@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/home/presentation/screens/worship_stats_screen.dart';
 import '../../features/prayer_times/presentation/screens/prayer_times_screen.dart';
 import '../../features/qibla/presentation/screens/qibla_screen.dart';
 import '../../features/azkar/presentation/screens/azkar_screen.dart';
@@ -10,21 +10,37 @@ import '../../features/sebha/presentation/screens/sebha_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/notification_settings_screen.dart';
 import '../../features/settings/presentation/screens/hijri_settings_screen.dart';
+import '../../features/settings/presentation/screens/prayer_adjustment_screen.dart';
+import '../../features/settings/presentation/screens/default_reciter_screen.dart';
 import '../../features/quran/presentation/screens/quran_index_screen.dart';
 import '../../features/quran/presentation/screens/quran_reader_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
-import '../../features/debug/presentation/screens/debug_screen.dart';
+import '../../features/hadith/presentation/screens/hadith_screen.dart';
+import '../../features/hadith/presentation/screens/hadith_book_screen.dart';
+import '../../features/islamic_content/presentation/screens/islamic_content_detail_screen.dart';
+import '../../features/islamic_content/presentation/screens/islamic_content_hub_screen.dart';
+import '../../features/islamic_content/presentation/screens/islamic_content_list_screen.dart';
+import '../../features/khatmah/presentation/screens/khatmah_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/ramadan/presentation/screens/ramadan_screen.dart';
 import 'main_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorHomeKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shellHome');
-final _shellNavigatorQuranKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shellQuran');
-final _shellNavigatorQiblaKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shellQibla');
-final _shellNavigatorSettingsKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shellSettings');
+final _shellNavigatorHomeKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellHome',
+);
+final _shellNavigatorQuranKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellQuran',
+);
+final _shellNavigatorQiblaKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellQibla',
+);
+final _shellNavigatorHadithKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellHadith',
+);
+final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shellSettings',
+);
 
 class AppRouter {
   static final router = GoRouter(
@@ -38,14 +54,12 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SplashScreen(),
       ),
-      // ─── Debug (root, only in debug builds) ──────────────────
-      if (kDebugMode)
-        GoRoute(
-          path: '/debug',
-          name: 'debug',
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const DebugScreen(),
-        ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       // ─── Main shell ───────────────────────────────────────────
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -60,6 +74,13 @@ class AppRouter {
                 path: '/home',
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'worship-stats',
+                    name: 'worship_stats',
+                    builder: (context, state) => const WorshipStatsScreen(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -73,19 +94,27 @@ class AppRouter {
                 builder: (context, state) => const QuranIndexScreen(),
                 routes: [
                   GoRoute(
+                    path: 'khatmah',
+                    name: 'khatmah',
+                    builder: (context, state) => const KhatmahScreen(),
+                  ),
+                  GoRoute(
                     path: 'reader/:id',
                     name: 'quran_reader',
                     builder: (context, state) {
-                      final id =
-                          int.parse(state.pathParameters['id']!);
-                      final ayahParam =
-                          state.uri.queryParameters['ayah'];
+                      final id = int.parse(state.pathParameters['id']!);
+                      final ayahParam = state.uri.queryParameters['ayah'];
                       final ayah = ayahParam == null
                           ? null
                           : int.tryParse(ayahParam);
+                      final pageParam = state.uri.queryParameters['page'];
+                      final page = pageParam == null
+                          ? null
+                          : int.tryParse(pageParam);
                       return QuranReaderScreen(
                         surahNumber: id,
                         initialVerse: ayah,
+                        initialPage: page,
                       );
                     },
                   ),
@@ -117,6 +146,58 @@ class AppRouter {
                 name: 'sebha',
                 builder: (context, state) => const SebhaScreen(),
               ),
+              GoRoute(
+                path: '/ramadan',
+                name: 'ramadan',
+                builder: (context, state) => const RamadanScreen(),
+              ),
+            ],
+          ),
+          // Hadith (Sahihain)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorHadithKey,
+            routes: [
+              GoRoute(
+                path: '/hadith',
+                name: 'hadith',
+                builder: (context, state) => const HadithScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'islamic-content',
+                    name: 'islamic_content_hub',
+                    builder: (context, state) =>
+                        const IslamicContentHubScreen(),
+                  ),
+                  GoRoute(
+                    path: 'islamic-content/type/:type',
+                    name: 'islamic_content_type',
+                    builder: (context, state) {
+                      final type = state.pathParameters['type'] ?? 'showall';
+                      final title =
+                          state.uri.queryParameters['title'] ??
+                          'المحتوى الإسلامي';
+                      return IslamicContentListScreen(type: type, title: title);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'islamic-content/item/:id',
+                    name: 'islamic_content_detail',
+                    builder: (context, state) {
+                      final idRaw = state.pathParameters['id'];
+                      final id = int.tryParse(idRaw ?? '');
+                      return IslamicContentDetailScreen(itemId: id ?? 0);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'book',
+                    name: 'hadith_book',
+                    builder: (context, state) {
+                      final args = state.extra as HadithBookArgs;
+                      return HadithBookScreen(args: args);
+                    },
+                  ),
+                ],
+              ),
             ],
           ),
           // Settings
@@ -137,8 +218,17 @@ class AppRouter {
                   GoRoute(
                     path: 'hijri',
                     name: 'hijri_settings',
-                    builder: (context, state) =>
-                        const HijriSettingsScreen(),
+                    builder: (context, state) => const HijriSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'prayer-adjustment',
+                    name: 'prayer_adjustment',
+                    builder: (context, state) => const PrayerAdjustmentScreen(),
+                  ),
+                  GoRoute(
+                    path: 'default-reciter',
+                    name: 'default_reciter',
+                    builder: (context, state) => const DefaultReciterScreen(),
                   ),
                 ],
               ),
@@ -147,10 +237,7 @@ class AppRouter {
         ],
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Route not found: ${state.uri}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Route not found: ${state.uri}'))),
   );
 }

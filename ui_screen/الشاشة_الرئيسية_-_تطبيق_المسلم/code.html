@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>المسلم - الشاشة الرئيسية</title>
+<!-- Fonts: Tajawal for Arabic, Manrope for numbers/English if needed -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;family=Tajawal:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#11d4b4",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#10221f", // Deep teal-black base
+                        "surface-dark": "#19332f",   // Slightly lighter teal for cards
+                        "surface-darker": "#11221f", // Darkest background
+                        "text-primary": "#ffffff",
+                        "text-secondary": "#92c9c0",
+                    },
+                    fontFamily: {
+                        "display": ["Tajawal", "Manrope", "sans-serif"],
+                        "body": ["Tajawal", "Manrope", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+        }
+        /* Custom scrollbar hide for horizontal scrolling */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-text-primary min-h-screen flex flex-col antialiased selection:bg-primary selection:text-surface-darker">
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col w-full max-w-md mx-auto relative pb-24">
+<!-- Header Section -->
+<header class="pt-12 px-6 pb-6 flex items-center justify-between">
+<div class="flex flex-col">
+<h1 class="text-2xl font-bold tracking-tight text-white">السلام عليكم، محمد</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-text-secondary text-sm font-medium">14 رمضان 1445 هـ</span>
+<span class="w-1 h-1 rounded-full bg-primary opacity-50"></span>
+<span class="text-text-secondary text-sm font-medium">24 مارس 2024</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-dark bg-surface-dark flex items-center justify-center relative">
+<img alt="Profile Avatar" class="w-full h-full object-cover" data-alt="User profile avatar showing a smiling man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXGjYklAdGQmO4KtGB8BfGEJxgVcVD2QEs-Z_WRMylvm97M7eed0v894lbXIltSg3Qcu9Xs9PnXG9n6JJ_5n0g3EW0kfy07XoHA6BOs0Vo1fvB_CO1TAXSEDFX9mDnNWStBI4oJVYCwbgpf9e-ezoHCKPzrpB8KK6mQUB2jOnWkv5zwEjXwXoQiBGPo6gGBVsXkLgyYXpTGUw3E4GHCwGYYh4VdJmUQ3XyTPdeQ2gLAKbKBYuTHsGHVtfccGckGibBF5RKopH8Ow"/>
+</button>
+</header>
+<!-- Hero Card (Next Prayer) -->
+<section class="px-6 mb-8">
+<div class="relative w-full h-48 rounded-2xl overflow-hidden shadow-lg group">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Abstract dark mosque architecture silhouette against night sky" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6KxZxa16dutls65VR4QpbI_KZtJsLzjlWkVTu0gNqHoI0dQ-ZNDN_LRi3bHOJjGoARV5lVjvOdVvoqu1xQ8KNnDivp-DiE4nSTLza8rTkbRQrko2w1Kc45Mc4XvKXZDPeEQI5Fvvvk3h7o5CVtxxqSuDoWQiXtHXcZ-35TEcDNe5sYkHDxOml78SxMjT0rTHfELe9P4KMPdjQxXqsUOwHYwzmS8ah4lLaR615qAtEGmmrApRMmOUV5AMeJ7K8qz300AqgokciiA');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-darker via-surface-dark/80 to-transparent mix-blend-multiply"></div>
+<div class="absolute inset-0 bg-primary/10 mix-blend-overlay"></div>
+<!-- Content -->
+<div class="relative z-10 flex flex-col justify-between h-full p-6">
+<div class="flex justify-between items-start">
+<div>
+<span class="px-3 py-1 bg-surface-darker/60 backdrop-blur-md rounded-full text-xs font-medium text-primary border border-primary/20">الصلاة القادمة</span>
+</div>
+<div class="flex items-center gap-1 text-white bg-surface-darker/40 backdrop-blur-sm px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="text-xs font-medium">الرياض</span>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<h2 class="text-4xl font-bold text-white mb-1">صلاة العصر</h2>
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-[20px] animate-pulse text-primary">schedule</span>
+<span class="text-lg font-mono font-medium tracking-wider">02:14:30</span>
+<span class="text-sm">متبقي</span>
+</div>
+</div>
+<!-- Qibla Indicator (Mini) -->
+<div class="w-14 h-14 bg-surface-darker/50 backdrop-blur-md rounded-full border border-white/10 flex items-center justify-center relative">
+<div class="absolute inset-0 rounded-full border-2 border-primary/30 border-t-primary animate-spin" style="animation-duration: 3s;"></div>
+<span class="material-symbols-outlined text-primary text-[24px] transform -rotate-45">explore</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section class="px-6 mb-8">
+<div class="grid grid-cols-4 gap-3">
+<!-- Quran -->
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-full aspect-square rounded-2xl bg-surface-dark border border-[#32675e] flex items-center justify-center transition-colors group-hover:border-primary/50 group-active:scale-95">
+<span class="material-symbols-outlined text-primary text-[32px] group-hover:text-white transition-colors">menu_book</span>
+</div>
+<span class="text-xs font-medium text-text-secondary group-hover:text-primary transition-colors">القرآن</span>
+</a>
+<!-- Adhkar -->
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-full aspect-square rounded-2xl bg-surface-dark border border-[#32675e] flex items-center justify-center transition-colors group-hover:border-primary/50 group-active:scale-95">
+<span class="material-symbols-outlined text-primary text-[32px] group-hover:text-white transition-colors">volunteer_activism</span>
+</div>
+<span class="text-xs font-medium text-text-secondary group-hover:text-primary transition-colors">الأذكار</span>
+</a>
+<!-- Hisn Al-Muslim -->
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-full aspect-square rounded-2xl bg-surface-dark border border-[#32675e] flex items-center justify-center transition-colors group-hover:border-primary/50 group-active:scale-95">
+<span class="material-symbols-outlined text-primary text-[32px] group-hover:text-white transition-colors">shield</span>
+</div>
+<span class="text-xs font-medium text-text-secondary group-hover:text-primary transition-colors">حصن المسلم</span>
+</a>
+<!-- Tasbih -->
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-full aspect-square rounded-2xl bg-surface-dark border border-[#32675e] flex items-center justify-center transition-colors group-hover:border-primary/50 group-active:scale-95">
+<span class="material-symbols-outlined text-primary text-[32px] group-hover:text-white transition-colors">fiber_smart_record</span>
+</div>
+<span class="text-xs font-medium text-text-secondary group-hover:text-primary transition-colors">السبحة</span>
+</a>
+</div>
+</section>
+<!-- Verse of the Day -->
+<section class="px-6 mb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-white">ورد اليوم</h3>
+<button class="text-primary text-sm font-medium hover:text-white transition-colors">عرض المزيد</button>
+</div>
+<div class="bg-surface-dark rounded-2xl p-5 border border-[#32675e] relative overflow-hidden group">
+<!-- Background Pattern -->
+<div class="absolute -right-10 -top-10 text-surface-darker opacity-30 pointer-events-none">
+<span class="material-symbols-outlined text-[180px]">format_quote</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="flex-1">
+<p class="text-lg leading-loose text-white font-medium" style="font-family: 'Amiri', serif;">
+                                "إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا"
+                            </p>
+<p class="text-text-secondary text-xs mt-2">سورة الأحزاب - آية 56</p>
+</div>
+</div>
+<div class="flex items-center justify-between mt-2 pt-4 border-t border-white/5">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full bg-primary text-surface-darker flex items-center justify-center hover:bg-white transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[24px]">play_arrow</span>
+</button>
+<div class="hidden sm:block h-1 w-24 bg-surface-darker rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/3 rounded-full"></div>
+</div>
+</div>
+<div class="flex gap-4 text-text-secondary">
+<button class="hover:text-white transition-colors"><span class="material-symbols-outlined text-[20px]">share</span></button>
+<button class="hover:text-white transition-colors"><span class="material-symbols-outlined text-[20px]">bookmark</span></button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Continue Reading -->
+<section class="px-6 mb-8">
+<h3 class="text-lg font-bold text-white mb-4">استكمل القراءة</h3>
+<div class="bg-surface-dark rounded-xl p-4 flex items-center gap-4 border border-[#32675e] hover:border-primary/30 transition-colors cursor-pointer group">
+<div class="w-12 h-12 rounded-lg bg-surface-darker flex items-center justify-center text-primary font-bold border border-white/5 group-hover:border-primary/50 transition-colors">
+                    18
+                </div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<h4 class="text-white font-bold text-base">سورة الكهف</h4>
+<span class="text-xs text-text-secondary">صفحة 293</span>
+</div>
+<div class="w-full bg-surface-darker rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full w-[45%]"></div>
+</div>
+</div>
+<div class="text-text-secondary group-hover:translate-x-[-4px] transition-transform">
+<span class="material-symbols-outlined rotate-180">arrow_back</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-[#11221f]/90 backdrop-blur-lg border-t border-[#234842]">
+<div class="max-w-md mx-auto flex items-center justify-around pb-6 pt-3 px-2">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center gap-1 min-w-[64px] group" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-white text-[28px] group-hover:text-primary transition-colors">home</span>
+<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></span>
+</div>
+<span class="text-[10px] font-medium text-white group-hover:text-primary transition-colors">الرئيسية</span>
+</a>
+<!-- Quran -->
+<a class="flex flex-col items-center gap-1 min-w-[64px] group text-text-secondary hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">menu_book</span>
+<span class="text-[10px] font-medium">القرآن</span>
+</a>
+<!-- Qibla -->
+<a class="flex flex-col items-center gap-1 min-w-[64px] group text-text-secondary hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">explore</span>
+<span class="text-[10px] font-medium">القبلة</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center gap-1 min-w-[64px] group text-text-secondary hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+<span class="text-[10px] font-medium">الإعدادات</span>
+</a>
+</div>
+</nav>
+</body></html>

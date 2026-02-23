@@ -3,11 +3,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/arabic_utils.dart';
 import '../providers/azkar_provider.dart';
 import 'azkar_category_screen.dart';
 
 class AzkarScreen extends ConsumerWidget {
   const AzkarScreen({super.key});
+
+  static const List<String> _sectionOrder = <String>[
+    'أذكار يومية',
+    'أذكار العبادات',
+    'أذكار النوم والاستيقاظ',
+    'أذكار السفر والتنقل',
+    'أذكار الطعام والشراب',
+    'أدعية وأذكار متنوعة',
+  ];
 
   IconData _getIconForCategory(String title) {
     if (title.contains('الصباح')) return Icons.wb_sunny_outlined;
@@ -19,10 +29,51 @@ class AzkarScreen extends ConsumerWidget {
     if (title.contains('الوضوء')) return Icons.water_drop_outlined;
     if (title.contains('آذان')) return Icons.volume_up_outlined;
     if (title.contains('سفر')) return Icons.flight_takeoff_outlined;
-    if (title.contains('طعام') || title.contains('أكل')) return Icons.restaurant_outlined;
+    if (title.contains('طعام') || title.contains('أكل')) {
+      return Icons.restaurant_outlined;
+    }
     if (title.contains('أسماء')) return Icons.auto_stories_outlined;
     if (title.contains('حصن')) return Icons.shield_outlined;
     return Icons.book_outlined;
+  }
+
+  String _normalize(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ة', 'ه')
+        .replaceAll('ى', 'ي')
+        .trim();
+  }
+
+  String _sectionForCategory(String title) {
+    final normalized = _normalize(title);
+
+    if (normalized.contains('الصباح') ||
+        normalized.contains('المساء') ||
+        normalized.contains('اليومي')) {
+      return 'أذكار يومية';
+    }
+    if (normalized.contains('الصلاه') ||
+        normalized.contains('الاذان') ||
+        normalized.contains('المسجد') ||
+        normalized.contains('الوضوء')) {
+      return 'أذكار العبادات';
+    }
+    if (normalized.contains('النوم') || normalized.contains('الاستيقاظ')) {
+      return 'أذكار النوم والاستيقاظ';
+    }
+    if (normalized.contains('سفر') || normalized.contains('تنقل')) {
+      return 'أذكار السفر والتنقل';
+    }
+    if (normalized.contains('طعام') ||
+        normalized.contains('اكل') ||
+        normalized.contains('شراب')) {
+      return 'أذكار الطعام والشراب';
+    }
+    return 'أدعية وأذكار متنوعة';
   }
 
   @override
@@ -47,21 +98,42 @@ class AzkarScreen extends ConsumerWidget {
                       ),
                     );
                   }
-                  final categoryList = categories.entries.toList();
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
-                        .copyWith(bottom: 100),
-                    itemCount: categoryList.length,
-                    itemBuilder: (context, index) {
-                      final entry = categoryList[index];
-                      // entry.key = chapter name, entry.value = chapter ID
-                      return _buildAzkarCard(
-                        context: context,
-                        title: entry.key,
-                        chapterId: entry.value,
-                        icon: _getIconForCategory(entry.key),
-                      );
-                    },
+                  final categoryList = categories.entries.toList()
+                    ..sort((a, b) => a.key.compareTo(b.key));
+                  final grouped = <String, List<MapEntry<String, int>>>{
+                    for (final section in _sectionOrder)
+                      section: <MapEntry<String, int>>[],
+                  };
+                  for (final entry in categoryList) {
+                    final section = _sectionForCategory(entry.key);
+                    grouped[section]!.add(entry);
+                  }
+
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ).copyWith(bottom: 100),
+                    children: [
+                      for (final section in _sectionOrder)
+                        if ((grouped[section] ??
+                                const <MapEntry<String, int>>[])
+                            .isNotEmpty) ...[
+                          _AzkarSectionHeader(
+                            title: section,
+                            count: grouped[section]!.length,
+                          ),
+                          const SizedBox(height: 8),
+                          for (final entry in grouped[section]!) ...[
+                            _buildAzkarCard(
+                              context: context,
+                              title: entry.key,
+                              chapterId: entry.value,
+                              icon: _getIconForCategory(entry.key),
+                            ),
+                          ],
+                        ],
+                    ],
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -136,12 +208,14 @@ class AzkarScreen extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => AzkarCategoryScreen(
-                categoryTitle: title,
-                chapterId: chapterId,
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AzkarCategoryScreen(
+                  categoryTitle: title,
+                  chapterId: chapterId,
+                ),
               ),
-            ));
+            );
           },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
@@ -168,11 +242,57 @@ class AzkarScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.grey[600],
+                  size: 16,
+                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AzkarSectionHeader extends StatelessWidget {
+  const _AzkarSectionHeader({required this.title, required this.count});
+
+  final String title;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2D5E57)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.tajawal(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          Text(
+            ArabicUtils.toArabicDigits(count),
+            style: GoogleFonts.tajawal(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,11 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/preferences_provider.dart';
+import '../../../../core/utils/arabic_utils.dart';
+import '../../../qibla/presentation/providers/qibla_feedback_provider.dart';
 import '../../../prayer_times/presentation/providers/prayer_times_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -19,6 +21,10 @@ class SettingsScreen extends ConsumerWidget {
     final language = ref.watch(appLanguageProvider);
     final calcMethod = ref.watch(calculationMethodProvider);
     final locationNameAsync = ref.watch(locationNameProvider);
+    final qiblaToneEnabled = ref.watch(qiblaSuccessToneProvider);
+    final qiblaToneOption = ref.watch(qiblaSuccessToneOptionProvider);
+    final sebhaDefaultGoal = ref.watch(sebhaDefaultDailyGoalProvider);
+    final sebhaState = ref.watch(sebhaStateProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -31,13 +37,15 @@ class SettingsScreen extends ConsumerWidget {
           style: GoogleFonts.tajawal(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.textPrimary(context),
           ),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
-            .copyWith(bottom: 60),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ).copyWith(bottom: 60),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -51,11 +59,11 @@ class SettingsScreen extends ConsumerWidget {
                   trailingText: theme,
                   onTap: () => _showSelectionSheet(
                     context,
-                    ref,
                     'الثيم',
                     ['داكن', 'فاتح'],
                     theme,
-                    (val) => ref.read(appThemeProvider.notifier).save(val),
+                    (val) async =>
+                        ref.read(appThemeProvider.notifier).save(val),
                   ),
                 ),
                 _buildDivider(),
@@ -65,7 +73,6 @@ class SettingsScreen extends ConsumerWidget {
                   trailingText: fontSize,
                   onTap: () => _showSelectionSheet(
                     context,
-                    ref,
                     'حجم الخط',
                     ['صغير', 'متوسط', 'كبير'],
                     fontSize,
@@ -89,11 +96,11 @@ class SettingsScreen extends ConsumerWidget {
                   trailingText: language,
                   onTap: () => _showSelectionSheet(
                     context,
-                    ref,
                     'اللغة',
                     ['العربية', 'English', 'Français'],
                     language,
-                    (val) => ref.read(appLanguageProvider.notifier).save(val),
+                    (val) async =>
+                        ref.read(appLanguageProvider.notifier).save(val),
                   ),
                 ),
               ],
@@ -109,7 +116,6 @@ class SettingsScreen extends ConsumerWidget {
                   trailingText: calcMethod,
                   onTap: () => _showSelectionSheet(
                     context,
-                    ref,
                     'طريقة الحساب',
                     [
                       'أم القرى',
@@ -119,10 +125,16 @@ class SettingsScreen extends ConsumerWidget {
                       'الجمعية الإسلامية لأمريكا الشمالية',
                     ],
                     calcMethod,
-                    (val) => ref
-                        .read(calculationMethodProvider.notifier)
-                        .save(val),
+                    (val) async =>
+                        ref.read(calculationMethodProvider.notifier).save(val),
                   ),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  icon: Icons.tune,
+                  title: 'ضبط مواقيت الصلاة',
+                  subtitle: 'تقديم أو تأخير كل صلاة بدقائق',
+                  onTap: () => context.push('/settings/prayer-adjustment'),
                 ),
                 _buildDivider(),
                 _buildSettingsItem(
@@ -133,17 +145,83 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 _buildDivider(),
                 _buildSettingsItem(
+                  icon: Icons.spatial_audio,
+                  title: 'نغمة نجاح القبلة',
+                  trailingText: qiblaToneEnabled ? 'مفعلة' : 'موقفة',
+                  onTap: () => _showSelectionSheet(
+                    context,
+                    'نغمة نجاح القبلة',
+                    ['مفعلة', 'موقفة'],
+                    qiblaToneEnabled ? 'مفعلة' : 'موقفة',
+                    (val) async => ref
+                        .read(qiblaSuccessToneProvider.notifier)
+                        .save(val == 'مفعلة'),
+                  ),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  icon: Icons.music_note_rounded,
+                  title: 'نوع نغمة القبلة',
+                  trailingText: qiblaToneOption.label,
+                  onTap: () => _showSelectionSheet(
+                    context,
+                    'نوع نغمة القبلة',
+                    ['soft', 'bell'],
+                    qiblaToneOption.key,
+                    (val) async {
+                      final option = val == 'bell'
+                          ? QiblaSuccessToneOption.bell
+                          : QiblaSuccessToneOption.soft;
+                      await ref
+                          .read(qiblaSuccessToneOptionProvider.notifier)
+                          .save(option);
+                    },
+                    displayMapper: _qiblaToneOptionLabel,
+                  ),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  icon: Icons.play_arrow_rounded,
+                  title: 'معاينة نغمة القبلة',
+                  subtitle: 'تشغيل النغمة المختارة للتأكد من الصوت',
+                  onTap: () async {
+                    if (!qiblaToneEnabled) {
+                      _showInfoMessage(
+                        context,
+                        'فعّل نغمة نجاح القبلة أولًا من الإعدادات',
+                      );
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(qiblaTonePlayerProvider)
+                          .play(qiblaToneOption);
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      _showInfoMessage(context, 'تعذّر تشغيل النغمة');
+                    }
+                  },
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
                   icon: Icons.location_on,
                   title: 'الموقع الحالي',
                   trailingText: locationNameAsync.maybeWhen(
                     data: (loc) => loc.split('،').first,
                     orElse: () => 'تلقائي',
                   ),
-                  onTap: () {
+                  onTap: () async {
                     ref.invalidate(locationProvider);
                     ref.invalidate(locationNameProvider);
                     ref.invalidate(prayerTimesProvider);
-                    _showInfoMessage(context, 'تم تحديث الموقع بنجاح');
+                    try {
+                      await ref.read(locationNameProvider.future);
+                      if (!context.mounted) return;
+                      _showInfoMessage(context, 'تم تحديث الموقع بنجاح');
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      _showInfoMessage(context, 'تعذّر تحديث الموقع: $e');
+                    }
                   },
                 ),
               ],
@@ -174,14 +252,56 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   onTap: () => _showSelectionSheet(
                     context,
-                    ref,
                     'مصدر التفسير',
-                    ['saadi', 'ibnkatheer', 'tabari', 'qurtubi', 'tafsir-jalalayn'],
+                    [
+                      'saadi',
+                      'ibnkatheer',
+                      'tabari',
+                      'qurtubi',
+                      'tafsir-jalalayn',
+                    ],
                     ref.read(tafsirSourceProvider),
-                    (val) =>
+                    (val) async =>
                         ref.read(tafsirSourceProvider.notifier).save(val),
                     displayMapper: _tafsirDisplayName,
                   ),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  icon: Icons.record_voice_over,
+                  title: 'القارئ الافتراضي',
+                  trailingText:
+                      ref.watch(defaultReciterNameProvider) ?? 'غير محدد',
+                  onTap: () => context.push('/settings/default-reciter'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // ─── Sebha ───────────────────────────────────────────
+            _buildSectionTitle('السبحة'),
+            _buildSectionContainer(
+              children: [
+                _buildSettingsItem(
+                  icon: Icons.track_changes_rounded,
+                  title: 'الهدف الافتراضي للتسبيح',
+                  trailingText: _sebhaGoalLabel(sebhaDefaultGoal),
+                  subtitle: 'يُطبّق تلقائيًا على جميع التسبيحات',
+                  onTap: () => _showSebhaDefaultGoalSheet(
+                    context,
+                    ref,
+                    currentGoal: sebhaDefaultGoal,
+                  ),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
+                  icon: Icons.format_list_bulleted_rounded,
+                  title: 'قائمة التسبيحات',
+                  trailingText: ArabicUtils.toArabicDigits(
+                    sebhaState.phrases.length,
+                  ),
+                  subtitle:
+                      'الحالية: ${_truncateText(sebhaState.selectedPhrase.text, maxChars: 24)}',
+                  onTap: () => _showSebhaPhrasesManagerSheet(context),
                 ),
               ],
             ),
@@ -202,6 +322,13 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 _buildDivider(),
                 _buildSettingsItem(
+                  icon: Icons.chat,
+                  title: 'تواصل معنا',
+                  subtitle: 'واتساب',
+                  onTap: () => _openWhatsapp(context),
+                ),
+                _buildDivider(),
+                _buildSettingsItem(
                   icon: Icons.info,
                   title: 'عن التطبيق',
                   trailingText: 'الإصدار 1.0.0',
@@ -209,17 +336,9 @@ class SettingsScreen extends ConsumerWidget {
                     context,
                     title: 'عن التطبيق',
                     message:
-                        'تطبيق المسلم: قرآن، أذكار، قبلة، ومواقيت الصلاة في تجربة عربية متكاملة.',
+                        'تطبيق المسلم: قرآن، أذكار، قبلة، ومواقيت الصلاة في تجربة عربية متكاملة.\n\nصدقة جارية عني وعن والديَّ وعن كل المسلمين.',
                   ),
                 ),
-                if (kDebugMode) ...[
-                  _buildDivider(),
-                  _buildSettingsItem(
-                    icon: Icons.bug_report,
-                    title: 'شاشة QA Debug',
-                    onTap: () => context.push('/debug'),
-                  ),
-                ],
               ],
             ),
             const SizedBox(height: 48),
@@ -231,23 +350,38 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   static const _tafsirMap = {
-    'saadi':           'تفسير السعدي',
-    'ibnkatheer':      'تفسير ابن كثير',
-    'tabari':          'تفسير الطبري',
-    'qurtubi':         'تفسير القرطبي',
+    'saadi': 'تفسير السعدي',
+    'ibnkatheer': 'تفسير ابن كثير',
+    'tabari': 'تفسير الطبري',
+    'qurtubi': 'تفسير القرطبي',
     'tafsir-jalalayn': 'تفسير الجلالين',
   };
 
   static String _tafsirDisplayName(String key) =>
       _tafsirMap[key] ?? 'تفسير السعدي';
 
+  static const _qiblaToneOptionMap = {'soft': 'نغمة هادئة', 'bell': 'نغمة جرس'};
+
+  static String _qiblaToneOptionLabel(String key) =>
+      _qiblaToneOptionMap[key] ?? 'نغمة هادئة';
+
+  static String _sebhaGoalLabel(int goal) {
+    if (goal <= 0) return 'غير محدد';
+    return ArabicUtils.toArabicDigits(goal);
+  }
+
+  static String _truncateText(String text, {required int maxChars}) {
+    final normalized = text.trim();
+    if (normalized.length <= maxChars) return normalized;
+    return '${normalized.substring(0, maxChars)}…';
+  }
+
   void _showSelectionSheet(
     BuildContext context,
-    WidgetRef ref,
     String title,
     List<String> options,
     String currentValue,
-    Function(String) onSelected, {
+    Future<void> Function(String) onSelected, {
     String Function(String)? displayMapper,
   }) {
     showModalBottomSheet<void>(
@@ -272,8 +406,9 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               ...options.map((option) {
-                final label =
-                    displayMapper != null ? displayMapper(option) : option;
+                final label = displayMapper != null
+                    ? displayMapper(option)
+                    : option;
                 return ListTile(
                   title: Text(
                     label,
@@ -290,9 +425,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: option == currentValue
                       ? const Icon(Icons.check, color: AppColors.primary)
                       : null,
-                  onTap: () {
-                    onSelected(option);
-                    Navigator.pop(context);
+                  onTap: () async {
+                    try {
+                      await onSelected(option);
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      _showInfoMessage(context, 'تعذّر حفظ الإعداد: $e');
+                    }
                   },
                 );
               }),
@@ -301,6 +442,350 @@ class SettingsScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  void _showSebhaDefaultGoalSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required int currentGoal,
+  }) {
+    const goals = [0, 3, 7, 33, 100];
+    _showSelectionSheet(
+      context,
+      'الهدف الافتراضي للتسبيح',
+      goals.map((goal) => goal.toString()).toList(growable: false),
+      currentGoal.toString(),
+      (value) async {
+        final parsed = int.tryParse(value);
+        if (parsed == null) return;
+        await ref.read(sebhaDefaultDailyGoalProvider.notifier).save(parsed);
+        await ref.read(sebhaStateProvider.notifier).setDailyGoalForAll(parsed);
+      },
+      displayMapper: (value) {
+        final parsed = int.tryParse(value) ?? 0;
+        return parsed == 0 ? 'غير محدد' : ArabicUtils.toArabicDigits(parsed);
+      },
+    );
+  }
+
+  void _showSebhaPhrasesManagerSheet(BuildContext context) {
+    final controller = TextEditingController();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.75,
+          minChildSize: 0.55,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Consumer(
+              builder: (context, sheetRef, _) {
+                final sebhaState = sheetRef.watch(sebhaStateProvider);
+                final defaultGoal = sheetRef.watch(
+                  sebhaDefaultDailyGoalProvider,
+                );
+
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    12,
+                    16,
+                    16 + MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'إدارة قائمة التسبيحات',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'الهدف: ${_sebhaGoalLabel(defaultGoal)}',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 13,
+                              color: AppColors.textSecondaryDark,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: controller,
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          hintText: 'أضف تسبيحة جديدة',
+                          hintStyle: GoogleFonts.tajawal(
+                            color: AppColors.textSecondaryDark,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.06),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.6,
+                            ),
+                          ),
+                          suffixIcon: IconButton(
+                            tooltip: 'إضافة',
+                            icon: const Icon(
+                              Icons.add_circle_rounded,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: () async {
+                              final text = controller.text.trim();
+                              if (text.isEmpty) {
+                                _showInfoMessage(
+                                  context,
+                                  'اكتب التسبيحة قبل الإضافة',
+                                );
+                                return;
+                              }
+                              final added = await sheetRef
+                                  .read(sebhaStateProvider.notifier)
+                                  .addCustomPhrase(
+                                    text: text,
+                                    goal: defaultGoal,
+                                  );
+                              if (!context.mounted) return;
+                              if (!added) {
+                                _showInfoMessage(
+                                  context,
+                                  'التسبيحة موجودة بالفعل',
+                                );
+                                return;
+                              }
+                              controller.clear();
+                              FocusScope.of(context).unfocus();
+                            },
+                          ),
+                        ),
+                        style: GoogleFonts.tajawal(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onSubmitted: (_) async {
+                          final text = controller.text.trim();
+                          if (text.isEmpty) return;
+                          final added = await sheetRef
+                              .read(sebhaStateProvider.notifier)
+                              .addCustomPhrase(text: text, goal: defaultGoal);
+                          if (!context.mounted) return;
+                          if (!added) {
+                            _showInfoMessage(context, 'التسبيحة موجودة بالفعل');
+                            return;
+                          }
+                          controller.clear();
+                          FocusScope.of(context).unfocus();
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: sebhaState.phrases.length,
+                          separatorBuilder: (_, _) => Divider(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                          itemBuilder: (context, index) {
+                            final phrase = sebhaState.phrases[index];
+                            final isSelected =
+                                phrase.id == sebhaState.selectedPhraseId;
+                            final phraseGoal = phrase.dailyGoal <= 0
+                                ? 'غير محدد'
+                                : ArabicUtils.toArabicDigits(phrase.dailyGoal);
+
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () async {
+                                  await sheetRef
+                                      .read(sebhaStateProvider.notifier)
+                                      .selectPhrase(phrase.id);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 10,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isSelected
+                                            ? Icons.check_circle_rounded
+                                            : Icons
+                                                  .radio_button_unchecked_rounded,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textSecondaryDark,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              phrase.text,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.tajawal(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              phrase.isCustom
+                                                  ? 'مخصصة • الهدف $phraseGoal'
+                                                  : 'افتراضية • الهدف $phraseGoal',
+                                              style: GoogleFonts.tajawal(
+                                                fontSize: 12,
+                                                color:
+                                                    AppColors.textSecondaryDark,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (phrase.isCustom)
+                                        IconButton(
+                                          tooltip: 'حذف',
+                                          onPressed: () async {
+                                            final shouldDelete =
+                                                await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (dialogContext) {
+                                                    return AlertDialog(
+                                                      backgroundColor:
+                                                          AppColors.surfaceDark,
+                                                      title: Text(
+                                                        'حذف التسبيحة',
+                                                        style:
+                                                            GoogleFonts.tajawal(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w800,
+                                                            ),
+                                                      ),
+                                                      content: Text(
+                                                        'هل تريد حذف "${phrase.text}"؟',
+                                                        style: GoogleFonts.tajawal(
+                                                          color: AppColors
+                                                              .textSecondaryDark,
+                                                        ),
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                dialogContext,
+                                                              ).pop(false),
+                                                          child: Text(
+                                                            'إلغاء',
+                                                            style: GoogleFonts.tajawal(
+                                                              color: AppColors
+                                                                  .textSecondaryDark,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        FilledButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                dialogContext,
+                                                              ).pop(true),
+                                                          style: FilledButton.styleFrom(
+                                                            backgroundColor:
+                                                                AppColors
+                                                                    .primary,
+                                                            foregroundColor:
+                                                                AppColors
+                                                                    .backgroundDark,
+                                                          ),
+                                                          child: Text(
+                                                            'حذف',
+                                                            style:
+                                                                GoogleFonts.tajawal(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ) ??
+                                                false;
+                                            if (!shouldDelete) return;
+                                            await sheetRef
+                                                .read(
+                                                  sebhaStateProvider.notifier,
+                                                )
+                                                .removeCustomPhrase(phrase.id);
+                                          },
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    ).whenComplete(controller.dispose);
   }
 
   Widget _buildSectionTitle(String title) {
@@ -409,11 +894,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildFooter() {
+    final year = DateTime.now().year;
     return Center(
       child: Column(
         children: [
           Text(
-            'تطبيق المسلم © 2024',
+            'تطبيق المسلم © $year',
             style: GoogleFonts.tajawal(
               fontSize: 12,
               color: AppColors.textSecondaryDark,
@@ -434,9 +920,7 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showInfoMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.tajawal()),
-      ),
+      SnackBar(content: Text(message, style: GoogleFonts.tajawal())),
     );
   }
 
@@ -480,5 +964,21 @@ class SettingsScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _openWhatsapp(BuildContext context) async {
+    try {
+      final opened = await launchUrl(
+        Uri.parse('https://wa.me/249912740956'),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && context.mounted) {
+        _showInfoMessage(context, 'تعذّر فتح واتساب على هذا الجهاز');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showInfoMessage(context, 'تعذّر فتح واتساب على هذا الجهاز');
+      }
+    }
   }
 }

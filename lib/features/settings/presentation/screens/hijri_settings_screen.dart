@@ -49,19 +49,21 @@ class _HijriSettingsScreenState extends ConsumerState<HijriSettingsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppColors.textPrimary(context)),
         title: Text(
           'التقويم الهجري',
           style: GoogleFonts.tajawal(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.textPrimary(context),
           ),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
-            .copyWith(bottom: 60),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ).copyWith(bottom: 60),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -106,7 +108,9 @@ class _HijriSettingsScreenState extends ConsumerState<HijriSettingsScreen> {
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -170,8 +174,8 @@ class _HijriSettingsScreenState extends ConsumerState<HijriSettingsScreen> {
                             offset == 0
                                 ? '0'
                                 : offset > 0
-                                    ? '+$offset'
-                                    : '$offset',
+                                ? '+$offset'
+                                : '$offset',
                             style: GoogleFonts.manrope(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -315,10 +319,7 @@ class _HijriSettingsScreenState extends ConsumerState<HijriSettingsScreen> {
     );
   }
 
-  Widget _offsetButton({
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
+  Widget _offsetButton({required IconData icon, required VoidCallback? onTap}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(

@@ -1,299 +1,1569 @@
-import 'dart:math' show pi;
-import 'package:adhan/adhan.dart';
+import 'dart:async';
+import 'dart:collection';
+import 'dart:math' show atan2, cos, pi, sin, sqrt;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart'; // Added for LocationPermission
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
+import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:im_muslim/core/utils/prayer_utils.dart';
-import 'package:im_muslim/features/prayer_times/presentation/providers/prayer_times_provider.dart';
+import '../../../../core/utils/arabic_utils.dart';
+import '../providers/qibla_feedback_provider.dart';
 
-class QiblaScreen extends ConsumerWidget {
+/// Explicit UI state machine for guided Qibla alignment.
+enum QiblaUiState {
+  loadingPermissions,
+  locationUnavailable,
+  sensorNotSupported,
+  compassUnreliableNeedsCalibration,
+  activeAligning,
+  nearAlignment,
+  alignedSuccess,
+  fallbackStaticDirection,
+  error,
+}
+
+extension QiblaUiStateName on QiblaUiState {
+  String get machineName => switch (this) {
+    QiblaUiState.loadingPermissions => 'loading_permissions',
+    QiblaUiState.locationUnavailable => 'location_unavailable',
+    QiblaUiState.sensorNotSupported => 'sensor_not_supported',
+    QiblaUiState.compassUnreliableNeedsCalibration =>
+      'compass_unreliable_needs_calibration',
+    QiblaUiState.activeAligning => 'active_aligning',
+    QiblaUiState.nearAlignment => 'near_alignment',
+    QiblaUiState.alignedSuccess => 'aligned_success',
+    QiblaUiState.fallbackStaticDirection => 'fallback_static_direction',
+    QiblaUiState.error => 'error',
+  };
+}
+
+enum _TurnDirection { left, right, hold }
+
+enum _SignalQuality { unknown, weak, medium, good }
+
+class QiblaScreen extends ConsumerStatefulWidget {
   const QiblaScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: FutureBuilder(
-                future: FlutterQiblah.checkLocationStatus(),
-                builder: (context, AsyncSnapshot<LocationStatus> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+  ConsumerState<QiblaScreen> createState() => _QiblaScreenState();
+}
 
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.white)));
-                  }
+class _QiblaScreenState extends ConsumerState<QiblaScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const _alignedEnterDeg = 5.0;
+  static const _alignedExitDeg = 8.0;
+  static const _nearAlignmentDeg = 16.0;
+  static const _headingSmoothing = 0.16;
+  static const _deltaSmoothing = 0.22;
+  static const _uiThrottle = Duration(milliseconds: 55);
+  static const _successVisualLock = Duration(milliseconds: 1800);
+  static const _feedbackCooldown = Duration(milliseconds: 1200);
+  static const _weakFallbackAfter = Duration(seconds: 8);
+  static const _relativeConsistencyTolerance = 22.0;
+  static const _noCompassDataTimeout = Duration(seconds: 7);
+  static const _noCompassCheckInterval = Duration(seconds: 2);
 
-                  if (snapshot.data!.enabled == true) {
-                    switch (snapshot.data!.status) {
-                      case LocationPermission.always:
-                      case LocationPermission.whileInUse:
-                        return _buildQiblaCompass();
-                      case LocationPermission.denied:
-                        return const Center(child: Text("يرجى إعطاء صلاحية الموقع لمعرفة اتجاه القبلة", style: TextStyle(color: Colors.white)));
-                      case LocationPermission.deniedForever:
-                        return const Center(child: Text("صلاحية الموقع مرفوضة دائمًا، يرجى تفعيلها من الإعدادات", style: TextStyle(color: Colors.white)));
-                      default:
-                        return const Center(child: Text("يرجى تفعيل خدمات الموقع", style: TextStyle(color: Colors.white)));
-                    }
-                  } else {
-                    return const Center(child: Text("خدمات الموقع غير مفعلة", style: TextStyle(color: Colors.white)));
-                  }
-                },
+  StreamSubscription<QiblahDirection>? _qiblaSub;
+  Timer? _noCompassWatchdog;
+
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  QiblaUiState _uiState = QiblaUiState.loadingPermissions;
+  Object? _lastError;
+  bool _sensorSupported = true;
+  bool _bootstrapping = false;
+
+  double? _qiblaBearingDeg;
+  double? _smoothedHeadingDeg;
+  double? _smoothedDeltaDeg;
+
+  bool _isAligned = false;
+  DateTime? _alignedLockUntil;
+  DateTime _lastUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastFeedbackAt = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastCompassEventAt = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime? _weakSignalSince;
+
+  final Queue<double> _headingWindow = Queue<double>();
+  double _headingSinSum = 0;
+  double _headingCosSum = 0;
+  _SignalQuality _signalQuality = _SignalQuality.unknown;
+
+  _TurnDirection _turnDirection = _TurnDirection.right;
+  double _alignmentProgress = 0;
+  String _guidanceText = 'حرّك الجوال ببطء';
+
+  bool _showDetails = false;
+  bool _manualLocationLookupBusy = false;
+  bool _screenVisible = true;
+
+  ManualLocation? _lastManualLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnim = CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrap(requestPermissionIfDenied: true));
+    });
+  }
+
+  @override
+  void dispose() {
+    _qiblaSub?.cancel();
+    _stopCompassWatchdog();
+    WidgetsBinding.instance.removeObserver(this);
+    FlutterQiblah().dispose();
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_screenVisible) {
+        _resumeCompassMonitorIfNeeded();
+      }
+      return;
+    }
+    unawaited(_pauseCompassMonitor());
+  }
+
+  Future<void> _bootstrap({
+    required bool requestPermissionIfDenied,
+    bool resetRuntime = true,
+  }) async {
+    if (_bootstrapping) return;
+    _bootstrapping = true;
+
+    if (resetRuntime) {
+      _resetRuntimeState();
+    }
+
+    _setUiState(QiblaUiState.loadingPermissions, forceRebuild: true);
+
+    try {
+      _lastError = null;
+      _sensorSupported =
+          (await FlutterQiblah.androidDeviceSensorSupport()) ?? true;
+
+      final hasBearing = await _resolveQiblaBearing(
+        requestPermissionIfDenied: requestPermissionIfDenied,
+      );
+
+      if (!hasBearing) {
+        _setUiState(QiblaUiState.locationUnavailable, forceRebuild: true);
+        return;
+      }
+
+      if (!_sensorSupported) {
+        _setUiState(QiblaUiState.sensorNotSupported, forceRebuild: true);
+        return;
+      }
+
+      if (_screenVisible) {
+        _startCompassMonitor();
+      }
+      _setUiState(QiblaUiState.activeAligning, forceRebuild: true);
+    } catch (error) {
+      _lastError = error;
+      _setUiState(QiblaUiState.error, forceRebuild: true);
+    } finally {
+      _bootstrapping = false;
+    }
+  }
+
+  void _resetRuntimeState() {
+    _qiblaSub?.cancel();
+    _qiblaSub = null;
+    _stopCompassWatchdog();
+
+    _qiblaBearingDeg = null;
+    _smoothedHeadingDeg = null;
+    _smoothedDeltaDeg = null;
+    _isAligned = false;
+    _alignedLockUntil = null;
+    _lastUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+    _lastCompassEventAt = DateTime.fromMillisecondsSinceEpoch(0);
+    _weakSignalSince = null;
+    _headingWindow.clear();
+    _headingSinSum = 0;
+    _headingCosSum = 0;
+    _signalQuality = _SignalQuality.unknown;
+    _turnDirection = _TurnDirection.right;
+    _alignmentProgress = 0;
+    _guidanceText = 'حرّك الجوال ببطء';
+  }
+
+  void _setUiState(QiblaUiState state, {bool forceRebuild = false}) {
+    final changed = _uiState != state;
+    _uiState = state;
+    if (!mounted) return;
+    if (changed || forceRebuild) {
+      setState(() {});
+    }
+  }
+
+  Future<bool> _resolveQiblaBearing({
+    required bool requestPermissionIfDenied,
+  }) async {
+    final manualLocation = ref.read(manualLocationProvider);
+    if (manualLocation != null) {
+      _qiblaBearingDeg = _greatCircleBearingToKaaba(
+        latitude: manualLocation.lat,
+        longitude: manualLocation.lng,
+      );
+      return true;
+    }
+
+    var status = await FlutterQiblah.checkLocationStatus();
+    if (!status.enabled) {
+      final lastKnown = await _safeLastKnownPosition();
+      if (lastKnown == null) return false;
+      _qiblaBearingDeg = _greatCircleBearingToKaaba(
+        latitude: lastKnown.latitude,
+        longitude: lastKnown.longitude,
+      );
+      return true;
+    }
+
+    if (status.status == LocationPermission.denied) {
+      if (!requestPermissionIfDenied) return false;
+      final granted = await _requestLocationWithRationale();
+      if (!granted) return false;
+      status = await FlutterQiblah.checkLocationStatus();
+      if (!status.enabled) return false;
+    }
+
+    final permission = status.status;
+    if (permission != LocationPermission.whileInUse &&
+        permission != LocationPermission.always) {
+      return false;
+    }
+
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      position = await _safeLastKnownPosition();
+    } catch (_) {
+      position = await _safeLastKnownPosition();
+    }
+
+    if (position != null) {
+      _qiblaBearingDeg = _greatCircleBearingToKaaba(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      return true;
+    }
+
+    // Allow stream bootstrap; some devices expose relative qibla before a fresh GPS fix.
+    return true;
+  }
+
+  Future<Position?> _safeLastKnownPosition() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _requestLocationWithRationale() async {
+    if (!mounted) return false;
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: AppColors.surfaceDark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'تفعيل الموقع',
+            style: GoogleFonts.tajawal(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            'نحتاج الموقع مرة واحدة لحساب اتجاه القبلة بدقة.',
+            style: GoogleFonts.tajawal(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'ليس الآن',
+                style: GoogleFonts.tajawal(color: AppColors.textSecondaryDark),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                'السماح',
+                style: GoogleFonts.tajawal(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+
+    if (proceed != true || !mounted) return false;
+
+    final permission = await Geolocator.requestPermission();
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.help_outline, color: Colors.grey[300], size: 20),
-          ),
-          Text(
-            'القبلة',
-            style: GoogleFonts.tajawal(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 40), // Balance the header
-        ],
-      ),
+  void _startCompassMonitor() {
+    if (!_screenVisible) return;
+    _qiblaSub?.cancel();
+    _qiblaSub = _safeQiblaStream().listen(
+      _onCompassEvent,
+      onError: _onCompassError,
     );
+    _startCompassWatchdog();
   }
 
-  Widget _buildQiblaCompass() {
-    return StreamBuilder(
-      stream: FlutterQiblah.qiblahStream,
-      builder: (_, AsyncSnapshot<QiblahDirection> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  Future<void> _pauseCompassMonitor() async {
+    await _qiblaSub?.cancel();
+    _qiblaSub = null;
+    _stopCompassWatchdog();
+    await ref.read(qiblaTonePlayerProvider).stop();
+  }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              "خطأ في قراءة المستشعرات: ${snapshot.error}",
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-        }
+  void _resumeCompassMonitorIfNeeded() {
+    if (_qiblaSub != null) return;
+    if (!_sensorSupported) return;
+    _startCompassMonitor();
+  }
 
-        final qiblahDirection = snapshot.data!;
-        // The angle between Magnetic North and Qibla.
-        final qiblaAngle = qiblahDirection.qiblah * (pi / 180);
-        // The angle between Magnetic North and Device heading (which is stored in 'direction')
-        final compassAngle = qiblahDirection.direction * (pi / 180);
+  void _startCompassWatchdog() {
+    _stopCompassWatchdog();
+    _lastCompassEventAt = DateTime.now();
+    _noCompassWatchdog = Timer.periodic(_noCompassCheckInterval, (_) {
+      if (!_screenVisible || _qiblaSub == null) return;
+      final staleFor = DateTime.now().difference(_lastCompassEventAt);
+      if (staleFor < _noCompassDataTimeout) return;
+      if (_uiState == QiblaUiState.fallbackStaticDirection ||
+          _uiState == QiblaUiState.error) {
+        return;
+      }
 
-        // Calculate offset difference
-        final difference = (qiblahDirection.qiblah - qiblahDirection.direction).abs();
-        final isFacingQibla = difference < 10 || difference > 350;
+      if (_qiblaBearingDeg != null) {
+        _setUiState(QiblaUiState.fallbackStaticDirection, forceRebuild: true);
+      } else {
+        _setUiState(QiblaUiState.error, forceRebuild: true);
+      }
+    });
+  }
 
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              isFacingQibla ? 'أنت في اتجاه القبلة' : 'وجه الهاتف نحو القبلة',
-              style: GoogleFonts.tajawal(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isFacingQibla ? AppColors.primary : Colors.white,
+  void _stopCompassWatchdog() {
+    _noCompassWatchdog?.cancel();
+    _noCompassWatchdog = null;
+  }
+
+  void _handleVisibility(bool visible) {
+    if (_screenVisible == visible) return;
+    _screenVisible = visible;
+    if (_screenVisible) {
+      _resumeCompassMonitorIfNeeded();
+      return;
+    }
+    unawaited(_pauseCompassMonitor());
+  }
+
+  Stream<QiblahDirection> _safeQiblaStream() {
+    try {
+      return FlutterQiblah.qiblahStream;
+    } catch (_) {
+      return Stream.error(
+        StateError('Qibla stream is unavailable on this device'),
+      );
+    }
+  }
+
+  void _onCompassError(Object error) {
+    _lastError = error;
+    _stopCompassWatchdog();
+    if (_qiblaBearingDeg != null) {
+      _setUiState(QiblaUiState.fallbackStaticDirection, forceRebuild: true);
+      return;
+    }
+    _setUiState(QiblaUiState.error, forceRebuild: true);
+  }
+
+  void _onCompassEvent(QiblahDirection event) {
+    if (!_screenVisible) return;
+    if (event.direction.isNaN || event.qiblah.isNaN) return;
+
+    final now = DateTime.now();
+    _lastCompassEventAt = now;
+
+    if (_qiblaBearingDeg == null && !event.offset.isNaN) {
+      _qiblaBearingDeg = _normalize(event.offset);
+    }
+
+    final prevAligned = _isAligned;
+    final prevDirection = _turnDirection;
+    final prevProgress = _alignmentProgress;
+    final prevText = _guidanceText;
+    final prevQuality = _signalQuality;
+
+    final heading = _normalize(event.direction);
+    _smoothedHeadingDeg = _lerpCircular(
+      _smoothedHeadingDeg ?? heading,
+      heading,
+      _headingSmoothing,
+    );
+
+    final relativeDelta = _deltaFromRelativeQibla(event.qiblah);
+    final rawDelta = _qiblaBearingDeg == null
+        ? relativeDelta
+        : () {
+            final bearingDelta = _signedDelta(
+              current: _smoothedHeadingDeg!,
+              target: _qiblaBearingDeg!,
+            );
+            final expectedRelative = _normalize(
+              _smoothedHeadingDeg! + (360 - _qiblaBearingDeg!),
+            );
+            final relativeMismatch = _shortestDeltaAbs(
+              expectedRelative,
+              _normalize(event.qiblah),
+            );
+            return relativeMismatch > _relativeConsistencyTolerance
+                ? relativeDelta
+                : bearingDelta;
+          }();
+
+    _smoothedDeltaDeg = _lerpSignedAngle(
+      _smoothedDeltaDeg ?? rawDelta,
+      rawDelta,
+      _deltaSmoothing,
+    );
+
+    final absDelta = _smoothedDeltaDeg!.abs();
+
+    _updateSignalQuality(_smoothedHeadingDeg!, now);
+    _updateAlignment(absDelta, now);
+    _updateGuidance(absDelta, _smoothedDeltaDeg!);
+
+    final nextState = _deriveUiState(absDelta, now);
+    final stateChanged = _assignUiState(nextState);
+
+    final majorChange =
+        stateChanged ||
+        prevAligned != _isAligned ||
+        prevDirection != _turnDirection ||
+        prevText != _guidanceText ||
+        prevQuality != _signalQuality ||
+        (prevProgress - _alignmentProgress).abs() > 0.02;
+
+    if (!majorChange && now.difference(_lastUiUpdate) < _uiThrottle) {
+      return;
+    }
+
+    _lastUiUpdate = now;
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  bool _assignUiState(QiblaUiState next) {
+    if (_uiState == next) return false;
+    _uiState = next;
+    return true;
+  }
+
+  void _updateSignalQuality(double heading, DateTime now) {
+    const maxWindow = 24;
+    if (_headingWindow.length == maxWindow) {
+      final old = _headingWindow.removeFirst();
+      final oldRad = old * pi / 180;
+      _headingSinSum -= sin(oldRad);
+      _headingCosSum -= cos(oldRad);
+    }
+    _headingWindow.addLast(heading);
+    final rad = heading * pi / 180;
+    _headingSinSum += sin(rad);
+    _headingCosSum += cos(rad);
+
+    final previous = _signalQuality;
+
+    if (_headingWindow.length < 8) {
+      _signalQuality = _SignalQuality.unknown;
+    } else {
+      final size = _headingWindow.length;
+      final meanX = _headingSinSum / size;
+      final meanY = _headingCosSum / size;
+      final r = sqrt((meanX * meanX) + (meanY * meanY));
+
+      if (r >= 0.94) {
+        _signalQuality = _SignalQuality.good;
+      } else if (r >= 0.84) {
+        _signalQuality = _SignalQuality.medium;
+      } else {
+        _signalQuality = _SignalQuality.weak;
+      }
+    }
+
+    if (_signalQuality == _SignalQuality.weak) {
+      _weakSignalSince ??= now;
+    } else {
+      _weakSignalSince = null;
+    }
+
+    if (previous != _signalQuality &&
+        _signalQuality == _SignalQuality.good &&
+        _uiState == QiblaUiState.fallbackStaticDirection) {
+      _uiState = QiblaUiState.activeAligning;
+    }
+  }
+
+  void _updateAlignment(double absDelta, DateTime now) {
+    if (_isAligned) {
+      if (_alignedLockUntil != null && now.isBefore(_alignedLockUntil!)) {
+        return;
+      }
+      if (absDelta > _alignedExitDeg) {
+        _isAligned = false;
+        _alignedLockUntil = null;
+      }
+      return;
+    }
+
+    if (absDelta <= _alignedEnterDeg) {
+      _isAligned = true;
+      _alignedLockUntil = now.add(_successVisualLock);
+      unawaited(_triggerSuccessFeedback());
+    }
+  }
+
+  void _updateGuidance(double absDelta, double signedDelta) {
+    if (_isAligned) {
+      _turnDirection = _TurnDirection.hold;
+      _guidanceText = 'اتجاه القبلة صحيح';
+      _alignmentProgress = 1;
+      return;
+    }
+
+    if (absDelta <= 7) {
+      _turnDirection = _TurnDirection.hold;
+      _guidanceText = 'ثبت الجوال';
+    } else if (signedDelta >= 0) {
+      _turnDirection = _TurnDirection.right;
+      _guidanceText = absDelta <= _nearAlignmentDeg
+          ? 'اقتربت، كمل يمين'
+          : 'لف الجوال يمين';
+    } else {
+      _turnDirection = _TurnDirection.left;
+      _guidanceText = absDelta <= _nearAlignmentDeg
+          ? 'اقتربت، كمل يسار'
+          : 'لف الجوال يسار';
+    }
+
+    _alignmentProgress = (1 - (absDelta / 90)).clamp(0.05, 0.98);
+  }
+
+  QiblaUiState _deriveUiState(double absDelta, DateTime now) {
+    if (!_sensorSupported) {
+      return QiblaUiState.sensorNotSupported;
+    }
+
+    if (_signalQuality == _SignalQuality.weak) {
+      if (_weakSignalSince != null &&
+          now.difference(_weakSignalSince!) >= _weakFallbackAfter) {
+        return QiblaUiState.fallbackStaticDirection;
+      }
+      return QiblaUiState.compassUnreliableNeedsCalibration;
+    }
+
+    if (_isAligned) {
+      return QiblaUiState.alignedSuccess;
+    }
+
+    if (absDelta <= _nearAlignmentDeg) {
+      return QiblaUiState.nearAlignment;
+    }
+
+    return QiblaUiState.activeAligning;
+  }
+
+  Future<void> _triggerSuccessFeedback() async {
+    final now = DateTime.now();
+    if (now.difference(_lastFeedbackAt) < _feedbackCooldown) return;
+    _lastFeedbackAt = now;
+
+    try {
+      await HapticFeedback.lightImpact();
+      final playTone = ref.read(qiblaSuccessToneProvider);
+      if (playTone) {
+        final selectedTone = ref.read(qiblaSuccessToneOptionProvider);
+        await ref.read(qiblaTonePlayerProvider).play(selectedTone);
+      }
+    } catch (_) {
+      // Feedback is optional depending on device support.
+    }
+  }
+
+  Future<void> _retryCalibration() async {
+    _weakSignalSince = null;
+    _headingWindow.clear();
+    _signalQuality = _SignalQuality.unknown;
+    _smoothedDeltaDeg = null;
+    _smoothedHeadingDeg = null;
+    _isAligned = false;
+
+    if (!_sensorSupported) {
+      _setUiState(QiblaUiState.sensorNotSupported, forceRebuild: true);
+      return;
+    }
+
+    if (_screenVisible) {
+      _startCompassMonitor();
+    }
+    _setUiState(QiblaUiState.activeAligning, forceRebuild: true);
+  }
+
+  Future<void> _openManualLocationPicker() async {
+    if (_manualLocationLookupBusy) return;
+
+    String query = '';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              backgroundColor: AppColors.surfaceDark,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${qiblahDirection.direction.toInt()}°',
-              style: GoogleFonts.manrope(
-                fontSize: 20,
-                color: AppColors.textSecondaryDark,
+              title: Text(
+                'اختيار المدينة',
+                style: GoogleFonts.tajawal(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 60),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                // Outer Compass Decoration
-                Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isFacingQibla ? AppColors.primary : AppColors.surfaceDark,
-                      width: 8,
-                    ),
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.surfaceDark.withValues(alpha: 0.2),
-                        AppColors.surfaceDark.withValues(alpha: 0.8),
-                      ],
-                    ),
+              content: TextField(
+                autofocus: true,
+                style: GoogleFonts.tajawal(fontSize: 15, color: Colors.white),
+                onChanged: (value) =>
+                    setDialogState(() => query = value.trim()),
+                onSubmitted: (value) {
+                  query = value.trim();
+                  Navigator.pop(dialogContext, true);
+                },
+                decoration: InputDecoration(
+                  hintText: 'مثال: مكة المكرمة، القاهرة، جاكرتا',
+                  hintStyle: GoogleFonts.tajawal(
+                    fontSize: 13,
+                    color: Colors.white38,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.08),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
                   ),
                 ),
-                
-                // Compass markings
-                ...List.generate(72, (index) {
-                  final isMajor = index % 18 == 0;
-                  return Transform.rotate(
-                    angle: index * 5 * pi / 180,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Container(
-                        margin: const EdgeInsets.only(top: 10),
-                        width: isMajor ? 3 : 1,
-                        height: isMajor ? 12 : 6,
-                        color: isMajor ? Colors.white.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.3),
-                      ),
-                    ),
-                  );
-                }),
-
-                // Rotating Compass Dial
-                Transform.rotate(
-                  angle: compassAngle * -1,
-                  child: Image.network(
-                    'https://lh3.googleusercontent.com/aida-public/compass-rose.png', // Fallback or mock image
-                    width: 260,
-                    height: 260,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.explore,
-                        size: 260,
-                        color: AppColors.surfaceDark,
-                      );
-                    },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(
+                    'إلغاء',
+                    style: GoogleFonts.tajawal(color: Colors.white54),
                   ),
                 ),
-
-                // Qibla Indicator (Kaaba)
-                Transform.rotate(
-                  angle: qiblaAngle,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            color: isFacingQibla ? AppColors.primary : Colors.white,
-                            size: 40,
-                          ),
-                          Container(
-                            width: 20,
-                            height: 20,
-                            color: Colors.black, // Kaaba representation
-                            child: Center(
-                              child: Container(
-                                width: 20,
-                                height: 4,
-                                color: Colors.amber, // Golden band
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                TextButton(
+                  onPressed: query.isEmpty
+                      ? null
+                      : () => Navigator.pop(dialogContext, true),
+                  child: Text(
+                    'اعتماد',
+                    style: GoogleFonts.tajawal(
+                      color: query.isEmpty
+                          ? AppColors.textSecondaryDark
+                          : AppColors.primary,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 60),
-            Consumer(
-              builder: (context, ref, _) {
-                final locationAsync = ref.watch(locationProvider);
-                return locationAsync.when(
-                  data: (position) => Column(
-                    children: [
-                      Text(
-                        'موقعي الحالي',
-                        style: GoogleFonts.tajawal(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}',
-                        style: GoogleFonts.manrope(
-                          fontSize: 14,
-                          color: AppColors.textSecondaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, stackTrace) => const SizedBox.shrink(),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            Consumer(
-              builder: (context, ref, _) {
-                final prayerTimesAsync = ref.watch(prayerTimesProvider);
-                return prayerTimesAsync.when(
-                  data: (prayerTimes) {
-                    final upcoming = PrayerUtils.getUpcomingPrayer(prayerTimes, DateTime.now());
-                    final time = DateFormat('hh:mm a')
-                        .format(upcoming.time)
-                        .replaceAll('AM', 'ص')
-                        .replaceAll('PM', 'م');
-                    return Text(
-                      'الصلاة القادمة: ${_getPrayerNameArabic(upcoming.prayer)} - $time',
-                      style: GoogleFonts.tajawal(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    );
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, stackTrace) => const SizedBox.shrink(),
-                );
-              },
-            ),
-          ],
+          ),
         );
       },
     );
+
+    if (confirmed != true || query.isEmpty) return;
+
+    setState(() {
+      _manualLocationLookupBusy = true;
+    });
+
+    try {
+      final results = await locationFromAddress(
+        query,
+      ).timeout(const Duration(seconds: 12));
+
+      if (results.isEmpty) {
+        _showInfo('لم يتم العثور على المدينة، حاول كتابة اسم آخر');
+      } else {
+        final loc = results.first;
+        await ref
+            .read(manualLocationProvider.notifier)
+            .save(loc.latitude, loc.longitude, query);
+        _showInfo('تم اعتماد موقع $query');
+        await _bootstrap(requestPermissionIfDenied: false, resetRuntime: true);
+      }
+    } on TimeoutException {
+      _showInfo('انتهت مهلة البحث، تحقق من اتصال الإنترنت');
+    } catch (_) {
+      _showInfo('تعذّر تحديد المدينة');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _manualLocationLookupBusy = false;
+        });
+      }
+    }
   }
 
-  String _getPrayerNameArabic(Prayer prayer) {
-    return switch (prayer) {
-      Prayer.fajr => 'الفجر',
-      Prayer.sunrise => 'الشروق',
-      Prayer.dhuhr => 'الظهر',
-      Prayer.asr => 'العصر',
-      Prayer.maghrib => 'المغرب',
-      Prayer.isha => 'العشاء',
-      Prayer.none => 'لا يوجد',
+  void _showInfo(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
+          textDirection: TextDirection.rtl,
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _retryAll() =>
+      _bootstrap(requestPermissionIfDenied: true, resetRuntime: true);
+
+  double _normalize(double deg) {
+    var normalized = deg % 360;
+    if (normalized < 0) normalized += 360;
+    return normalized;
+  }
+
+  double _signedFromNormalized(double deg) {
+    final normalized = _normalize(deg);
+    return normalized > 180 ? normalized - 360 : normalized;
+  }
+
+  double _signedDelta({required double current, required double target}) {
+    return ((target - current + 540) % 360) - 180;
+  }
+
+  double _shortestDeltaAbs(double a, double b) {
+    return (((b - a + 540) % 360) - 180).abs();
+  }
+
+  double _deltaFromRelativeQibla(double relativeQibla) {
+    final signed = _signedFromNormalized(relativeQibla);
+    return -signed;
+  }
+
+  double _lerpCircular(double from, double to, double t) {
+    final diff = ((to - from + 540) % 360) - 180;
+    return (from + diff * t + 360) % 360;
+  }
+
+  double _lerpSignedAngle(double from, double to, double t) {
+    final current = _normalize(from);
+    final target = _normalize(to);
+    final blended = _lerpCircular(current, target, t);
+    return _signedFromNormalized(blended);
+  }
+
+  double _greatCircleBearingToKaaba({
+    required double latitude,
+    required double longitude,
+  }) {
+    const kaabaLat = 21.422487;
+    const kaabaLon = 39.826206;
+
+    final phi1 = latitude * pi / 180.0;
+    final phi2 = kaabaLat * pi / 180.0;
+    final dLon = (kaabaLon - longitude) * pi / 180.0;
+
+    final y = sin(dLon) * cos(phi2);
+    final x = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dLon);
+
+    final bearing = atan2(y, x) * 180.0 / pi;
+    return _normalize(bearing);
+  }
+
+  bool _sameManualLocation(ManualLocation? a, ManualLocation? b) {
+    if (identical(a, b)) return true;
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.lat == b.lat && a.lng == b.lng && a.name == b.name;
+  }
+
+  String get _qualityLabel => switch (_signalQuality) {
+    _SignalQuality.good => 'جيدة',
+    _SignalQuality.medium => 'متوسطة',
+    _SignalQuality.weak => 'ضعيفة',
+    _SignalQuality.unknown => 'غير مستقرة',
+  };
+
+  Color get _guidanceColor => switch (_uiState) {
+    QiblaUiState.nearAlignment => const Color(0xFFE2A64C),
+    QiblaUiState.alignedSuccess => AppColors.primary,
+    _ => const Color(0xFF75B8C2),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    _handleVisibility(TickerMode.valuesOf(context).enabled);
+    final manualLocation = ref.watch(manualLocationProvider);
+
+    if (!_sameManualLocation(_lastManualLocation, manualLocation)) {
+      _lastManualLocation = manualLocation;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          _bootstrap(requestPermissionIfDenied: false, resetRuntime: true),
+        );
+      });
+    }
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'القبلة',
+            style: GoogleFonts.tajawal(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () => setState(() => _showDetails = !_showDetails),
+              icon: Icon(
+                _showDetails ? Icons.visibility_off : Icons.info_outline,
+                color: Colors.white70,
+                size: 18,
+              ),
+              label: Text(
+                _showDetails ? 'إخفاء' : 'تفاصيل',
+                style: GoogleFonts.tajawal(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        body: _buildBody(manualLocation),
+      ),
+    );
+  }
+
+  Widget _buildBody(ManualLocation? manualLocation) {
+    return switch (_uiState) {
+      QiblaUiState.loadingPermissions => _buildLoadingState(),
+      QiblaUiState.locationUnavailable => _buildLocationUnavailableState(
+        manualLocation,
+      ),
+      QiblaUiState.sensorNotSupported => _buildFallbackStaticState(
+        title: 'البوصلة غير متوفرة في هذا الجهاز',
+        subtitle: 'سنعرض اتجاهًا تقريبيًا اعتمادًا على الموقع',
+        manualLocation: manualLocation,
+      ),
+      QiblaUiState.fallbackStaticDirection => _buildFallbackStaticState(
+        title: 'الاتجاه التقريبي للقبلة',
+        subtitle: 'تعذّر الاعتماد على البوصلة بدقة الآن',
+        manualLocation: manualLocation,
+      ),
+      QiblaUiState.error => _buildErrorState(),
+      QiblaUiState.compassUnreliableNeedsCalibration ||
+      QiblaUiState.activeAligning ||
+      QiblaUiState.nearAlignment ||
+      QiblaUiState.alignedSuccess => _buildGuidedAlignmentState(manualLocation),
     };
   }
+
+  Widget _buildLoadingState() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(color: AppColors.primary),
+        const SizedBox(height: 14),
+        Text(
+          'جاري تجهيز توجيه القبلة...',
+          style: GoogleFonts.tajawal(
+            color: AppColors.textSecondaryDark,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildLocationUnavailableState(ManualLocation? manualLocation) {
+    return _buildStateCard(
+      icon: Icons.location_off,
+      iconColor: Colors.orange.shade300,
+      title: 'لا يمكن تحديد موقعك حاليًا',
+      subtitle: 'فعّل الموقع أو اختر مدينة يدويًا، وسنحسب اتجاه القبلة مباشرة.',
+      extra: [
+        if (manualLocation != null)
+          _stateBadge('الموقع اليدوي الحالي: ${manualLocation.name}'),
+      ],
+      actions: [
+        _StateAction(label: 'إعادة المحاولة', primary: true, onTap: _retryAll),
+        _StateAction(
+          label: _manualLocationLookupBusy
+              ? 'جاري البحث...'
+              : 'اختيار مدينة يدويًا',
+          onTap: _manualLocationLookupBusy ? null : _openManualLocationPicker,
+        ),
+        _StateAction(
+          label: 'فتح إعدادات الموقع',
+          onTap: Geolocator.openLocationSettings,
+        ),
+        _StateAction(
+          label: 'فتح إعدادات التطبيق',
+          onTap: Geolocator.openAppSettings,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorState() {
+    return _buildStateCard(
+      icon: Icons.error_outline,
+      iconColor: Colors.red.shade300,
+      title: 'حدث خطأ في ميزة القبلة',
+      subtitle: 'أعد المحاولة، وإن تكررت المشكلة استخدم الاتجاه التقريبي.',
+      extra: _showDetails && _lastError != null
+          ? [_stateBadge('تفاصيل: $_lastError')]
+          : const [],
+      actions: [
+        _StateAction(label: 'إعادة المحاولة', primary: true, onTap: _retryAll),
+        _StateAction(
+          label: _manualLocationLookupBusy
+              ? 'جاري البحث...'
+              : 'اختيار مدينة يدويًا',
+          onTap: _manualLocationLookupBusy ? null : _openManualLocationPicker,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuidedAlignmentState(ManualLocation? manualLocation) {
+    final baseBg = Theme.of(context).scaffoldBackgroundColor;
+    final nearBg = const Color(0xFF29240F);
+    final successBg = const Color(0xFF113427);
+    final bgColor = switch (_uiState) {
+      QiblaUiState.alignedSuccess => successBg,
+      QiblaUiState.nearAlignment => nearBg,
+      _ => baseBg,
+    };
+
+    return Stack(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          color: bgColor,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: _isAligned ? _alignedSuccessView() : _activeGuidanceView(),
+            ),
+          ),
+        ),
+        if (_uiState == QiblaUiState.compassUnreliableNeedsCalibration)
+          _buildCalibrationOverlay(),
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 16,
+          child: _bottomStatusBar(manualLocation),
+        ),
+      ],
+    );
+  }
+
+  Widget _activeGuidanceView() {
+    final icon = switch (_turnDirection) {
+      _TurnDirection.left => Icons.keyboard_double_arrow_left_rounded,
+      _TurnDirection.right => Icons.keyboard_double_arrow_right_rounded,
+      _TurnDirection.hold => Icons.pan_tool_alt_rounded,
+    };
+
+    return Padding(
+      key: const ValueKey('active-guidance'),
+      padding: const EdgeInsets.symmetric(horizontal: 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedBuilder(
+            animation: _pulseAnim,
+            builder: (_, child) => Transform.scale(
+              scale: 1 + (_pulseAnim.value * 0.08),
+              child: child,
+            ),
+            child: Icon(icon, size: 220, color: _guidanceColor),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _guidanceText,
+            style: GoogleFonts.tajawal(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'حرّك الجوال حتى تظهر علامة القبلة',
+            style: GoogleFonts.tajawal(
+              fontSize: 14,
+              color: AppColors.textSecondaryDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: LinearProgressIndicator(
+              value: _alignmentProgress,
+              minHeight: 10,
+              backgroundColor: Colors.white12,
+              valueColor: AlwaysStoppedAnimation<Color>(_guidanceColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _alignedSuccessView() {
+    return Padding(
+      key: const ValueKey('aligned-success'),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedBuilder(
+            animation: _pulseAnim,
+            builder: (_, child) => Transform.scale(
+              scale: 1 + (_pulseAnim.value * 0.05),
+              child: child,
+            ),
+            child: const Text('🕋', style: TextStyle(fontSize: 170, height: 1)),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'أنت الآن باتجاه القبلة',
+            style: GoogleFonts.tajawal(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'ثبت الجوال',
+            style: GoogleFonts.tajawal(
+              fontSize: 14,
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomStatusBar(ManualLocation? manualLocation) {
+    if (!_showDetails) return const SizedBox.shrink();
+
+    final stateName = _uiState.machineName;
+    final qiblaDeg = _qiblaBearingDeg;
+    final delta = _smoothedDeltaDeg?.abs();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xCC0E1F1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Text(
+        [
+          'الحالة: $stateName',
+          'الإشارة: $_qualityLabel',
+          if (manualLocation != null) 'الموقع: ${manualLocation.name}',
+          if (qiblaDeg != null) 'زاوية القبلة: ${_toArabicFloat(qiblaDeg)}°',
+          if (delta != null) 'الفرق الحالي: ${_toArabicFloat(delta)}°',
+        ].join('  •  '),
+        style: GoogleFonts.tajawal(
+          fontSize: 11,
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildCalibrationOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: const Color(0x8A000000),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF19332F),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2A64C)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 64,
+                  child: CustomPaint(painter: _Figure8Painter()),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'البوصلة تحتاج معايرة',
+                  style: GoogleFonts.tajawal(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'حرّك الجوال بشكل 8\nوابتعد عن المعادن أو الغطاء المغناطيسي',
+                  style: GoogleFonts.tajawal(
+                    color: AppColors.textSecondaryDark,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _retryCalibration,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'إعادة الفحص',
+                          style: GoogleFonts.tajawal(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _manualLocationLookupBusy
+                            ? null
+                            : _openManualLocationPicker,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'اختيار مدينة',
+                          style: GoogleFonts.tajawal(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackStaticState({
+    required String title,
+    required String subtitle,
+    required ManualLocation? manualLocation,
+  }) {
+    final bearing = _qiblaBearingDeg;
+    final hasBearing = bearing != null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.tajawal(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: GoogleFonts.tajawal(
+              fontSize: 14,
+              color: AppColors.textSecondaryDark,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0D2622),
+              border: Border.all(color: const Color(0xFF2D5E57), width: 2),
+            ),
+            child: Center(
+              child: hasBearing
+                  ? Transform.rotate(
+                      angle: bearing * pi / 180,
+                      child: const Icon(
+                        Icons.navigation_rounded,
+                        size: 150,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.explore_off_rounded,
+                      size: 120,
+                      color: Colors.white38,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            hasBearing ? 'هذا اتجاه تقريبي للقبلة' : 'تعذّر حساب زاوية القبلة',
+            style: GoogleFonts.tajawal(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFFE2A64C),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            hasBearing
+                ? 'للحصول على دقة أعلى: أصلح البوصلة أو استخدم جهاز آخر'
+                : 'فعّل الموقع أو اختر مدينة يدويًا ثم أعد المحاولة',
+            style: GoogleFonts.tajawal(
+              fontSize: 13,
+              color: AppColors.textSecondaryDark,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (_showDetails) ...[
+            const SizedBox(height: 10),
+            if (hasBearing)
+              _stateBadge(
+                'زاوية القبلة: ${_toArabicFloat(bearing)}°  •  الإشارة: $_qualityLabel',
+              )
+            else
+              _stateBadge(
+                'زاوية القبلة غير متاحة حاليًا  •  الإشارة: $_qualityLabel',
+              ),
+            if (manualLocation != null) ...[
+              const SizedBox(height: 6),
+              _stateBadge('الموقع: ${manualLocation.name}'),
+            ],
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _retryAll,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'إعادة المحاولة',
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: Geolocator.openLocationSettings,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'إعدادات الموقع',
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: _manualLocationLookupBusy
+                    ? null
+                    : _openManualLocationPicker,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  _manualLocationLookupBusy
+                      ? 'جاري البحث...'
+                      : 'اختيار مدينة يدويًا',
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStateCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required List<_StateAction> actions,
+    List<Widget> extra = const [],
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 68, color: iconColor),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: GoogleFonts.tajawal(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: GoogleFonts.tajawal(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (extra.isNotEmpty) ...[const SizedBox(height: 12), ...extra],
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: actions
+                    .map(
+                      (action) => action.primary
+                          ? ElevatedButton(
+                              onPressed: action.onTap,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                action.label,
+                                style: GoogleFonts.tajawal(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : OutlinedButton(
+                              onPressed: action.onTap,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                action.label,
+                                style: GoogleFonts.tajawal(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _stateBadge(String text) => Container(
+    margin: const EdgeInsets.only(top: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.white10),
+    ),
+    child: Text(
+      ArabicUtils.toArabicDigitsFromText(text),
+      style: GoogleFonts.tajawal(
+        color: Colors.white70,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      textAlign: TextAlign.center,
+    ),
+  );
+
+  String _toArabicFloat(double value) {
+    return ArabicUtils.toArabicDigitsFromText(value.toStringAsFixed(1));
+  }
+}
+
+class _StateAction {
+  final String label;
+  final VoidCallback? onTap;
+  final bool primary;
+
+  const _StateAction({
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+  });
+}
+
+class _Figure8Painter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    for (int i = 0; i <= 360; i += 3) {
+      final t = i * pi / 180;
+      final x = size.width * 0.5 + (size.width * 0.32 * sin(t));
+      final y = size.height * 0.5 + (size.height * 0.28 * sin(2 * t));
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

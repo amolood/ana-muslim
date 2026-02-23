@@ -1,10 +1,7 @@
 import 'package:adhan/adhan.dart';
 
 class UpcomingPrayerInfo {
-  const UpcomingPrayerInfo({
-    required this.prayer,
-    required this.time,
-  });
+  const UpcomingPrayerInfo({required this.prayer, required this.time});
 
   final Prayer prayer;
   final DateTime time;

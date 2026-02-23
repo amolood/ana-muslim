@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>فهرس سور القرآن - تطبيق المسلم</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Noto+Sans+Arabic:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#11d4b4",
+                        "primary-dark": "#0ea68c",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#0b1412",
+                        "surface-dark": "#11221f",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        display: ["Noto Sans Arabic", "Manrope", "sans-serif"],
+                        sans: ["Noto Sans Arabic", "Manrope", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        lg: "1rem",
+                        xl: "1.5rem",
+                        "2xl": "2rem",
+                        full: "9999px"
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px -5px rgba(17, 212, 180, 0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for hidden feel */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Islamic Pattern Overlay */
+        .islamic-pattern {
+            background-image: radial-gradient(#11d4b4 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.05;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col overflow-hidden relative">
+<!-- Background Pattern -->
+<div class="absolute inset-0 islamic-pattern pointer-events-none z-0"></div>
+<!-- Top Navigation & Header Area -->
+<header class="relative z-10 pt-12 pb-4 px-5 bg-gradient-to-b from-background-dark via-background-dark to-transparent">
+<div class="flex items-center justify-between mb-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-dark/50 backdrop-blur-sm hover:bg-surface-dark transition-colors text-slate-300">
+<span class="material-symbols-outlined text-xl">person</span>
+</button>
+<h1 class="text-xl font-bold text-white tracking-wide">القرآن الكريم</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-dark/50 backdrop-blur-sm hover:bg-surface-dark transition-colors text-slate-300">
+<span class="material-symbols-outlined text-xl rtl:rotate-180">arrow_forward_ios</span>
+</button>
+</div>
+<!-- Last Read Banner (Floating Card style) -->
+<div class="relative w-full rounded-2xl overflow-hidden shadow-glow group cursor-pointer mb-6">
+<div class="absolute inset-0 bg-gradient-to-r from-[#1a3a34] to-[#11221f]"></div>
+<img alt="Quran Background" class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" data-alt="Open Quran book with warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKou7kv9T7g5axmUshNt4G-cgk6BKAHIlySMOsD4pOiiz4Tp4Bz3pkKOcSGvXwOAyAW1WjtTL1goPi2N8Adm_i1Xra6ssb5JMU5RejrlZYo-G3e_FX8jLcHfa0OgVle8ovxvwVrBzgmaYJ06u9IjdlsnMnhCptbDztgBmdhqi9SRLs4dwBSbWMr6uKUiqTRhiqvZE3EY_B3L0rhIGHmyZop9wEhY0EsGHnB2cYuXitC9UGGNrwSaQw43xentScFiH5RzeJCPnU7Q"/>
+<div class="relative p-5 flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-sm">menu_book</span>
+<p class="text-xs font-medium text-primary uppercase tracking-wider">آخر قراءة</p>
+</div>
+<h3 class="text-lg font-bold text-white mb-1">سورة الكهف</h3>
+<p class="text-xs text-slate-400">آية رقم ١١٠</p>
+</div>
+<button class="bg-primary hover:bg-primary-dark text-background-dark font-bold py-2 px-4 rounded-xl text-sm transition-colors flex items-center gap-2">
+                    متابعة
+                    <span class="material-symbols-outlined text-lg rtl:rotate-180">arrow_right_alt</span>
+</button>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative mb-2">
+<div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400">search</span>
+</div>
+<input class="block w-full pr-12 pl-12 py-3.5 bg-surface-dark border-none rounded-xl text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all shadow-sm text-sm" placeholder="بحث عن سورة..." type="text"/>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+<button class="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400">
+<span class="material-symbols-outlined text-xl">mic</span>
+</button>
+</div>
+</div>
+<!-- Filter Tags -->
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary text-background-dark text-sm font-bold shadow-glow">
+                الكل
+            </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-dark border border-white/5 text-slate-400 text-sm font-medium hover:text-white hover:bg-white/5 transition-colors">
+                مكية
+            </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-dark border border-white/5 text-slate-400 text-sm font-medium hover:text-white hover:bg-white/5 transition-colors">
+                مدنية
+            </button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-dark border border-white/5 text-slate-400 text-sm font-medium hover:text-white hover:bg-white/5 transition-colors">
+                المفضلة
+            </button>
+</div>
+</header>
+<!-- Surah List Container -->
+<main class="flex-1 overflow-y-auto no-scrollbar px-5 pb-24 relative z-0">
+<div class="space-y-3">
+<!-- Surah Item 1 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<!-- Number -->
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">١</span>
+</div>
+<!-- Info -->
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة الفاتحة</h3>
+<span class="text-xs font-amiri text-slate-500">Al-Fatiha</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                            مكية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ٧ آيات
+                        </span>
+</div>
+</div>
+<!-- Action Icon -->
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 2 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٢</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة البقرة</h3>
+<span class="text-xs font-amiri text-slate-500">Al-Baqarah</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60"></span>
+                            مدنية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ٢٨٦ آية
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 3 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٣</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة آل عمران</h3>
+<span class="text-xs font-amiri text-slate-500">Aali Imran</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60"></span>
+                            مدنية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ٢٠٠ آية
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 4 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٤</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة النساء</h3>
+<span class="text-xs font-amiri text-slate-500">An-Nisa</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60"></span>
+                            مدنية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ١٧٦ آية
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 5 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٥</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة المائدة</h3>
+<span class="text-xs font-amiri text-slate-500">Al-Ma'idah</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60"></span>
+                            مدنية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ١٢٠ آية
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 6 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٦</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة الأنعام</h3>
+<span class="text-xs font-amiri text-slate-500">Al-An'am</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                            مكية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ١٦٥ آية
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+<!-- Surah Item 7 -->
+<div class="group relative flex items-center p-4 bg-surface-dark rounded-2xl border border-white/5 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md">
+<div class="relative flex items-center justify-center w-10 h-10 ml-4">
+<span class="material-symbols-outlined text-primary/20 text-[44px] absolute">pentagon</span>
+<span class="text-sm font-bold text-primary relative z-10 font-display">٧</span>
+</div>
+<div class="flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-1">
+<h3 class="text-base font-bold text-white group-hover:text-primary transition-colors">سورة الأعراف</h3>
+<span class="text-xs font-amiri text-slate-500">Al-A'raf</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                            مكية
+                        </span>
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                            ٢٠٦ آيات
+                        </span>
+</div>
+</div>
+<div class="mr-4 text-slate-600 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined rtl:rotate-180">chevron_right</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Floating) -->
+<div class="absolute bottom-0 left-0 w-full p-4 z-20 pointer-events-none">
+<nav class="bg-surface-dark/95 backdrop-blur-md border border-white/5 rounded-3xl shadow-2xl flex justify-around items-center px-2 py-3 pointer-events-auto">
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">home</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary transition-colors">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group relative" href="#">
+<div class="absolute -top-1 right-2 w-2 h-2 bg-primary rounded-full"></div>
+<span class="material-symbols-outlined text-primary fill-current text-2xl" style="font-variation-settings: 'FILL' 1">menu_book</span>
+<span class="text-[10px] font-bold text-primary">القرآن</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">schedule</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary transition-colors">المواقيت</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">mosque</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary transition-colors">الأذكار</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-2xl">settings</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary transition-colors">الإعدادات</span>
+</a>
+</nav>
+</div>
+</body></html>

@@ -11,12 +11,19 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.backgroundLight,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
-        surface: AppColors.backgroundLight,
+        secondary: AppColors.primary,
+        surface: AppColors.surfaceLight,
+        onSurface: AppColors.textPrimaryLight,
+        onSurfaceVariant: AppColors.textSecondaryLight,
+        outline: AppColors.borderLight,
       ),
-      textTheme: GoogleFonts.tajawalTextTheme(ThemeData.light().textTheme).copyWith(
-        bodyLarge: const TextStyle(color: AppColors.textPrimaryLight),
-        bodyMedium: const TextStyle(color: AppColors.textPrimaryLight),
-      ),
+      textTheme: GoogleFonts.tajawalTextTheme(ThemeData.light().textTheme)
+          .copyWith(
+            bodyLarge: const TextStyle(color: AppColors.textPrimaryLight),
+            bodyMedium: const TextStyle(color: AppColors.textPrimaryLight),
+            bodySmall: const TextStyle(color: AppColors.textSecondaryLight),
+            labelMedium: const TextStyle(color: AppColors.textSecondaryLight),
+          ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.backgroundLight,
         elevation: 0,
@@ -26,6 +33,10 @@ class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderLight,
+        thickness: 1,
       ),
     );
   }
@@ -38,13 +49,19 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.backgroundDark,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
-        surface: AppColors.backgroundDark,
+        secondary: AppColors.primary,
+        surface: AppColors.surfaceDark,
+        onSurface: AppColors.textPrimaryDark,
+        onSurfaceVariant: AppColors.textSecondaryDark,
+        outline: AppColors.borderDark,
       ),
-      textTheme: GoogleFonts.tajawalTextTheme(ThemeData.dark().textTheme).copyWith(
-        bodyLarge: const TextStyle(color: AppColors.textPrimaryDark),
-        bodyMedium: const TextStyle(color: AppColors.textPrimaryDark),
-        bodySmall: const TextStyle(color: AppColors.textSecondaryDark),
-      ),
+      textTheme: GoogleFonts.tajawalTextTheme(ThemeData.dark().textTheme)
+          .copyWith(
+            bodyLarge: const TextStyle(color: AppColors.textPrimaryDark),
+            bodyMedium: const TextStyle(color: AppColors.textPrimaryDark),
+            bodySmall: const TextStyle(color: AppColors.textSecondaryDark),
+            labelMedium: const TextStyle(color: AppColors.textSecondaryDark),
+          ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.backgroundDark,
         elevation: 0,
@@ -54,6 +71,10 @@ class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderDark,
+        thickness: 1,
       ),
     );
   }

@@ -1,45 +1,36 @@
+import 'dart:async';
+
 import 'package:adhan/adhan.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:quran_library/quran_library.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tafsir_library/tafsir_library.dart';
-
 import 'core/notifications/notifications_service.dart';
 import 'core/providers/preferences_provider.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/widget_service.dart';
 import 'core/theme/app_theme.dart';
-import 'features/azkar/data/repositories/azkar_repository.dart';
 import 'features/prayer_times/presentation/providers/prayer_times_provider.dart';
 
 // Provider to handle all asynchronous app initializations.
 final appStartupProvider = FutureProvider<void>((ref) async {
   await initializeDateFormatting();
-  intl.Intl.defaultLocale = 'ar';
-
-  // Core library initializations
   await QuranLibrary.init();
-  await NotificationsService.init();
-
-  // Warm-up Muslim data repository (drift SQLite database)
-  await AzkarRepository.instance.init();
+  await Future.wait<void>([
+    NotificationsService.init(),
+    WidgetService.initialize(),
+  ]);
+  intl.Intl.defaultLocale = 'ar';
 });
 
 void main() async {
   // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Tafsir library — initializes GetX controllers + get_storage internally.
-  // We move this to main() to ensure it's registered early and once.
-  try {
-    await TafsirLibrary.initialize();
-  } catch (e) {
-    debugPrint('[TafsirLibrary] Init failed: $e');
-  }
 
   final sharedPreferences = await SharedPreferences.getInstance();
 
@@ -79,8 +70,9 @@ class MyApp extends ConsumerWidget {
           'كبير' => 1.12,
           _ => 1.0,
         };
-        final textDirection =
-            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+        final textDirection = locale.languageCode == 'ar'
+            ? TextDirection.rtl
+            : TextDirection.ltr;
 
         return MaterialApp.router(
           title: "I'm Muslim",
@@ -94,11 +86,7 @@ class MyApp extends ConsumerWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('ar'),
-            Locale('en'),
-            Locale('fr'),
-          ],
+          supportedLocales: const [Locale('ar'), Locale('en'), Locale('fr')],
           routerConfig: AppRouter.router,
           builder: (context, child) {
             final mediaQuery = MediaQuery.of(context);
@@ -125,9 +113,7 @@ class MyApp extends ConsumerWidget {
       home: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF11D4B4),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF11D4B4)),
         ),
       ),
     );
@@ -135,11 +121,7 @@ class MyApp extends ConsumerWidget {
 
   Widget _buildErrorScreen(Object e) {
     return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Error initializing app: $e'),
-        ),
-      ),
+      home: Scaffold(body: Center(child: Text('Error initializing app: $e'))),
     );
   }
 }
@@ -156,89 +138,316 @@ class _NotificationScheduler extends ConsumerStatefulWidget {
       _NotificationSchedulerState();
 }
 
-class _NotificationSchedulerState
-    extends ConsumerState<_NotificationScheduler> {
+class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
+    with WidgetsBindingObserver {
+  ProviderSubscription<AsyncValue<PrayerTimes>>? _prayerTimesSub;
+  ProviderSubscription<bool>? _adhanToggleSub;
+  ProviderSubscription<PrayerNotifSettings>? _prayerSettingsSub;
+  ProviderSubscription<PrayerManualExactSettings>? _manualPrayerExactSub;
+  ProviderSubscription<PrayerManualOffsets>? _manualPrayerOffsetSub;
+  ProviderSubscription<String>? _calcMethodSub;
+  ProviderSubscription<MotivationReminderSettings>? _motivationSub;
+  Timer? _prayerRescheduleDebounce;
+  Timer? _locationRefreshTimer;
+  bool _isPrayerRescheduleRunning = false;
+  bool _hasPendingPrayerReschedule = false;
+  String? _lastPrayerScheduleSignature;
+
   @override
   void initState() {
     super.initState();
-    // Reschedule on first build via a microtask so providers are ready
-    Future.microtask(_rescheduleIfEnabled);
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(() {
+      _bindListeners();
+      _startLocationRefreshTimer();
+      _requestPrayerReschedule(delay: Duration.zero);
+      _rescheduleMotivationReminders(ref.read(motivationReminderProvider));
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _prayerRescheduleDebounce?.cancel();
+    _locationRefreshTimer?.cancel();
+    _prayerTimesSub?.close();
+    _adhanToggleSub?.close();
+    _prayerSettingsSub?.close();
+    _manualPrayerExactSub?.close();
+    _manualPrayerOffsetSub?.close();
+    _calcMethodSub?.close();
+    _motivationSub?.close();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    _refreshLocationAndPrayerTimes();
+    _requestPrayerReschedule(delay: Duration.zero);
+  }
+
+  void _bindListeners() {
+    _prayerTimesSub = ref.listenManual<AsyncValue<PrayerTimes>>(
+      prayerTimesProvider,
+      (previous, next) {
+        if (next is AsyncData<PrayerTimes>) {
+          _requestPrayerReschedule();
+        }
+      },
+    );
+
+    _adhanToggleSub = ref.listenManual<bool>(adhanAlertsProvider, (
+      previous,
+      next,
+    ) {
+      _requestPrayerReschedule();
+    });
+
+    _prayerSettingsSub = ref.listenManual<PrayerNotifSettings>(
+      prayerNotifSettingsProvider,
+      (previous, next) {
+        _requestPrayerReschedule();
+      },
+    );
+
+    _manualPrayerExactSub = ref.listenManual<PrayerManualExactSettings>(
+      prayerManualExactSettingsProvider,
+      (previous, next) {
+        _requestPrayerReschedule();
+      },
+    );
+
+    _manualPrayerOffsetSub = ref.listenManual<PrayerManualOffsets>(
+      prayerManualOffsetsProvider,
+      (previous, next) {
+        _requestPrayerReschedule();
+      },
+    );
+
+    _calcMethodSub = ref.listenManual<String>(calculationMethodProvider, (
+      previous,
+      next,
+    ) {
+      _requestPrayerReschedule();
+    });
+
+    _motivationSub = ref.listenManual<MotivationReminderSettings>(
+      motivationReminderProvider,
+      (previous, next) {
+        _rescheduleMotivationReminders(next);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Re-schedule whenever prayer times data changes
-    ref.listen<AsyncValue<PrayerTimes>>(prayerTimesProvider, (prev, next) {
-      if (next is AsyncData<PrayerTimes>) {
-        _rescheduleIfEnabled();
-      }
-    });
-
-    // Re-schedule whenever the global notification toggle changes
-    ref.listen<bool>(adhanAlertsProvider, (prev, next) {
-      _rescheduleIfEnabled();
-    });
-
-    // Re-schedule when calculation method changes (triggers new prayer times)
-    ref.listen<String>(calculationMethodProvider, (prev, next) {
-      // prayerTimesProvider will automatically update; the listen above handles it
-    });
-
     return widget.child;
   }
 
-  Future<void> _rescheduleIfEnabled() async {
+  void _requestPrayerReschedule({
+    Duration delay = const Duration(milliseconds: 400),
+  }) {
+    _prayerRescheduleDebounce?.cancel();
+    _prayerRescheduleDebounce = Timer(delay, _runPrayerRescheduleIfNeeded);
+  }
+
+  void _startLocationRefreshTimer() {
+    _locationRefreshTimer?.cancel();
+    _locationRefreshTimer = Timer.periodic(const Duration(minutes: 30), (_) {
+      _refreshLocationAndPrayerTimes();
+      _requestPrayerReschedule(delay: Duration.zero);
+    });
+  }
+
+  void _refreshLocationAndPrayerTimes() {
+    final manualExact = ref.read(prayerManualExactSettingsProvider);
+    if (manualExact.enabled) {
+      return;
+    }
+    ref.invalidate(locationProvider);
+    ref.invalidate(prayerTimesProvider);
+  }
+
+  Future<void> _runPrayerRescheduleIfNeeded() async {
+    if (_isPrayerRescheduleRunning) {
+      _hasPendingPrayerReschedule = true;
+      return;
+    }
+
+    _isPrayerRescheduleRunning = true;
     try {
+      do {
+        _hasPendingPrayerReschedule = false;
+        final signature = await _rescheduleIfEnabled();
+        if (signature != null) {
+          _lastPrayerScheduleSignature = signature;
+        }
+      } while (_hasPendingPrayerReschedule);
+    } finally {
+      _isPrayerRescheduleRunning = false;
+    }
+  }
+
+  String _buildPrayerScheduleSignature({
+    required PrayerManualExactSettings manualExact,
+    double? latitude,
+    double? longitude,
+  }) {
+    final enabled = ref.read(adhanAlertsProvider);
+    final notif = ref.read(prayerNotifSettingsProvider);
+    final manualOffsets = ref.read(prayerManualOffsetsProvider);
+    final calcMethod = ref.read(calculationMethodProvider);
+    final now = DateTime.now();
+    final dayKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final manualExactPart = manualExact.enabled
+        ? 'exact:1:${manualExact.fajr.hour}:${manualExact.fajr.minute}:${manualExact.dhuhr.hour}:${manualExact.dhuhr.minute}:${manualExact.asr.hour}:${manualExact.asr.minute}:${manualExact.maghrib.hour}:${manualExact.maghrib.minute}:${manualExact.isha.hour}:${manualExact.isha.minute}'
+        : 'exact:0';
+    final locationPart = latitude == null || longitude == null
+        ? 'loc:none'
+        : 'loc:${latitude.toStringAsFixed(2)},${longitude.toStringAsFixed(2)}';
+
+    return [
+      'day:$dayKey',
+      'enabled:$enabled',
+      'calc:$calcMethod',
+      'notif:${notif.fajrEnabled}:${notif.fajrOffset}:${notif.dhuhrEnabled}:${notif.dhuhrOffset}:${notif.asrEnabled}:${notif.asrOffset}:${notif.maghribEnabled}:${notif.maghribOffset}:${notif.ishaEnabled}:${notif.ishaOffset}',
+      manualExactPart,
+      'adj:${manualOffsets.fajr}:${manualOffsets.sunrise}:${manualOffsets.dhuhr}:${manualOffsets.asr}:${manualOffsets.maghrib}:${manualOffsets.isha}',
+      locationPart,
+    ].join('|');
+  }
+
+  Future<String?> _rescheduleIfEnabled() async {
+    try {
+      final manualExact = ref.read(prayerManualExactSettingsProvider);
+      String scheduleSignature;
+      Position? position;
+      if (manualExact.enabled) {
+        scheduleSignature = _buildPrayerScheduleSignature(
+          manualExact: manualExact,
+        );
+      } else {
+        position = await ref.read(locationProvider.future);
+        scheduleSignature = _buildPrayerScheduleSignature(
+          manualExact: manualExact,
+          latitude: position!.latitude,
+          longitude: position.longitude,
+        );
+      }
+      if (scheduleSignature == _lastPrayerScheduleSignature) {
+        return scheduleSignature;
+      }
+
+      final prefs = ref.read(sharedPreferencesProvider);
+      final savedSignature = prefs.getString('prayer_schedule_signature_v1');
+      if (savedSignature == scheduleSignature) {
+        return scheduleSignature;
+      }
+
       final enabled = ref.read(adhanAlertsProvider);
-      final locationAsync = ref.read(locationProvider);
-      final calcMethodStr = ref.read(calculationMethodProvider);
+      final notifSettings = ref.read(prayerNotifSettingsProvider);
+      final enabledMap = <Prayer, bool>{
+        Prayer.fajr: enabled && notifSettings.fajrEnabled,
+        Prayer.dhuhr: enabled && notifSettings.dhuhrEnabled,
+        Prayer.asr: enabled && notifSettings.asrEnabled,
+        Prayer.maghrib: enabled && notifSettings.maghribEnabled,
+        Prayer.isha: enabled && notifSettings.ishaEnabled,
+      };
 
-      locationAsync.whenData((position) {
-        final coords =
-            Coordinates(position.latitude, position.longitude);
+      final offsetMap = <Prayer, int>{
+        Prayer.fajr: notifSettings.fajrOffset,
+        Prayer.dhuhr: notifSettings.dhuhrOffset,
+        Prayer.asr: notifSettings.asrOffset,
+        Prayer.maghrib: notifSettings.maghribOffset,
+        Prayer.isha: notifSettings.ishaOffset,
+      };
+
+      if (manualExact.enabled) {
+        final now = DateTime.now();
+        await NotificationsService.rescheduleManualPrayerTimes(
+          enabledMap: enabledMap,
+          manualTimes: <Prayer, DateTime>{
+            Prayer.fajr: manualExact.dateTimeFor(Prayer.fajr, now),
+            Prayer.dhuhr: manualExact.dateTimeFor(Prayer.dhuhr, now),
+            Prayer.asr: manualExact.dateTimeFor(Prayer.asr, now),
+            Prayer.maghrib: manualExact.dateTimeFor(Prayer.maghrib, now),
+            Prayer.isha: manualExact.dateTimeFor(Prayer.isha, now),
+          },
+          offsetMinutes: offsetMap,
+          scheduleSignature: scheduleSignature,
+        );
+      } else {
+        final currentPosition = position!;
+        final calcMethodStr = ref.read(calculationMethodProvider);
+        final coords = Coordinates(
+          currentPosition.latitude,
+          currentPosition.longitude,
+        );
         final params = _buildParams(calcMethodStr);
+        final prayerAdjust = ref.read(prayerManualOffsetsProvider);
 
-        final notifSettings = ref.read(prayerNotifSettingsProvider);
-        final enabledMap = <Prayer, bool>{
-          Prayer.fajr:    enabled && notifSettings.fajrEnabled,
-          Prayer.dhuhr:   enabled && notifSettings.dhuhrEnabled,
-          Prayer.asr:     enabled && notifSettings.asrEnabled,
-          Prayer.maghrib: enabled && notifSettings.maghribEnabled,
-          Prayer.isha:    enabled && notifSettings.ishaEnabled,
-        };
-
-        final offsetMap = <Prayer, int>{
-          Prayer.fajr:    notifSettings.fajrOffset,
-          Prayer.dhuhr:   notifSettings.dhuhrOffset,
-          Prayer.asr:     notifSettings.asrOffset,
-          Prayer.maghrib: notifSettings.maghribOffset,
-          Prayer.isha:    notifSettings.ishaOffset,
-        };
-
-        NotificationsService.rescheduleAll(
+        await NotificationsService.rescheduleAll(
           coordinates: coords,
           calcParams: params,
           enabledMap: enabledMap,
+          prayerAdjustMinutes: <Prayer, int>{
+            Prayer.fajr: prayerAdjust.fajr,
+            Prayer.dhuhr: prayerAdjust.dhuhr,
+            Prayer.asr: prayerAdjust.asr,
+            Prayer.maghrib: prayerAdjust.maghrib,
+            Prayer.isha: prayerAdjust.isha,
+          },
           offsetMinutes: offsetMap,
+          scheduleSignature: scheduleSignature,
         );
-      });
+      }
+      await prefs.setString('prayer_schedule_signature_v1', scheduleSignature);
+      return scheduleSignature;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[_NotificationScheduler] Reschedule error: $e');
       }
+      return null;
     }
   }
 
-  static CalculationParameters _buildParams(String method) =>
-      switch (method) {
-        'رابطة العالم الإسلامي' =>
-          CalculationMethod.muslim_world_league.getParameters(),
-        'الهيئة العامة للمساحة المصرية' =>
-          CalculationMethod.egyptian.getParameters(),
-        'جامعة العلوم الإسلامية بكراتشي' =>
-          CalculationMethod.karachi.getParameters(),
-        'الجمعية الإسلامية لأمريكا الشمالية' =>
-          CalculationMethod.north_america.getParameters(),
-        _ => CalculationMethod.umm_al_qura.getParameters(),
-      };
+  Future<void> _rescheduleMotivationReminders(
+    MotivationReminderSettings settings,
+  ) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final now = DateTime.now();
+    final dayKey = '${now.year}-${now.month}-${now.day}';
+    final signature =
+        '${settings.enabled}:${settings.startHour}:${settings.endHour}:${settings.remindersPerDay}:$dayKey';
+    final savedSignature = prefs.getString('motivation_schedule_signature_v1');
+    if (savedSignature == signature) return;
+
+    try {
+      await NotificationsService.scheduleMotivationReminders(
+        enabled: settings.enabled,
+        startHour: settings.startHour,
+        endHour: settings.endHour,
+        remindersPerDay: settings.remindersPerDay,
+      );
+      await prefs.setString('motivation_schedule_signature_v1', signature);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[_NotificationScheduler] Motivation schedule error: $e');
+      }
+    }
+  }
+
+  static CalculationParameters _buildParams(String method) => switch (method) {
+    'رابطة العالم الإسلامي' =>
+      CalculationMethod.muslim_world_league.getParameters(),
+    'الهيئة العامة للمساحة المصرية' =>
+      CalculationMethod.egyptian.getParameters(),
+    'جامعة العلوم الإسلامية بكراتشي' =>
+      CalculationMethod.karachi.getParameters(),
+    'الجمعية الإسلامية لأمريكا الشمالية' =>
+      CalculationMethod.north_america.getParameters(),
+    _ => CalculationMethod.umm_al_qura.getParameters(),
+  };
 }

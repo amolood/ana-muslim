@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+    --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+
+    --color-brand-50: #eef2ff;
+    --color-brand-100: #e0e7ff;
+    --color-brand-500: #6366f1;
+    --color-brand-600: #4f46e5;
+    --color-brand-700: #4338ca;
+    --color-brand-900: #312e81;
+
+    --animate-blob: blob 7s infinite;
+    --animate-float: float 6s ease-in-out infinite;
+
+    --shadow-glow: 0 0 40px -10px rgba(79, 70, 229, 0.3);
+
+    @keyframes blob {
+        0% {
+            transform: translate(0px, 0px) scale(1);
+        }
+
+        33% {
+            transform: translate(30px, -50px) scale(1.1);
+        }
+
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+
+        100% {
+            transform: translate(0px, 0px) scale(1);
+        }
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    html.dark body {
+        background-color: #111827;
+        color: #f3f4f6;
+    }
+}
+
+@layer components {
+    .admin-card {
+        @apply bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800;
+    }
+
+    .admin-label {
+        @apply block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1;
+    }
+
+    .admin-help {
+        @apply text-xs text-gray-500 dark:text-gray-400;
+    }
+
+    .admin-control {
+        @apply w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors dark:text-white;
+    }
+
+    .admin-btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition;
+    }
+
+    .admin-btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black bg-brand-600 text-white hover:bg-brand-700 transition shadow-lg shadow-brand-600/20;
+    }
+
+    .admin-btn-danger {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 transition;
+    }
+}
+
+/* Pagination Overrides for Laravel Tailwind Pagination */
+.pagination {
+    @apply flex items-center justify-center gap-2 mt-4 flex-wrap;
+}
+
+.pagination .page-item {
+    @apply list-none;
+}
+
+.pagination .page-link {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-bold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 hover:bg-gray-50 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-700 dark:hover:text-white transition-all;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--color-brand-600) !important;
+    color: #ffffff !important;
+    border-color: var(--color-brand-600) !important;
+}
+
+.pagination .page-item.active .page-link:hover {
+    background-color: var(--color-brand-700) !important;
+}
+
+html.dark .pagination .page-item.active .page-link {
+    background-color: var(--color-brand-500) !important;
+    border-color: var(--color-brand-500) !important;
+}
+
+html.dark .pagination .page-item.active .page-link:hover {
+    background-color: var(--color-brand-600) !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: #f9fafb !important;
+    color: #9ca3af !important;
+    border-color: #e5e7eb !important;
+    cursor: not-allowed !important;
+}
+
+html.dark .pagination .page-item.disabled .page-link {
+    background-color: rgba(17, 24, 39, 0.5) !important;
+    color: #4b5563 !important;
+    border-color: #1f2937 !important;
+}
+
+/* Force Table Typography Default Contrast */
+table tbody tr td,
+table thead tr th {
+    color: inherit !important;
+}

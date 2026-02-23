@@ -48,8 +48,10 @@ class AzkarCategoryScreen extends ConsumerWidget {
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
-                .copyWith(bottom: 60),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ).copyWith(bottom: 60),
             itemCount: azkarList.length,
             itemBuilder: (context, index) {
               final azkar = azkarList[index];
@@ -100,7 +102,9 @@ class _AzkarCardState extends State<_AzkarCard> {
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isCompleted ? AppColors.primary : Colors.white.withValues(alpha: 0.05),
+          color: isCompleted
+              ? AppColors.primary
+              : Colors.white.withValues(alpha: 0.05),
           width: isCompleted ? 2 : 1,
         ),
         boxShadow: [
@@ -155,8 +159,9 @@ class _AzkarCardState extends State<_AzkarCard> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.tajawal(
                         fontSize: 12,
-                        color:
-                            AppColors.textSecondaryDark.withValues(alpha: 0.3),
+                        color: AppColors.textSecondaryDark.withValues(
+                          alpha: 0.3,
+                        ),
                       ),
                     ),
                   ],

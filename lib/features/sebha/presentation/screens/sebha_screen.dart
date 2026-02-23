@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/services.dart';
+import 'dart:math' as math;
 
-import '../../../../core/theme/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/providers/preferences_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/arabic_utils.dart';
 
 class SebhaScreen extends ConsumerStatefulWidget {
   const SebhaScreen({super.key});
@@ -13,381 +17,395 @@ class SebhaScreen extends ConsumerStatefulWidget {
   ConsumerState<SebhaScreen> createState() => _SebhaScreenState();
 }
 
-class _SebhaScreenState extends ConsumerState<SebhaScreen> with SingleTickerProviderStateMixin {
-  
-  late AnimationController _pulseController;
-
+class _SebhaScreenState extends ConsumerState<SebhaScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(sebhaStateProvider.notifier).ensureToday();
+    });
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  void _incrementCounter() {
-    HapticFeedback.lightImpact(); // Add touch feedback
-    
-    final currentCount = ref.read(sebhaCurrentCountProvider);
-    final totalCount = ref.read(sebhaTotalCountProvider);
-    int target = ref.read(sebhaDailyGoalProvider);
-    if (target == 0) target = 100;
-    
-    ref.read(sebhaCurrentCountProvider.notifier).save(currentCount + 1);
-    ref.read(sebhaTotalCountProvider.notifier).save(totalCount + 1);
-    
-    if (currentCount + 1 >= target) {
-      HapticFeedback.heavyImpact();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(sebhaStateProvider.notifier).ensureToday();
     }
   }
 
-  void _resetCounter() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: Text(
-          'تصفير العداد',
-          style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'هل أنت متأكد من تصفير الورد الحالي؟',
-          style: GoogleFonts.tajawal(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.tajawal(color: AppColors.textSecondaryDark)),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(sebhaCurrentCountProvider.notifier).save(0);
-              Navigator.pop(context);
-            },
-            child: Text('تصفير', style: GoogleFonts.tajawal(color: AppColors.primary)),
-          ),
-        ],
+  Future<void> _increment() async {
+    HapticFeedback.selectionClick();
+    final result = await ref.read(sebhaStateProvider.notifier).increment();
+    if (!mounted) return;
+
+    if (result.reachedGoal) {
+      HapticFeedback.heavyImpact();
+      final doneMessage = result.switchedToNext
+          ? 'أكملت هدف "${result.completedPhrase.text}" وتم الانتقال للتسبيحة التالية'
+          : 'أكملت هدف "${result.completedPhrase.text}"';
+      _showInfo(doneMessage);
+    }
+  }
+
+  void _showInfo(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message, style: GoogleFonts.tajawal()),
       ),
     );
+  }
+
+  Future<void> _confirmResetSelected() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface(context),
+          title: Text(
+            'تصفير التسبيحة الحالية',
+            style: GoogleFonts.tajawal(
+              color: AppColors.textPrimary(context),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            'سيتم تصفير عداد التسبيحة المختارة فقط.',
+            style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.tajawal(
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.backgroundDark,
+              ),
+              child: Text(
+                'تصفير',
+                style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await ref.read(sebhaStateProvider.notifier).resetSelectedCounter();
+      if (!mounted) return;
+      _showInfo('تم تصفير التسبيحة الحالية');
+    }
+  }
+
+  Future<void> _confirmResetToday() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface(context),
+          title: Text(
+            'تصفير عداد اليوم',
+            style: GoogleFonts.tajawal(
+              color: AppColors.textPrimary(context),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            'سيتم تصفير جميع عدادات اليوم لكل التسبيحات.',
+            style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.tajawal(
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.backgroundDark,
+              ),
+              child: Text(
+                'تصفير اليوم',
+                style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await ref.read(sebhaStateProvider.notifier).resetTodayCounters();
+      if (!mounted) return;
+      _showInfo('تم تصفير عداد اليوم');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final sebhaState = ref.watch(sebhaStateProvider);
+    final selected = sebhaState.selectedPhrase;
+    final current = sebhaState.selectedCount;
+    final goal = selected.dailyGoal;
+    final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'السبحة',
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          IconButton(
+            onPressed: _confirmResetToday,
+            tooltip: 'تصفير عدادات اليوم',
+            icon: const Icon(Icons.restart_alt_rounded),
+          ),
+        ],
+      ),
       body: SafeArea(
-        bottom: false,
-        child: Stack(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            _buildBackgroundPattern(),
-            Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 120),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        _buildCounterSection(),
-                        const SizedBox(height: 40),
-                        _buildNeumorphicTapButton(),
-                        const SizedBox(height: 40),
-                        _buildStatsSection(),
-                        const SizedBox(height: 24),
-                        _buildHistoryScroller(),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildPhraseSwitcher(selected),
+            const SizedBox(height: 14),
+            _buildCounterCard(current: current, goal: goal, progress: progress),
+            const SizedBox(height: 14),
+            _buildStatsCard(sebhaState),
+            const SizedBox(height: 14),
+            _buildManageFromSettingsCard(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBackgroundPattern() {
-    return Positioned.fill(
-      child: Center(
-        child: Opacity(
-          opacity: 0.05,
-          child: AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: 1.0 + (_pulseController.value * 0.1),
-                child: child,
-              );
-            },
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 2),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildPhraseSwitcher(SebhaPhrase selected) {
+    final textColor = AppColors.textPrimary(context);
+    final goalText = selected.dailyGoal == 0
+        ? 'هدف يومي: غير محدد'
+        : 'هدف يومي: ${ArabicUtils.toArabicDigits(selected.dailyGoal)}';
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border(context)),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(Icons.restart_alt, color: AppColors.textSecondaryDark),
-            onPressed: _resetCounter,
+          _buildSwitcherButton(
+            icon: Icons.arrow_forward_ios_rounded,
+            label: 'السابق',
+            onPressed: () =>
+                ref.read(sebhaStateProvider.notifier).moveToPreviousPhrase(),
           ),
-          Column(
-            children: [
-              Text(
-                'الورد الحالي',
-                style: GoogleFonts.tajawal(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary.withValues(alpha: 0.8),
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
                 children: [
                   Text(
-                    'سبحان الله',
-                    style: GoogleFonts.notoSansArabic(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      // Simulated gold gradient using standard color
-                      color: const Color(0xFFD4AF37),
+                    selected.text,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.tajawal(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                      height: 1.35,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.expand_more, color: Color(0xFFD4AF37), size: 16),
+                  const SizedBox(height: 4),
+                  Text(
+                    goalText,
+                    style: GoogleFonts.tajawal(
+                      fontSize: 13,
+                      color: AppColors.textSecondary(context),
+                    ),
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: AppColors.textSecondaryDark),
-            onPressed: () {},
+          _buildSwitcherButton(
+            icon: Icons.arrow_back_ios_new_rounded,
+            label: 'التالي',
+            onPressed: () =>
+                ref.read(sebhaStateProvider.notifier).moveToNextPhrase(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCounterSection() {
-    final currentCount = ref.watch(sebhaCurrentCountProvider);
-    int targetCount = ref.watch(sebhaDailyGoalProvider);
-    if (targetCount == 0) targetCount = 100;
-    
-    final double percentage = targetCount == 0 ? 0 : (currentCount / targetCount).clamp(0.0, 1.0);
-    
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          width: 256,
-          height: 256,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: percentage),
-            duration: const Duration(milliseconds: 300),
-            builder: (context, value, child) {
-              return CircularProgressIndicator(
-                value: value,
-                strokeWidth: 4,
-                backgroundColor: AppColors.surfaceDark.withValues(alpha: 0.5),
-                color: AppColors.primary,
-              );
-            },
-          ),
+  Widget _buildSwitcherButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onPressed,
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceElevated(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border(context)),
         ),
-        Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(icon, size: 18, color: AppColors.primary),
+            const SizedBox(height: 2),
             Text(
-              '$currentCount',
-              style: GoogleFonts.manrope(
-                fontSize: 96,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.0,
-              ),
-            ),
-            Text(
-              'من $targetCount',
+              label,
               style: GoogleFonts.tajawal(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondaryDark,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary(context),
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNeumorphicTapButton() {
-    return GestureDetector(
-      onTapDown: (_) => _incrementCounter(),
-      child: Container(
-        width: 192,
-        height: 192,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDarker,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.surfaceDark.withValues(alpha: 0.5)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0d1a18),
-              offset: const Offset(8, 8),
-              blurRadius: 16,
-            ),
-            BoxShadow(
-              color: const Color(0xFF1b3632),
-              offset: const Offset(-8, -8),
-              blurRadius: 16,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.fingerprint,
-                size: 48,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'اضغط للتسبيح',
-                style: GoogleFonts.tajawal(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondaryDark,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Row(
-        children: [
-          Expanded(child: _buildGoalCard()),
-          const SizedBox(width: 16),
-          Expanded(child: _buildTotalCard()),
-        ],
-      ),
-    );
-  }
+  Widget _buildCounterCard({
+    required int current,
+    required int goal,
+    required double progress,
+  }) {
+    final currentText = ArabicUtils.toArabicDigits(current);
+    final goalStatus = goal == 0
+        ? 'هدف غير محدد'
+        : '${ArabicUtils.toArabicDigits(current)} / ${ArabicUtils.toArabicDigits(goal)}';
 
-  Widget _buildGoalCard() {
-    final currentCount = ref.watch(sebhaCurrentCountProvider);
-    int targetCount = ref.watch(sebhaDailyGoalProvider);
-    if (targetCount == 0) targetCount = 100;
-    
-    double completion = targetCount == 0 ? 0 : (currentCount / targetCount).clamp(0.0, 1.0);
-    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'هدف اليوم',
-                style: GoogleFonts.tajawal(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondaryDark,
-                ),
-              ),
-              const Icon(Icons.emoji_events, color: Color(0xFFD4AF37), size: 18),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$currentCount',
-                style: GoogleFonts.manrope(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2.0),
-                child: Text(
-                  '/ $targetCount',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12,
-                    color: AppColors.textSecondaryDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 6,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDarker,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 150 * completion, // Approximate total width relative to card size
-                height: 6,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, Color(0xFF0ca88e)],
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 10,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final size = math.min(constraints.maxWidth - 24, 280.0);
+              return SizedBox(
+                width: size,
+                height: size,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: size,
+                      height: size,
+                      child: CircularProgressIndicator(
+                        value: goal > 0 ? progress : 0,
+                        strokeWidth: 8,
+                        backgroundColor: AppColors.surfaceElevated(context),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Material(
+                      color: AppColors.surfaceElevated(context),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _increment,
+                        child: SizedBox(
+                          width: size - 36,
+                          height: size - 36,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                currentText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 58,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                goalStatus,
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textSecondary(context),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'اضغط للتسبيح',
+                                  style: GoogleFonts.tajawal(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _confirmResetSelected,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(
+              'تصفير الحالية',
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -395,142 +413,99 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildTotalCard() {
-    final totalSpoken = ref.watch(sebhaTotalCountProvider);
-    
+  Widget _buildStatsCard(SebhaState state) {
+    final items = [
+      ('إجمالي التسبيح', ArabicUtils.toArabicDigits(state.totalCount)),
+      ('مجموع اليوم', ArabicUtils.toArabicDigits(state.todayTotalCount)),
+      ('أهداف مكتملة', ArabicUtils.toArabicDigits(state.completedGoalsCount)),
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark.withValues(alpha: 0.5),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Row(
+        children: items
+            .map((item) {
+              return Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      item.$2,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.$1,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.tajawal(
+                        fontSize: 12,
+                        color: AppColors.textSecondary(context),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            })
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  Widget _buildManageFromSettingsCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'مجموع التسبيح',
-                style: GoogleFonts.tajawal(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondaryDark,
-                ),
-              ),
-              const Icon(Icons.history, color: AppColors.primary, size: 18),
-            ],
-          ),
-          const SizedBox(height: 12),
           Text(
-            '$totalSpoken',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              height: 1.0,
+            'إدارة التسبيحات والأهداف',
+            style: GoogleFonts.tajawal(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary(context),
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.trending_up, color: Colors.greenAccent, size: 12),
-              const SizedBox(width: 4),
-              Text(
-                '+12% هذا الأسبوع',
-                style: GoogleFonts.tajawal(
-                  fontSize: 10,
-                  color: Colors.greenAccent,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryScroller() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Text(
-            'سجل اليوم',
+          const SizedBox(height: 4),
+          Text(
+            'إضافة وحذف التسبيحات وتحديد الهدف الافتراضي أصبحت من شاشة الإعدادات.',
             style: GoogleFonts.tajawal(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondaryDark,
+              color: AppColors.textSecondary(context),
+              height: 1.45,
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 64,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            children: [
-              _buildHistoryItem(Icons.wb_twilight, 'بعد الفجر', '100 تسبيحة', AppColors.primary),
-              const SizedBox(width: 12),
-              _buildHistoryItem(Icons.sunny, 'الضحى', '33 تسبيحة', const Color(0xFFD4AF37)),
-              const SizedBox(width: 12),
-              _buildHistoryItem(Icons.bedtime, 'أمس', '500 تسبيحة', Colors.grey, isOpacity: true),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHistoryItem(IconData icon, String title, String count, Color iconColor, {bool isOpacity = false}) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDarker,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Opacity(
-        opacity: isOpacity ? 0.6 : 1.0,
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                shape: BoxShape.circle,
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => context.push('/settings'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.backgroundDark,
+                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              child: Icon(icon, color: iconColor, size: 16),
+              icon: const Icon(Icons.settings_rounded),
+              label: Text(
+                'فتح الإعدادات',
+                style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
+              ),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.tajawal(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  count,
-                  style: GoogleFonts.manrope(
-                    fontSize: 10,
-                    color: AppColors.textSecondaryDark,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tafsir_library/tafsir_library.dart';
+import 'package:quran_library/quran_library.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/preferences_provider.dart';
@@ -11,21 +11,21 @@ import '../../../../core/services/quran_service.dart';
 
 /// Maps our internal key → display name (Arabic).
 const _tafsirSources = {
-  'saadi':      'تفسير السعدي',
+  'saadi': 'تفسير السعدي',
   'ibnkatheer': 'تفسير ابن كثير',
-  'tabari':     'تفسير الطبري',
-  'qurtubi':    'تفسير القرطبي',
+  'tabari': 'تفسير الطبري',
+  'qurtubi': 'تفسير القرطبي',
   'tafsir-jalalayn': 'تفسير الجلالين',
 };
 
-String _tafsirDisplayName(String key) =>
-    _tafsirSources[key] ?? 'تفسير السعدي';
+String _tafsirDisplayName(String key) => _tafsirSources[key] ?? 'تفسير السعدي';
 
 // ─── Cache ────────────────────────────────────────────────────────────────
 
 /// Simple LRU-ish cache for tafsir results — keyed by (ayahUQNumber, source).
 final _tafsirCache = <String, List<TafsirTableData>>{};
 const _kCacheSize = 50;
+final _loadedTafsirSources = <String>{};
 
 String _cacheKey(int ayahUQ, String source) => '$ayahUQ|$source';
 
@@ -46,25 +46,37 @@ typedef TafsirKey = ({int surah, int ayah, int ayahUQ, String source});
 
 final tafsirDataProvider =
     FutureProvider.family<List<TafsirTableData>, TafsirKey>((ref, key) async {
-  final cached = _getCached(key.ayahUQ, key.source);
-  if (cached != null) return cached;
+      final cached = _getCached(key.ayahUQ, key.source);
+      if (cached != null) return cached;
 
-  // Select the correct tafsir in the library before fetching.
-  // Find the entry whose fileName matches our source key.
-  final items = TafsirLibrary.tafsirAndTranslationsItems;
-  final idx = items.indexWhere((e) => e.fileName == key.source);
-  if (idx != -1) {
-    TafsirLibrary.tafsirCtrl.radioValue.value = idx;
-  }
+      // Select the correct tafsir in the library before fetching.
+      // Find the entry whose fileName matches our source key.
+      final items = TafsirCtrl.instance.tafsirAndTranslationsItems;
+      final idx = items.indexWhere((e) => e.fileName == key.source);
+      if (idx != -1) {
+        TafsirCtrl.instance.radioValue.value = idx;
+      }
 
-  // Load the data (for bundled saadi this is instant; others need download).
-  await TafsirLibrary.fetchData();
+      // Load the data (for bundled saadi this is instant; others need download).
+      final sourceLoadKey = idx == -1 ? key.source : '$idx:${key.source}';
+      if (!_loadedTafsirSources.contains(sourceLoadKey)) {
+        await TafsirCtrl.instance.fetchData(1);
+        _loadedTafsirSources.add(sourceLoadKey);
+      }
 
-  final results =
-      await TafsirLibrary.fetchTafsirAyah(key.ayahUQ);
-  _putCache(key.ayahUQ, key.source, results);
-  return results;
-});
+      // Fast path: filter already-loaded tafsir rows by surah+ayah directly.
+      // This avoids expensive per-row UQ lookup in quran_library.
+      var results = TafsirCtrl.instance.tafseerList
+          .where((e) => e.surahNum == key.surah && e.ayahNum == key.ayah)
+          .toList(growable: false);
+
+      // Safe fallback for uncommon dataset mismatches.
+      if (results.isEmpty) {
+        results = await TafsirCtrl.instance.fetchTafsirAyah(key.ayahUQ);
+      }
+      _putCache(key.ayahUQ, key.source, results);
+      return results;
+    });
 
 // ─── Sheet ────────────────────────────────────────────────────────────────
 
@@ -145,7 +157,10 @@ class TafsirBottomSheet extends ConsumerWidget {
               ),
               // ─── Header ───────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -215,7 +230,8 @@ class TafsirBottomSheet extends ConsumerWidget {
                       const SizedBox(height: 20),
                       // Tafsir text or loading
                       tafsirAsync.when(
-                        data: (items) => _buildTafsirContent(items, tafsirSource),
+                        data: (items) =>
+                            _buildTafsirContent(items, tafsirSource),
                         loading: () => const Center(
                           child: Padding(
                             padding: EdgeInsets.all(40),
@@ -224,7 +240,8 @@ class TafsirBottomSheet extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        error: (err, _) => _buildErrorState(context, ref, err, key),
+                        error: (err, _) =>
+                            _buildErrorState(context, ref, err, key),
                       ),
                     ],
                   ),

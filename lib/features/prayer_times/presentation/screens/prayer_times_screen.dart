@@ -11,8 +11,10 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/arabic_utils.dart';
 import '../../../../core/utils/prayer_utils.dart';
 import '../providers/prayer_times_provider.dart';
+import 'package:im_muslim/features/quran/presentation/providers/audio_providers.dart';
 
 class PrayerTimesScreen extends ConsumerStatefulWidget {
   const PrayerTimesScreen({super.key});
@@ -21,34 +23,104 @@ class PrayerTimesScreen extends ConsumerStatefulWidget {
   ConsumerState<PrayerTimesScreen> createState() => _PrayerTimesScreenState();
 }
 
-class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
+class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
+    with WidgetsBindingObserver {
   Timer? _timer;
-  DateTime _currentTime = DateTime.now();
+  late final ValueNotifier<DateTime> _secondClock;
+  late final ValueNotifier<DateTime> _minuteClock;
   String? _lastAdhanAlertKey;
+  bool _isAppResumed = true;
+  bool _isTabVisible = true;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _currentTime = DateTime.now();
-      });
+    WidgetsBinding.instance.addObserver(this);
+    final now = DateTime.now();
+    _secondClock = ValueNotifier<DateTime>(now);
+    _minuteClock = ValueNotifier<DateTime>(
+      DateTime(now.year, now.month, now.day, now.hour, now.minute),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(prayerDailyProgressProvider.notifier).ensureToday();
     });
+    _startTicker();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _secondClock.dispose();
+    _minuteClock.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted) return;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _isAppResumed = true;
+        _syncTickerState(immediateTick: true);
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _isAppResumed = false;
+        _syncTickerState();
+        break;
+    }
+  }
+
+  void _startTicker() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
+  }
+
+  void _syncTickerState({bool immediateTick = false}) {
+    final shouldRun = _isAppResumed && _isTabVisible;
+    if (!shouldRun) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+
+    if (immediateTick) {
+      _onTick();
+    }
+    _startTicker();
+  }
+
+  void _handleTabVisibility(bool visible) {
+    if (_isTabVisible == visible) return;
+    _isTabVisible = visible;
+    _syncTickerState(immediateTick: visible);
+  }
+
+  void _onTick() {
+    if (!mounted) return;
+    final tick = DateTime.now();
+    _secondClock.value = tick;
+    final minuteTick = DateTime(
+      tick.year,
+      tick.month,
+      tick.day,
+      tick.hour,
+      tick.minute,
+    );
+    if (_minuteClock.value != minuteTick) {
+      _minuteClock.value = minuteTick;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    _handleTabVisibility(TickerMode.valuesOf(context).enabled);
+
     final locationNameAsync = ref.watch(locationNameProvider);
-    final prayerTimesAsync = ref.watch(prayerTimesProvider);
+    final adjustedAsync = ref.watch(adjustedPrayerTimesProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -71,22 +143,28 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              prayerTimesAsync.when(
-                data: _buildTimerCard,
-                loading: () => const SizedBox(
-                  height: 200,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, _) => Text(
-                  'تعذر تحميل المواقيت: $e',
-                  style: const TextStyle(color: Colors.red),
+              ValueListenableBuilder<DateTime>(
+                valueListenable: _secondClock,
+                builder: (context, now, _) => adjustedAsync.when(
+                  data: (adjusted) => _buildTimerCard(adjusted, now),
+                  loading: () => const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Text(
+                    'تعذر تحميل المواقيت: $e',
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
-              prayerTimesAsync.when(
-                data: _buildPrayerList,
-                loading: () => const SizedBox.shrink(),
-                error: (_, stackTrace) => const SizedBox.shrink(),
+              ValueListenableBuilder<DateTime>(
+                valueListenable: _minuteClock,
+                builder: (context, now, _) => adjustedAsync.when(
+                  data: (adjusted) => _buildPrayerList(adjusted, now),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, stackTrace) => const SizedBox.shrink(),
+                ),
               ),
             ],
           ),
@@ -122,7 +200,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     );
   }
 
-  Widget _buildCircleButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -144,8 +225,12 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
   Widget _buildLocationAndDate(String locationName) {
     HijriCalendar.setLocal('ar');
     final hijri = HijriCalendar.now();
-    final gregorian = DateFormat('EEEE، d MMMM yyyy', 'ar').format(DateTime.now());
-    final hijriText = '${_toArabicNumber(hijri.hDay)} ${hijri.longMonthName} ${_toArabicNumber(hijri.hYear)} هـ';
+    final gregorian = DateFormat(
+      'EEEE، d MMMM yyyy',
+      'ar',
+    ).format(DateTime.now());
+    final hijriText =
+        '${_toArabicNumber(hijri.hDay)} ${hijri.longMonthName} ${_toArabicNumber(hijri.hYear)} هـ';
 
     return Column(
       children: [
@@ -171,10 +256,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
         const SizedBox(height: 8),
         Text(
           hijriText,
-          style: GoogleFonts.tajawal(
-            fontSize: 14,
-            color: Colors.white,
-          ),
+          style: GoogleFonts.tajawal(fontSize: 14, color: Colors.white),
         ),
         const SizedBox(height: 4),
         Text(
@@ -188,11 +270,35 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     );
   }
 
-  Widget _buildTimerCard(PrayerTimes prayerTimes) {
-    final upcoming = PrayerUtils.getUpcomingPrayer(prayerTimes, _currentTime);
-    final remaining = PrayerUtils.getRemainingTime(upcoming.time, _currentTime);
+  UpcomingPrayerInfo _getUpcomingFromAdjusted(
+    AdjustedPrayerTimes adjusted,
+    DateTime now,
+  ) {
+    const orderedPrayers = [
+      Prayer.fajr,
+      Prayer.sunrise,
+      Prayer.dhuhr,
+      Prayer.asr,
+      Prayer.maghrib,
+      Prayer.isha,
+    ];
+    for (final p in orderedPrayers) {
+      final t = adjusted.timeForPrayer(p)?.toLocal();
+      if (t != null && t.isAfter(now)) {
+        return UpcomingPrayerInfo(prayer: p, time: t);
+      }
+    }
+    return UpcomingPrayerInfo(
+      prayer: Prayer.fajr,
+      time: adjusted.fajr.toLocal().add(const Duration(days: 1)),
+    );
+  }
 
-    _maybeTriggerAdhanAlert(upcoming.prayer, upcoming.time);
+  Widget _buildTimerCard(AdjustedPrayerTimes adjusted, DateTime now) {
+    final upcoming = _getUpcomingFromAdjusted(adjusted, now);
+    final remaining = PrayerUtils.getRemainingTime(upcoming.time, now);
+
+    _maybeTriggerAdhanAlert(upcoming.prayer, upcoming.time, now);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -221,9 +327,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
           const SizedBox(height: 8),
           Text(
             _getPrayerNameArabic(upcoming.prayer),
-            style: GoogleFonts.tajawal(
+            style: const TextStyle(
+              fontFamily: 'KFGQPC Uthmanic Script',
+              fontFamilyFallback: ['naskh'],
               fontSize: 32,
-              fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
@@ -250,20 +357,21 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     );
   }
 
-  Widget _buildPrayerList(PrayerTimes prayerTimes) {
+  Widget _buildPrayerList(AdjustedPrayerTimes adjusted, DateTime now) {
     final format = DateFormat('hh:mm a');
-    final upcoming = PrayerUtils.getUpcomingPrayer(prayerTimes, _currentTime);
+    final upcoming = _getUpcomingFromAdjusted(adjusted, now);
 
     final prayersList = [
-      {'prayer': Prayer.fajr, 'name': 'الفجر', 'time': prayerTimes.fajr},
-      {'prayer': Prayer.sunrise, 'name': 'الشروق', 'time': prayerTimes.sunrise},
-      {'prayer': Prayer.dhuhr, 'name': 'الظهر', 'time': prayerTimes.dhuhr},
-      {'prayer': Prayer.asr, 'name': 'العصر', 'time': prayerTimes.asr},
-      {'prayer': Prayer.maghrib, 'name': 'المغرب', 'time': prayerTimes.maghrib},
-      {'prayer': Prayer.isha, 'name': 'العشاء', 'time': prayerTimes.isha},
+      {'prayer': Prayer.fajr, 'name': 'الفجر', 'time': adjusted.fajr},
+      {'prayer': Prayer.sunrise, 'name': 'الشروق', 'time': adjusted.sunrise},
+      {'prayer': Prayer.dhuhr, 'name': 'الظهر', 'time': adjusted.dhuhr},
+      {'prayer': Prayer.asr, 'name': 'العصر', 'time': adjusted.asr},
+      {'prayer': Prayer.maghrib, 'name': 'المغرب', 'time': adjusted.maghrib},
+      {'prayer': Prayer.isha, 'name': 'العشاء', 'time': adjusted.isha},
     ];
 
     final adhanAlertsEnabled = ref.watch(adhanAlertsProvider);
+    final prayerProgress = ref.watch(prayerDailyProgressProvider);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -271,17 +379,30 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
         children: prayersList.map((p) {
           final prayerType = p['prayer'] as Prayer;
           final isActive = prayerType == upcoming.prayer;
+          final isTrackable = PrayerDailyProgress.trackedPrayers.contains(
+            prayerType,
+          );
+          final isCompleted =
+              isTrackable && prayerProgress.isCompleted(prayerType);
           final time = format.format((p['time'] as DateTime).toLocal());
-          final timeStrAr = time.replaceAll('AM', 'ص').replaceAll('PM', 'م');
+          final timeStrAr = ArabicUtils.toArabicDigitsFromText(
+            time.replaceAll('AM', 'ص').replaceAll('PM', 'م'),
+          );
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: isActive ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surfaceDark,
+              color: isCompleted
+                  ? Colors.green.withValues(alpha: 0.12)
+                  : isActive
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : AppColors.surfaceDark,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isActive
+                color: isCompleted
+                    ? Colors.green.withValues(alpha: 0.45)
+                    : isActive
                     ? AppColors.primary.withValues(alpha: 0.3)
                     : Colors.white.withValues(alpha: 0.05),
               ),
@@ -293,7 +414,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                   children: [
                     Icon(
                       Icons.schedule,
-                      color: isActive ? AppColors.primary : AppColors.textSecondaryDark,
+                      color: isActive
+                          ? AppColors.primary
+                          : AppColors.textSecondaryDark,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -301,8 +424,14 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                       p['name'] as String,
                       style: GoogleFonts.tajawal(
                         fontSize: 18,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        color: isActive ? AppColors.primary : Colors.white,
+                        fontWeight: isActive
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: isCompleted
+                            ? Colors.greenAccent
+                            : isActive
+                            ? AppColors.primary
+                            : Colors.white,
                       ),
                     ),
                   ],
@@ -313,14 +442,58 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                       timeStrAr,
                       style: GoogleFonts.manrope(
                         fontSize: 16,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        color: isActive ? AppColors.primary : AppColors.textSecondaryDark,
+                        fontWeight: isActive
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: isActive
+                            ? AppColors.primary
+                            : AppColors.textSecondaryDark,
                       ),
                     ),
                     const SizedBox(width: 16),
+                    if (isTrackable)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(99),
+                        onTap: () async {
+                          await ref
+                              .read(prayerDailyProgressProvider.notifier)
+                              .togglePrayer(prayerType);
+                          if (!mounted) return;
+                          final nowDone = ref
+                              .read(prayerDailyProgressProvider)
+                              .isCompleted(prayerType);
+                          HapticFeedback.lightImpact();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              content: Text(
+                                nowDone
+                                    ? 'تقبّل الله، تم تعليم ${p['name']} كمؤداة'
+                                    : 'تم إلغاء تعليم ${p['name']}',
+                                style: GoogleFonts.tajawal(),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            isCompleted
+                                ? Icons.check_circle_rounded
+                                : Icons.radio_button_unchecked_rounded,
+                            color: isCompleted
+                                ? Colors.greenAccent
+                                : AppColors.textSecondaryDark,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    if (isTrackable) const SizedBox(width: 8),
                     Icon(
                       adhanAlertsEnabled ? Icons.volume_up : Icons.volume_off,
-                      color: adhanAlertsEnabled ? AppColors.primary : Colors.grey[600],
+                      color: adhanAlertsEnabled
+                          ? AppColors.primary
+                          : Colors.grey[600],
                       size: 20,
                     ),
                   ],
@@ -383,13 +556,15 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                       ref.read(adhanAlertsProvider.notifier).save(value);
                       Navigator.of(rootContext).pop();
                       ScaffoldMessenger.of(rootContext).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              value ? 'تم تفعيل تنبيهات الأذان' : 'تم إيقاف تنبيهات الأذان',
-                              style: GoogleFonts.tajawal(),
-                            ),
+                        SnackBar(
+                          content: Text(
+                            value
+                                ? 'تم تفعيل تنبيهات الأذان'
+                                : 'تم إيقاف تنبيهات الأذان',
+                            style: GoogleFonts.tajawal(),
                           ),
-                        );
+                        ),
+                      );
                     },
                     activeThumbColor: AppColors.primary,
                   ),
@@ -402,22 +577,26 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     );
   }
 
-  void _maybeTriggerAdhanAlert(Prayer prayer, DateTime time) {
+  void _maybeTriggerAdhanAlert(Prayer prayer, DateTime time, DateTime now) {
     final isEnabled = ref.read(adhanAlertsProvider);
     if (!isEnabled) {
       return;
     }
 
-    final remaining = time.difference(_currentTime);
+    final remaining = time.difference(now);
     if (remaining.inSeconds > 1 || remaining.inSeconds < 0) {
       return;
     }
 
-    final alertKey = '${prayer.name}-${time.year}-${time.month}-${time.day}-${time.hour}-${time.minute}';
+    final alertKey =
+        '${prayer.name}-${time.year}-${time.month}-${time.day}-${time.hour}-${time.minute}';
     if (_lastAdhanAlertKey == alertKey) {
       return;
     }
     _lastAdhanAlertKey = alertKey;
+
+    // Pause/stop أي صوت قرآن قبل تشغيل تنبيه الأذان
+    ref.read(quranAudioProvider.notifier).stop();
 
     SystemSound.play(SystemSoundType.alert);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -447,7 +626,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     final hh = duration.inHours.toString().padLeft(2, '0');
     final mm = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final ss = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return '$hh:$mm:$ss';
+    return ArabicUtils.toArabicDigitsFromText('$hh:$mm:$ss');
   }
 
   String _toArabicNumber(int number) {
