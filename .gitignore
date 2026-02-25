@@ -5,6 +5,15 @@
 *.swp
 .DS_Store
 
+# Ignore all senstive files on backend
+backend/.sh
+backend/.env.server
+backend/deploy_*.php
+backend/deploy_*.sh
+backend/reciters_full.json
+backend/test_*.php
+
+
 # Ignore all markdown files except README
 *.md
 !README.md
@@ -23,7 +32,7 @@ migrate_working_dir/
 .env.server
 backend/.env.server
 **/.env.server
-
+docs/
 # Sensitive files
 *.jks
 *.keystore
