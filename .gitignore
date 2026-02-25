@@ -3,8 +3,11 @@
 *.log
 *.pyc
 *.swp
-*.md
 .DS_Store
+
+# Ignore all markdown files except README
+*.md
+!README.md
 .atom/
 .build/
 .buildlog/
