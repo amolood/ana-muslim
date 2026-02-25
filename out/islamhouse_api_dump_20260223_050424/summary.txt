@@ -1,4 +1,0 @@
-dump_dir=/Users/molood/I'mMuslim/out/islamhouse_api_dump_20260223_050424
-total_endpoints=37
-ok=37
-failed=0

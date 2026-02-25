@@ -22,6 +22,7 @@ migrate_working_dir/
 .env.*.local
 .env.server
 backend/.env.server
+**/.env.server
 
 # Sensitive files
 *.jks
@@ -36,6 +37,7 @@ android/*.keystore
 # Deployment files
 *.tar.gz
 *.sh
+**/*.sh
 deploy_*.sh
 backend/deploy_*.php
 
@@ -45,16 +47,21 @@ backend/deploy_*.php
 *.ipa
 
 # API dumps and data exports
+out/
 out/islamhouse_api_dump_*/
 *_api_dump_*/
 *.sql.dump
 *.db.dump
+ui_screen/
 
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+
+# Claude Code
+.claude/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -65,10 +72,12 @@ out/islamhouse_api_dump_*/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+**/.dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
+**/build/
 /coverage/
 
 # Symbolication related
