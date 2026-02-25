@@ -44,6 +44,12 @@ backend/deploy_*.php
 *.aab
 *.ipa
 
+# API dumps and data exports
+out/islamhouse_api_dump_*/
+*_api_dump_*/
+*.sql.dump
+*.db.dump
+
 # IntelliJ related
 *.iml
 *.ipr
