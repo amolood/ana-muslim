@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/transparent"
+    android:padding="8dp"
+    android:gravity="center">
+
+    <!-- Day Name (Calligraphy Manuscript rendered as Image) -->
+    <ImageView
+        android:id="@+id/widget_day_image"
+        android:layout_width="wrap_content"
+        android:layout_height="120dp"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
+        android:layout_marginBottom="-10dp" />
+
+    <!-- Thin Divider -->
+    <TextView
+        android:layout_width="80dp"
+        android:layout_height="1dp"
+        android:background="#80FFFFFF"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Date Info -->
+    <TextView
+        android:id="@+id/widget_date_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="21 رمضان 1447 • 10 مارس"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- Subtle prayer info -->
+    <TextView
+        android:id="@+id/widget_prayer_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="المغرب: 6:20 PM"
+        android:textColor="#B311D4B4"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:layout_marginTop="2dp" />
+
+</LinearLayout>

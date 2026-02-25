@@ -28,7 +28,8 @@ class ResetPasswordController extends Controller implements HasMiddleware
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    public function redirectTo() { return route('admin.dashboard'); }
+
 
     /**
      * Guest-only access for password reset pages.

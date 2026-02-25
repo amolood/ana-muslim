@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:adhan/adhan.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/notifications/notifications_service.dart';
 import 'core/providers/preferences_provider.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/pusher_service.dart';
 import 'core/services/widget_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/prayer_times/presentation/providers/prayer_times_provider.dart';
@@ -24,6 +26,7 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   await Future.wait<void>([
     NotificationsService.init(),
     WidgetService.initialize(),
+    PusherService.init(), // تهيئة Pusher
   ]);
   intl.Intl.defaultLocale = 'ar';
 });
@@ -32,7 +35,20 @@ void main() async {
   // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
 
+  // تحميل متغيرات البيئة من ملف .env
+  await dotenv.load(fileName: '.env');
+
   final sharedPreferences = await SharedPreferences.getInstance();
+
+  // تهيئة صوت الأذان من الإعدادات المحفوظة
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+    ],
+  );
+  final adhanSound = container.read(adhanSoundOptionProvider);
+  NotificationsService.setAdhanSound(adhanSound.androidResourceName);
+  container.dispose();
 
   runApp(
     ProviderScope(
@@ -75,7 +91,7 @@ class MyApp extends ConsumerWidget {
             : TextDirection.ltr;
 
         return MaterialApp.router(
-          title: "I'm Muslim",
+          title: "انا المسلم",
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -108,10 +124,10 @@ class MyApp extends ConsumerWidget {
   }
 
   Widget _buildSimpleSplash() {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: Color(0xFF0F172A),
         body: Center(
           child: CircularProgressIndicator(color: Color(0xFF11D4B4)),
         ),

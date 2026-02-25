@@ -59,11 +59,13 @@ class RamadanApiController extends Controller
     {
         $lat = (float) $request->query('lat', 21.3891);
         $lon = (float) $request->query('lon', 39.8579);
+        $lang = $request->query('lang', 'ar');
 
-        $cacheKey = 'ramadan_schedule_' . round($lat, 2) . '_' . round($lon, 2);
+        $cacheKey = 'ramadan_schedule_' . round($lat, 2) . '_' . round($lon, 2) . '_' . $lang;
 
-        $data = Cache::remember($cacheKey, now()->addHours(12), function () use ($lat, $lon) {
+        $data = Cache::remember($cacheKey, now()->addHours(12), function () use ($lat, $lon, $lang) {
             $cityKey = $this->closestCityKey($lat, $lon);
+            $isAr = ($lang === 'ar');
 
             $rows = AnaMuslimRamadanSchedule::where('city_key', $cityKey)
                 ->orderBy('date')
@@ -75,15 +77,15 @@ class RamadanApiController extends Controller
 
             $days = $rows->map(fn ($r) => [
                 'date'             => $r->date instanceof \Carbon\Carbon ? $r->date->toDateString() : (string) $r->date,
-                'day_name'         => $r->day_name,
+                'day_name'         => ($isAr && $r->day_name_ar) ? $r->day_name_ar : $r->day_name,
                 'hijri'            => $r->hijri_date,
-                'hijri_readable'   => $r->hijri_readable,
+                'hijri_readable'   => ($isAr && $r->hijri_readable_ar) ? $r->hijri_readable_ar : $r->hijri_readable,
                 'is_white_day'     => (bool) $r->is_white_day,
                 'sahur_time'       => $r->sahur_time,
                 'iftar_time'       => $r->iftar_time,
-                'fasting_duration' => $r->fasting_duration,
+                'fasting_duration' => ($isAr && $r->fasting_duration_ar) ? $r->fasting_duration_ar : $r->fasting_duration,
                 'dua' => $r->dua_arabic ? [
-                    'title'          => $r->dua_title,
+                    'title'          => ($isAr && $r->dua_title_ar) ? $r->dua_title_ar : $r->dua_title,
                     'arabic'         => $r->dua_arabic,
                     'translation'    => $r->dua_translation,
                     'transliteration'=> $r->dua_transliteration,
@@ -120,12 +122,14 @@ class RamadanApiController extends Controller
     {
         $lat  = (float) $request->query('lat', 21.3891);
         $lon  = (float) $request->query('lon', 39.8579);
+        $lang = $request->query('lang', 'ar');
         $today = now()->toDateString();
 
-        $cacheKey = 'ramadan_today_' . round($lat, 2) . '_' . round($lon, 2) . '_' . $today;
+        $cacheKey = 'ramadan_today_' . round($lat, 2) . '_' . round($lon, 2) . '_' . $today . '_' . $lang;
 
-        $data = Cache::remember($cacheKey, now()->addHours(6), function () use ($lat, $lon, $today) {
+        $data = Cache::remember($cacheKey, now()->addHours(6), function () use ($lat, $lon, $today, $lang) {
             $cityKey = $this->closestCityKey($lat, $lon);
+            $isAr = ($lang === 'ar');
 
             $row = AnaMuslimRamadanSchedule::where('city_key', $cityKey)
                 ->where('date', $today)
@@ -138,14 +142,14 @@ class RamadanApiController extends Controller
             return [
                 'city_key'         => $cityKey,
                 'date'             => $today,
-                'day_name'         => $row->day_name,
-                'hijri_readable'   => $row->hijri_readable,
+                'day_name'         => ($isAr && $row->day_name_ar) ? $row->day_name_ar : $row->day_name,
+                'hijri_readable'   => ($isAr && $row->hijri_readable_ar) ? $row->hijri_readable_ar : $row->hijri_readable,
                 'is_white_day'     => (bool) $row->is_white_day,
                 'sahur_time'       => $row->sahur_time,
                 'iftar_time'       => $row->iftar_time,
-                'fasting_duration' => $row->fasting_duration,
+                'fasting_duration' => ($isAr && $row->fasting_duration_ar) ? $row->fasting_duration_ar : $row->fasting_duration,
                 'dua' => $row->dua_arabic ? [
-                    'title'          => $row->dua_title,
+                    'title'          => ($isAr && $row->dua_title_ar) ? $row->dua_title_ar : $row->dua_title,
                     'arabic'         => $row->dua_arabic,
                     'translation'    => $row->dua_translation,
                     'transliteration'=> $row->dua_transliteration,

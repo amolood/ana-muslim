@@ -35,6 +35,7 @@ part 'constants/storage_constants.dart';
 part 'controller/audio_ctrl.dart';
 part 'controller/audio_handler.dart';
 part 'controller/extensions/ayah_ctrl_extension.dart';
+part 'controller/extensions/ayah_range_ctrl_extension.dart';
 part 'controller/extensions/surah_audio_storage.dart';
 part 'controller/extensions/surah_ctrl_extension.dart';
 part 'controller/extensions/surah_getters.dart';

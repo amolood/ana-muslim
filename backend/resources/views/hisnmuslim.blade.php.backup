@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>حصن المسلم - أنا المسلم</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['IBM Plex Sans Arabic', 'sans-serif'],
+                        arabic: ['Amiri', 'serif'],
+                    },
+                    colors: {
+                        primary: '#11D4B4',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    @include('partials.theme-init')
+
+    <style>
+        html { scroll-behavior: smooth; }
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-button {
+            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 100%);
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .dark .glass-button {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chapter-card {
+            transition: all 0.3s ease;
+        }
+        .chapter-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(17, 212, 180, 0.2);
+        }
+
+        .dua-card {
+            transition: all 0.3s ease;
+        }
+        .dua-card:hover {
+            transform: translateX(-4px);
+            box-shadow: 0 8px 24px rgba(17, 212, 180, 0.15);
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(17, 212, 180, 0.1);
+            border-top-color: #11D4B4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .audio-player {
+            background: linear-gradient(135deg, rgba(17, 212, 180, 0.1) 0%, rgba(17, 212, 180, 0.05) 100%);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body
+    x-data="hisnMuslimApp()"
+    x-init="init()"
+    :dir="locale === 'ar' ? 'rtl' : 'ltr'"
+    class="bg-[#F1F5F9] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 transition-colors duration-500 min-h-screen relative overflow-x-hidden selection:bg-primary/30">
+
+    <!-- Ambient Background Gradients -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute -top-[20%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-primary/10 dark:bg-primary/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen transition-all duration-1000"></div>
+        <div class="absolute top-[40%] -left-[20%] w-[50vw] h-[50vw] rounded-full bg-blue-400/10 dark:bg-blue-900/10 blur-[100px] mix-blend-multiply dark:mix-blend-screen transition-all duration-1000"></div>
+    </div>
+
+    <!-- Floating Navbar -->
+    <nav class="fixed top-4 left-4 right-4 max-w-7xl mx-auto z-50 glass-panel rounded-full px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-8">
+            <a href="{{ url('/') }}" class="flex items-center gap-2.5">
+                <svg width="36" height="36" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+                    <path d="M256 42 C270 28 284 26 295 30 C282 40 276 54 278 68 C280 82 290 93 304 97 C310 99 316 99 320 98 C312 114 294 122 274 118 C251 113 238 91 242 68 C245 55 250 47 256 42Z" fill="#2d7a22"/>
+                    <circle cx="256" cy="108" r="5" fill="#2d7a22"/>
+                    <circle cx="256" cy="122" r="3.5" fill="#2d7a22"/>
+                    <path d="M256 148 C210 148 148 192 148 268 C148 334 196 390 256 405 C316 390 364 334 364 268 C364 192 302 148 256 148Z" fill="#6abf45"/>
+                    <path d="M256 148 L304 220 L256 248 L208 220 Z" fill="#2d7a22" opacity="0.85"/>
+                    <path d="M256 250 C240 250 224 264 224 285 L224 370 C234 378 245 382 256 383 C267 382 278 378 288 370 L288 285 C288 264 272 250 256 250Z" fill="#020617"/>
+                </svg>
+                <span class="text-lg font-bold tracking-tight text-slate-950 dark:text-white" x-text="t('appName')"></span>
+            </a>
+            <div class="hidden md:flex items-center gap-6 text-sm font-bold">
+                <a href="{{ url('/') }}" class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" x-text="t('nav.home')"></a>
+                <a href="{{ url('/quran-text') }}" class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" x-text="t('nav.quranText')"></a>
+                <a href="{{ url('/hisnmuslim') }}" class="text-primary" x-text="t('nav.hisnmuslim')"></a>
+                <a href="{{ url('/azkar') }}" class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" x-text="t('nav.azkar')"></a>
+                <a href="{{ url('/privacy') }}" class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" x-text="t('nav.privacy')"></a>
+            </div>        </div>
+        <div class="flex items-center gap-3">
+            <!-- Language Switcher -->
+            <button @click="toggleLocale()" class="w-10 h-10 rounded-full glass-button flex items-center justify-center text-xs font-bold hover:text-primary transition-colors">
+                <span x-text="locale === 'ar' ? 'EN' : 'AR'"></span>
+            </button>
+            @include('partials.theme-switcher')
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 pt-32 pb-20 relative z-10">
+
+        <!-- Header -->
+        <div class="mb-12 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel text-xs font-medium text-slate-700 dark:text-slate-300 mb-6">
+                <iconify-icon icon="solar:book-2-bold" class="text-primary"></iconify-icon>
+                <span x-text="t('badge')"></span>
+            </div>
+            <h1 class="text-5xl font-bold mb-4 text-slate-900 dark:text-white" x-text="t('title')"></h1>
+            <p class="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto" x-text="t('subtitle')"></p>
+        </div>
+
+        <!-- Loading State for Chapters -->
+        <div x-show="view === 'chapters' && chapters.length === 0" class="flex flex-col items-center justify-center py-20">
+            <div class="loading-spinner"></div>
+            <p class="mt-4 text-slate-600 dark:text-slate-400" x-text="t('loading')"></p>
+        </div>
+
+        <!-- Chapters Grid -->
+        <div x-show="view === 'chapters' && chapters.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="chapter in chapters" :key="chapter.id">
+                <button @click="selectChapter(chapter)"
+                        class="chapter-card glass-panel p-6 rounded-2xl text-right group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                            <iconify-icon icon="solar:bookmark-bold" class="text-2xl text-primary"></iconify-icon>
+                        </div>
+                        <template x-if="chapter.audio">
+                            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <iconify-icon icon="solar:play-bold" class="text-sm text-primary"></iconify-icon>
+                            </div>
+                        </template>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2 font-arabic leading-relaxed"
+                        x-text="chapter.title"></h3>
+                </button>
+            </template>
+        </div>
+
+        <!-- Duas View -->
+        <div x-show="view === 'duas'" x-cloak>
+            <!-- Back Button & Audio Player -->
+            <div class="mb-8 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <button @click="backToChapters()"
+                        class="flex items-center gap-2 text-primary hover:gap-3 transition-all font-medium">
+                    <iconify-icon icon="solar:alt-arrow-right-linear" class="text-xl"></iconify-icon>
+                    <span x-text="t('backToChapters')"></span>
+                </button>
+
+                <!-- Audio Player -->
+                <template x-if="selectedChapter && selectedChapter.audio">
+                    <div class="audio-player glass-panel px-6 py-3 rounded-full flex items-center gap-4 w-full md:w-auto">
+                        <button @click="toggleAudio()"
+                                class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors">
+                            <iconify-icon :icon="isPlaying ? 'solar:pause-bold' : 'solar:play-bold'"
+                                        class="text-primary text-xl"></iconify-icon>
+                        </button>
+                        <div class="flex-1 min-w-[200px]">
+                            <div class="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                                 x-text="t('chapterAudio')"></div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500" x-text="formatTime(currentTime)"></span>
+                                <div class="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-primary transition-all"
+                                         :style="`width: ${(currentTime / duration) * 100}%`"></div>
+                                </div>
+                                <span class="text-xs text-slate-500" x-text="formatTime(duration)"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Loading State -->
+            <div x-show="loading" class="flex flex-col items-center justify-center py-20">
+                <div class="loading-spinner"></div>
+                <p class="mt-4 text-slate-600 dark:text-slate-400" x-text="t('loading')"></p>
+            </div>
+
+            <!-- Duas List -->
+            <div x-show="!loading" class="space-y-4">
+                <template x-for="(dua, index) in duas" :key="index">
+                    <div class="dua-card glass-panel p-6 rounded-2xl">
+                        <div class="flex items-start gap-4">
+                            <div class="shrink-0 w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                                <span class="text-primary font-bold text-sm" x-text="index + 1"></span>
+                            </div>
+                            <div class="flex-1">
+                                <!-- Arabic Text -->
+                                <template x-if="dua.text">
+                                    <p class="text-2xl md:text-3xl font-arabic leading-loose text-right text-slate-900 dark:text-white mb-4"
+                                       x-html="dua.text"
+                                       dir="rtl"></p>
+                                </template>
+
+                                <!-- Translation -->
+                                <template x-if="dua.translation">
+                                    <p class="text-base text-slate-600 dark:text-slate-400 leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-4 mb-4"
+                                       x-html="dua.translation"
+                                       :dir="locale === 'ar' ? 'rtl' : 'ltr'"></p>
+                                </template>
+
+                                <!-- Reference -->
+                                <template x-if="dua.reference">
+                                    <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 px-3 py-2 rounded-lg">
+                                        <iconify-icon icon="solar:book-bookmark-minimalistic-bold-duotone" class="text-primary"></iconify-icon>
+                                        <span x-text="dua.reference"></span>
+                                    </div>
+                                </template>
+
+                                <!-- Repeat Count -->
+                                <template x-if="dua.count">
+                                    <div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                        <iconify-icon icon="solar:repeat-bold"></iconify-icon>
+                                        <span x-text="locale === 'ar' ? `يكرر ${dua.count} مرات` : `Repeat ${dua.count} times`"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </main>
+
+    <!-- Hidden Audio Element -->
+    <audio x-ref="audioPlayer" @ended="isPlaying = false" @timeupdate="updateTime()" @loadedmetadata="duration = $refs.audioPlayer.duration"></audio>
+
+    <!-- ✅ تعريف hisnMuslimApp() قبل تحميل Alpine.js -->
+    <script>
+        function hisnMuslimApp() {
+            return {
+                locale: localStorage.getItem('locale') || 'ar',
+                view: 'chapters',
+                chapters: [],
+                selectedChapter: null,
+                duas: [],
+                loading: false,
+                isPlaying: false,
+                currentTime: 0,
+                duration: 0,
+
+                translations: {
+                    ar: {
+                        appName: 'أنا المسلم',
+                        nav: {
+                            home: 'الرئيسية',
+                            quranText: 'القرآن النصي',
+                            hisnmuslim: 'حصن المسلم',
+                            azkar: 'الأذكار',
+                            privacy: 'الخصوصية'
+                        },
+                        badge: 'من أذكار وأدعية المسلم',
+                        title: 'حصن المسلم',
+                        subtitle: 'أذكار وأدعية من الكتاب والسنة مع الأحاديث الصوتية',
+                        backToChapters: 'العودة للأبواب',
+                        chapterAudio: 'تشغيل الباب كاملاً',
+                        loading: 'جاري التحميل...'
+                    },
+                    en: {
+                        appName: "I'm Muslim",
+                        nav: {
+                            home: 'Home',
+                            quranText: 'Quran Text',
+                            hisnmuslim: 'Hisn Al-Muslim',
+                            azkar: 'Azkar',
+                            privacy: 'Privacy'
+                        },
+                        badge: 'Muslim Remembrance & Supplications',
+                        title: 'Fortress of the Muslim',
+                        subtitle: 'Remembrance and supplications from Quran and Sunnah with audio',
+                        backToChapters: 'Back to Chapters',
+                        chapterAudio: 'Play Full Chapter',
+                        loading: 'Loading...'
+                    }
+                },
+
+                async init() {
+                    document.documentElement.lang = this.locale;
+                    document.documentElement.dir = this.locale === 'ar' ? 'rtl' : 'ltr';
+                    await this.loadChapters();
+                },
+
+                t(key) {
+                    return key.split('.').reduce((o, i) => o?.[i], this.translations[this.locale]) || key;
+                },
+
+                toggleLocale() {
+                    this.locale = this.locale === 'ar' ? 'en' : 'ar';
+                    localStorage.setItem('locale', this.locale);
+                    document.documentElement.lang = this.locale;
+                    document.documentElement.dir = this.locale === 'ar' ? 'rtl' : 'ltr';
+
+                    // Reload chapters in new language
+                    this.loadChapters();
+                    if (this.selectedChapter) {
+                        this.loadDuas(this.selectedChapter.id);
+                    }
+                },
+
+                async loadChapters() {
+                    try {
+                        // Use local API endpoint instead of external API
+                        const response = await fetch('/api/hisnmuslim/chapters');
+                        const chapters = await response.json();
+
+                        // Transform data to match our structure
+                        this.chapters = chapters.map(chapter => ({
+                            id: chapter.chapter_id,
+                            title: this.locale === 'ar' ? chapter.title_ar : chapter.title_en || chapter.title_ar,
+                            audio: chapter.audio_url || null
+                        }));
+
+                        console.log('Chapters loaded:', this.chapters.length);
+                    } catch (error) {
+                        console.error('Error loading chapters:', error);
+                        alert(this.locale === 'ar' ? 'خطأ في تحميل الأبواب' : 'Error loading chapters');
+                    }
+                },
+
+                async selectChapter(chapter) {
+                    this.selectedChapter = chapter;
+                    this.view = 'duas';
+                    await this.loadDuas(chapter.id);
+
+                    // Load audio if available
+                    if (chapter.audio) {
+                        this.$refs.audioPlayer.src = chapter.audio;
+                    }
+                },
+
+                async loadDuas(chapterId) {
+                    this.loading = true;
+                    this.duas = [];
+
+                    try {
+                        // Use local API endpoint instead of external API
+                        const response = await fetch(`/api/hisnmuslim/duas/${chapterId}`);
+                        const data = await response.json();
+
+                        // Transform duas from the response
+                        if (data.duas && Array.isArray(data.duas)) {
+                            this.duas = data.duas.map(dua => ({
+                                text: dua.text_ar,
+                                translation: this.locale === 'ar' ? dua.translation_ar : dua.translation_en || dua.translation_ar,
+                                reference: dua.reference,
+                                count: dua.count
+                            }));
+                        }
+
+                        console.log('Duas loaded:', this.duas.length);
+                    } catch (error) {
+                        console.error('Error loading duas:', error);
+                        alert(this.locale === 'ar' ? 'خطأ في تحميل الأدعية' : 'Error loading supplications');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                backToChapters() {
+                    this.view = 'chapters';
+                    this.selectedChapter = null;
+                    this.duas = [];
+                    this.stopAudio();
+                },
+
+                toggleAudio() {
+                    if (this.isPlaying) {
+                        this.$refs.audioPlayer.pause();
+                    } else {
+                        this.$refs.audioPlayer.play();
+                    }
+                    this.isPlaying = !this.isPlaying;
+                },
+
+                stopAudio() {
+                    this.$refs.audioPlayer.pause();
+                    this.$refs.audioPlayer.currentTime = 0;
+                    this.isPlaying = false;
+                    this.currentTime = 0;
+                },
+
+                updateTime() {
+                    this.currentTime = this.$refs.audioPlayer.currentTime;
+                },
+
+                formatTime(seconds) {
+                    if (!seconds || isNaN(seconds)) return '0:00';
+                    const mins = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                }
+            }
+        }
+    </script>
+
+    <!-- ✅ تحميل Alpine.js بعد تعريف جميع الدوال -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

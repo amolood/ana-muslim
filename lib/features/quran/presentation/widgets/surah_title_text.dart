@@ -22,6 +22,10 @@ class SurahTitleText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // استخدام خط ثابت مناسب لعناوين السور بدلاً من اعتماد خط القرآن
+    // لأن عناوين السور تحتاج لخط واضح ومقروء
+    const titleFont = 'KFGQPC Uthmanic Script';
+
     return Text(
       text,
       maxLines: maxLines,
@@ -29,8 +33,8 @@ class SurahTitleText extends StatelessWidget {
       textAlign: textAlign,
       textDirection: TextDirection.rtl,
       style: TextStyle(
-        fontFamily: 'KFGQPC Uthmanic Script',
-        fontFamilyFallback: const ['naskh'],
+        fontFamily: titleFont,
+        fontFamilyFallback: const ['Amiri', 'naskh', 'Scheherazade'],
         fontSize: fontSize,
         height: height,
         color: color,

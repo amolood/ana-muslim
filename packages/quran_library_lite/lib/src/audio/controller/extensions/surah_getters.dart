@@ -121,6 +121,9 @@ extension SurahGetters on AudioCtrl {
   String get ayahReaderValue => ReadersConstants
       .activeAyahReaders[state.ayahReaderIndex.value].readerNamePath;
 
+  String get ayahReaderName => ReadersConstants
+      .activeAyahReaders[state.ayahReaderIndex.value].name;
+
   List<String> get selectedSurahAyahsFileNames {
     return List.generate(
       currentAyahsSurah.ayahs.length,

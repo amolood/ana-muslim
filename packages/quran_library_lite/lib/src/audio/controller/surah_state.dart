@@ -88,6 +88,14 @@ class SurahState {
   /// false state is not ready.
   bool playSingleAyahOnly = false;
 
+  /// ===== Ayah Range Playback =====
+
+  /// if true, currently playing an ayah range
+  bool isPlayingRangeMode = false;
+
+  /// Current range info (null if not playing range)
+  Rx<AyahRangeInfo?> currentRangeInfo = Rx<AyahRangeInfo?>(null);
+
   // App icon URL - يمكن للمستخدم تخصيصه / User can customize the app icon URL
   RxString appIconUrl =
       'https://raw.githubusercontent.com/alheekmahlib/thegarlanded/master/Photos/Packages/quran_library/quran_library_logo.jpg'

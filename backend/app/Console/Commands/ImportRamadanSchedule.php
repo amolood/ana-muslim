@@ -163,14 +163,18 @@ class ImportRamadanSchedule extends Command
                 'lon'              => $city['lon'],
                 'date'             => $date,
                 'day_name'         => $day['day'] ?? null,
+                'day_name_ar'      => $this->translateDay($day['day'] ?? null),
                 'hijri_date'       => $day['hijri'] ?? null,
                 'hijri_readable'   => $day['hijri_readable'] ?? null,
+                'hijri_readable_ar'=> $this->translateHijri($day['hijri_readable'] ?? null),
                 'sahur_time'       => $time['sahur'] ?? null,
                 'iftar_time'       => $time['iftar'] ?? null,
                 'fasting_duration' => $time['duration'] ?? null,
+                'fasting_duration_ar' => $this->translateDuration($time['duration'] ?? null),
                 'is_white_day'     => isset($whiteDayDates[$date]),
                 // Daily dua from resource (same for all days in response)
                 'dua_title'           => $resource['dua']['title'] ?? null,
+                'dua_title_ar'        => 'دعاء اليوم',
                 'dua_arabic'          => $resource['dua']['arabic'] ?? null,
                 'dua_translation'     => $resource['dua']['translation'] ?? null,
                 'dua_transliteration' => $resource['dua']['transliteration'] ?? null,
@@ -190,5 +194,45 @@ class ImportRamadanSchedule extends Command
         }
 
         return $saved;
+    }
+
+    private function translateDay(?string $day): ?string
+    {
+        if (! $day) return null;
+        $map = [
+            'Sunday'    => 'الأحد',
+            'Monday'    => 'الاثنين',
+            'Tuesday'   => 'الثلاثاء',
+            'Wednesday' => 'الأربعاء',
+            'Thursday'  => 'الخميس',
+            'Friday'    => 'الجمعة',
+            'Saturday'  => 'السبت',
+        ];
+        return $map[$day] ?? $day;
+    }
+
+    private function translateHijri(?string $date): ?string
+    {
+        if (! $date) return null;
+        // e.g. "1 Ramadan 1447" or "1 Ramadan 1447 AH"
+        $map = [
+            'Ramadan' => 'رمضان',
+            'Shawwal' => 'شوال',
+            'AH'      => 'هـ',
+        ];
+        $result = $date;
+        foreach ($map as $en => $ar) {
+            $result = str_replace($en, $ar, $result);
+        }
+        return $result;
+    }
+
+    private function translateDuration(?string $duration): ?string
+    {
+        if (! $duration) return null;
+        // e.g. "13h 45m"
+        $result = $duration;
+        $result = str_replace(['h', 'm'], [' ساعة و ', ' دقيقة'], $result);
+        return trim($result);
     }
 }

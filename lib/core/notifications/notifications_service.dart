@@ -52,6 +52,16 @@ class NotificationsService {
   static String? _lastPrayerScheduleSignature;
   static String? _lastManualPrayerScheduleSignature;
 
+  /// اسم ملف الأذان الحالي (للاستخدام في Android native)
+  /// يتم تحديثه عبر setAdhanSound()
+  static String _currentAdhanSoundName = 'adhan_makkah';
+
+  /// تغيير صوت الأذان المستخدم في الإشعارات
+  /// يجب استدعاء هذه الدالة قبل جدولة أي إشعارات جديدة
+  static void setAdhanSound(String androidResourceName) {
+    _currentAdhanSoundName = androidResourceName;
+  }
+
   // ─── Bootstrap ───────────────────────────────────────────────────────────
 
   static Future<void> init() async {
@@ -101,13 +111,13 @@ class NotificationsService {
     AndroidFlutterLocalNotificationsPlugin impl,
   ) async {
     await impl.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         _channelId,
         _channelName,
         description: _channelDesc,
         importance: Importance.max,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('azan'),
+        sound: RawResourceAndroidNotificationSound(_currentAdhanSoundName),
         enableVibration: true,
         audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
@@ -123,14 +133,14 @@ class NotificationsService {
     }
 
     await impl.createNotificationChannel(
-      const AndroidNotificationChannel(
+      AndroidNotificationChannel(
         _channelBypassDndId,
         _channelName,
         description: _channelDesc,
         importance: Importance.max,
         bypassDnd: true,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('azan'),
+        sound: RawResourceAndroidNotificationSound(_currentAdhanSoundName),
         enableVibration: true,
         audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
@@ -438,16 +448,16 @@ class NotificationsService {
         fullScreenIntent: true,
         visibility: NotificationVisibility.public,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('azan'),
+        sound: RawResourceAndroidNotificationSound(_currentAdhanSoundName),
         enableVibration: true,
         channelBypassDnd: channelBypassDnd,
         audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
-      iOS: const DarwinNotificationDetails(
+      iOS: DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: false,
         presentSound: true,
-        sound: 'azan.mp3',
+        sound: '$_currentAdhanSoundName.mp3',
       ),
     );
 

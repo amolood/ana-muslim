@@ -9,12 +9,15 @@ import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../../prayer_times/presentation/providers/prayer_times_provider.dart';
+import 'adhan_sound_selector_screen.dart';
 
 // Notification base IDs for daily reminders
 const _kSalaBaseId = 2001;
 const _kWirdBaseId = 2031;
 
-Future<void> _reschedulePrayerNotifications(
+/// Automatically reschedules prayer notifications based on current settings
+/// Can be called from any screen when notification-related settings change
+Future<void> reschedulePrayerNotifications(
   WidgetRef ref, {
   BuildContext? context,
   bool showSuccessMessage = false,
@@ -186,7 +189,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     }
 
                     await ref.read(adhanAlertsProvider.notifier).save(val);
-                    await _reschedulePrayerNotifications(ref);
+                    await reschedulePrayerNotifications(ref);
                   },
                 ),
               ],
@@ -275,44 +278,13 @@ class NotificationSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildSectionHeader('تحفيز العبادة خلال اليوم'),
             _buildSection(children: const [_MotivationReminderTile()]),
-            const SizedBox(height: 28),
-            // ─── Reschedule button ──────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _reschedulePrayerNotifications(
-                  ref,
-                  context: context,
-                  showSuccessMessage: true,
-                ),
-                icon: const Icon(Icons.refresh, size: 20),
-                label: Text(
-                  'إعادة جدولة التنبيهات',
-                  style: GoogleFonts.tajawal(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.backgroundDark,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: Text(
-                'يتم جدولة التنبيهات تلقائيًا عند فتح التطبيق',
-                style: GoogleFonts.tajawal(
-                  fontSize: 12,
-                  color: AppColors.textSecondaryDark,
-                ),
-                textAlign: TextAlign.center,
-              ),
+            const SizedBox(height: 24),
+            // ─── Adhan Sound Selection ──────────────────────────
+            _buildSectionHeader('صوت الأذان'),
+            _buildSection(
+              children: [
+                _AdhanSoundSelectorTile(),
+              ],
             ),
           ],
         ),
@@ -478,6 +450,8 @@ class _PrayerToggleTile extends ConsumerWidget {
                       await ref
                           .read(prayerNotifSettingsProvider.notifier)
                           .setEnabled(prayer, val);
+                      // Auto-reschedule when individual prayer is toggled
+                      await reschedulePrayerNotifications(ref);
                     }
                   : null,
               activeThumbColor: AppColors.primary,
@@ -533,6 +507,8 @@ class _PrayerOffsetTile extends ConsumerWidget {
               await ref
                   .read(prayerNotifSettingsProvider.notifier)
                   .setOffset(prayer, offset - 5);
+              // Auto-reschedule when offset changes
+              await reschedulePrayerNotifications(ref);
             },
           ),
           SizedBox(
@@ -562,6 +538,8 @@ class _PrayerOffsetTile extends ConsumerWidget {
               await ref
                   .read(prayerNotifSettingsProvider.notifier)
                   .setOffset(prayer, offset + 5);
+              // Auto-reschedule when offset changes
+              await reschedulePrayerNotifications(ref);
             },
           ),
         ],
@@ -1096,4 +1074,89 @@ class _MotivationCountStepper extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ─── Adhan Sound Selector Tile ──────────────────────────────────────────────
+
+class _AdhanSoundSelectorTile extends ConsumerWidget {
+  const _AdhanSoundSelectorTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentOption = ref.watch(adhanSoundOptionProvider);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AdhanSoundSelectorScreen(),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(12),
+          splashColor: AppColors.primary.withValues(alpha: 0.1),
+          highlightColor: AppColors.primary.withValues(alpha: 0.05),
+          child: Ink(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.music_note,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'صوت الأذان',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        currentOption.label,
+                        style: GoogleFonts.tajawal(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_back_ios,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Old modal method removed - now using full screen AdhanSoundSelectorScreen
 }

@@ -27,7 +27,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
     <application
-        android:label="im_muslim"
+        android:label="انا المسلم"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true">
@@ -85,6 +85,7 @@
         <!-- Quran home-screen widget -->
         <receiver
             android:name=".QuranWidgetProvider"
+            android:label="آية اليوم"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -92,6 +93,32 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quran_widget_info" />
+        </receiver>
+
+        <!-- Next Prayer home-screen widget -->
+        <receiver
+            android:name=".PrayerWidgetProvider"
+            android:label="مواقيت الصلاة"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_widget_info" />
+        </receiver>
+
+        <!-- Transparent Date/Prayer home-screen widget -->
+        <receiver
+            android:name=".TransparentWidgetProvider"
+            android:label="التاريخ والصلوات (شفاف)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/transparent_widget_info" />
         </receiver>
 
         <!-- Widget event receiver (screen unlock, etc.) -->

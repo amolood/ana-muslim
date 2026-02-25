@@ -156,31 +156,34 @@ class AzkarScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.menu, color: Colors.grey[300], size: 20),
+    return Builder(
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.surfaceDark.withValues(alpha: 0.5),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ),
+              Text(
+                'الأذكار',
+                style: GoogleFonts.tajawal(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 40), // balance header
+            ],
           ),
-          Text(
-            'الأذكار',
-            style: GoogleFonts.tajawal(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 40), // balance header
-        ],
-      ),
+        );
+      },
     );
   }
 

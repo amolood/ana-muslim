@@ -11,17 +11,21 @@ class RamadanRepository {
   );
 
   RamadanSchedule? _cached;
+  String? _lastLang;
 
   Future<RamadanSchedule?> getSchedule({
     double lat = 21.3891,
     double lon = 39.8579,
+    String lang = 'ar',
   }) async {
-    if (_cached != null) return _cached;
+    if (_cached != null && _lastLang == lang) return _cached;
+    if (_lastLang != lang) _cached = null;
 
     final uri = Uri.parse('$_apiBaseUrl/ramadan').replace(
       queryParameters: {
         'lat': lat.toString(),
         'lon': lon.toString(),
+        'lang': lang,
       },
     );
 
@@ -36,6 +40,7 @@ class RamadanRepository {
       final data = payload['data'];
       if (data is! Map) return null;
 
+      _lastLang = lang;
       _cached = RamadanSchedule.fromMap(Map<String, dynamic>.from(data));
       return _cached;
     } catch (_) {
@@ -46,10 +51,11 @@ class RamadanRepository {
   Future<RamadanDay?> getToday({
     double lat = 21.3891,
     double lon = 39.8579,
+    String lang = 'ar',
   }) async {
     // Try local cache first
     final schedule = _cached;
-    if (schedule != null) {
+    if (schedule != null && _lastLang == lang) {
       return schedule.today;
     }
 
@@ -57,6 +63,7 @@ class RamadanRepository {
       queryParameters: {
         'lat': lat.toString(),
         'lon': lon.toString(),
+        'lang': lang,
       },
     );
 

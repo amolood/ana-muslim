@@ -14,14 +14,18 @@ import '../../features/settings/presentation/screens/prayer_adjustment_screen.da
 import '../../features/settings/presentation/screens/default_reciter_screen.dart';
 import '../../features/quran/presentation/screens/quran_index_screen.dart';
 import '../../features/quran/presentation/screens/quran_reader_screen.dart';
+import '../../features/quran/presentation/screens/quran_search_screen.dart';
+import '../../features/quran/presentation/widgets/bookmarks_view.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/hadith/presentation/screens/hadith_screen.dart';
 import '../../features/hadith/presentation/screens/hadith_book_screen.dart';
+import '../../features/hadith/presentation/screens/hadith_search_screen.dart';
 import '../../features/islamic_content/presentation/screens/islamic_content_detail_screen.dart';
 import '../../features/islamic_content/presentation/screens/islamic_content_hub_screen.dart';
 import '../../features/islamic_content/presentation/screens/islamic_content_list_screen.dart';
 import '../../features/khatmah/presentation/screens/khatmah_screen.dart';
-import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/tahfeez/presentation/screens/tahfeez_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/ramadan/presentation/screens/ramadan_screen.dart';
 import 'main_scaffold.dart';
 
@@ -99,6 +103,23 @@ class AppRouter {
                     builder: (context, state) => const KhatmahScreen(),
                   ),
                   GoRoute(
+                    path: 'tahfeez',
+                    name: 'tahfeez',
+                    builder: (context, state) => const TahfeezScreen(),
+                  ),
+                  GoRoute(
+                    path: 'bookmarks',
+                    name: 'quran_bookmarks',
+                    builder: (context, state) => const Scaffold(
+                      body: BookmarksView(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'search',
+                    name: 'quran_search',
+                    builder: (context, state) => const QuranSearchScreen(),
+                  ),
+                  GoRoute(
                     path: 'reader/:id',
                     name: 'quran_reader',
                     builder: (context, state) {
@@ -162,6 +183,11 @@ class AppRouter {
                 name: 'hadith',
                 builder: (context, state) => const HadithScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'search',
+                    name: 'hadith_search',
+                    builder: (context, state) => const HadithSearchScreen(),
+                  ),
                   GoRoute(
                     path: 'islamic-content',
                     name: 'islamic_content_hub',

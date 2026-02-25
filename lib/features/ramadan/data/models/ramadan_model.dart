@@ -33,12 +33,7 @@ class RamadanHadith {
   final String? source;
   final String? grade;
 
-  const RamadanHadith({
-    this.arabic,
-    this.english,
-    this.source,
-    this.grade,
-  });
+  const RamadanHadith({this.arabic, this.english, this.source, this.grade});
 
   factory RamadanHadith.fromMap(Map<String, dynamic> map) {
     return RamadanHadith(
@@ -88,8 +83,12 @@ class RamadanDay {
       sahurTime: map['sahur_time'] as String?,
       iftarTime: map['iftar_time'] as String?,
       fastingDuration: map['fasting_duration'] as String?,
-      dua: duaRaw is Map ? RamadanDua.fromMap(Map<String, dynamic>.from(duaRaw)) : null,
-      hadith: hadithRaw is Map ? RamadanHadith.fromMap(Map<String, dynamic>.from(hadithRaw)) : null,
+      dua: duaRaw is Map
+          ? RamadanDua.fromMap(Map<String, dynamic>.from(duaRaw))
+          : null,
+      hadith: hadithRaw is Map
+          ? RamadanHadith.fromMap(Map<String, dynamic>.from(hadithRaw))
+          : null,
     );
   }
 
@@ -98,6 +97,32 @@ class RamadanDay {
     final formatted =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     return date == formatted;
+  }
+
+  /// تحويل التاريخ الهجري من الإنجليزية إلى العربية
+  String? get hijriArabic {
+    if (hijriReadable == null) return hijri;
+
+    String text = hijriReadable!;
+
+    // تحويل أسماء الأشهر الهجرية
+    text = text.replaceAll('MUHARRAM', 'محرم');
+    text = text.replaceAll('SAFAR', 'صفر');
+    text = text.replaceAll('RABI AL-AWWAL', 'ربيع الأول');
+    text = text.replaceAll('RABI AL-THANI', 'ربيع الثاني');
+    text = text.replaceAll('JUMADA AL-AWWAL', 'جمادى الأولى');
+    text = text.replaceAll('JUMADA AL-THANI', 'جمادى الثانية');
+    text = text.replaceAll('RAJAB', 'رجب');
+    text = text.replaceAll('SHABAN', 'شعبان');
+    text = text.replaceAll('RAMADAN', 'رمضان');
+    text = text.replaceAll('SHAWWAL', 'شوال');
+    text = text.replaceAll('DHU AL-QADAH', 'ذو القعدة');
+    text = text.replaceAll('DHU AL-HIJJAH', 'ذو الحجة');
+
+    // إزالة AH
+    text = text.replaceAll(' AH', ' هـ');
+
+    return text;
   }
 }
 

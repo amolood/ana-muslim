@@ -116,6 +116,11 @@
                                 Deploy now
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('privacy') }}" class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] text-[#706f6c] hover:text-[#1b1b18] dark:hover:text-white text-sm leading-normal">
+                                سياسة الخصوصية
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 <div class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ml-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg aspect-[335/376] lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden">

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quran_library/quran_library.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,9 +8,12 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/services/quran_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 import '../../../khatmah/presentation/providers/khatmah_controller.dart';
 import '../../data/models/reciter.dart';
 import '../providers/audio_providers.dart';
+import '../providers/bookmark_provider.dart';
+import '../widgets/colored_bookmark_sheet.dart';
 import '../widgets/surah_title_text.dart';
 import '../widgets/tafsir_bottom_sheet.dart';
 
@@ -30,9 +34,7 @@ class QuranReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
-  static const String _qpcFontFamily = 'KFGQPC Uthmanic Script';
-  static const String _hafsFontFamily = _qpcFontFamily;
-  static const Color _mushafGold = Color(0xFFD6B06B);
+  static const Color _mushafGold = Color(0xFFF4D03F); // لون ذهبي أفتح للوضع الداكن
 
   late int _selectedVerse;
   late int _currentPage;
@@ -105,19 +107,21 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                       ? _buildPageModeReader(quranFontSize, verseColor)
                       : SingleChildScrollView(
                           padding: const EdgeInsets.only(
-                            left: 20,
-                            right: 20,
-                            top: 16,
-                            bottom: 120,
+                            left: 18,
+                            right: 18,
+                            top: 8,
+                            bottom: 100,
                           ),
                           child: Column(
                             children: [
                               _buildSurahOrnamentTitle(),
-                              const SizedBox(height: 16),
                               if (widget.surahNumber != 1 &&
-                                  widget.surahNumber != 9)
+                                  widget.surahNumber != 9) ...[
+                                const SizedBox(height: 8),
                                 _buildBasmalah(quranFontSize, verseColor),
-                              const SizedBox(height: 16),
+                                const SizedBox(height: 12),
+                              ] else
+                                const SizedBox(height: 12),
                               RichText(
                                 textAlign: TextAlign.justify,
                                 textDirection: TextDirection.rtl,
@@ -140,7 +144,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
             ),
           ),
           Positioned(
-            bottom: 24,
+            bottom: 16,
             left: 16,
             right: 16,
             child: AnimatedSwitcher(
@@ -195,9 +199,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.40),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.40),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: context.colors.borderSubtle),
             ),
             child: Column(
               children: [
@@ -205,14 +209,16 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                   pageTitle,
                   fontSize: 26,
                   maxLines: 1,
-                  color: _mushafGold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? _mushafGold
+                      : AppColors.primary,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'الجزء ${_toArabicNumber(juz)} • الصفحة ${_toArabicNumber(pageNumber)}',
                   style: GoogleFonts.tajawal(
                     fontSize: 12,
-                    color: AppColors.textSecondaryDark,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -237,6 +243,8 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
   Widget _buildHeader() {
     final controlsVisible = ref.watch(quranReaderControlsVisibleProvider);
+    final favorites = ref.watch(favoriteSurahsProvider);
+    final isFavorite = favorites.contains(widget.surahNumber);
     final headerSurahNumber = _isPageMode
         ? QuranService.getSurahNumberFromPage(_currentPage)
         : widget.surahNumber;
@@ -246,150 +254,164 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
             widget.surahNumber,
             _selectedVerse > 0 ? _selectedVerse : 1,
           );
+    final versesCount = QuranService.getVerseCount(headerSurahNumber);
+    final revelationType = QuranService.getPlaceOfRevelation(headerSurahNumber) == 'Makkah' ? 'مكية' : 'مدنية';
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.backgroundDark,
-            AppColors.backgroundDark.withValues(alpha: 0.95),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+        color: backgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SurahTitleText(
-                  _isPageMode
-                      ? QuranService.getPageTitle(_currentPage)
-                      : QuranService.getSurahNameArabicNormalized(
-                          widget.surahNumber,
-                        ),
-                  fontSize: _isPageMode ? 20 : 24,
-                  maxLines: 1,
-                  color: _mushafGold,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Top Row: Back button, Title, Actions
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  size: 20,
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: Column(
                   children: [
-                    if (!_isPageMode)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          QuranService.getPlaceOfRevelation(
-                                    headerSurahNumber,
-                                  ) ==
-                                  'Makkah'
-                              ? 'مكية'
-                              : 'مدنية',
-                          style: GoogleFonts.tajawal(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    if (!_isPageMode) const SizedBox(width: 6),
+                    SurahTitleText(
+                      _isPageMode
+                          ? QuranService.getPageTitle(_currentPage)
+                          : QuranService.getSurahNameArabicNormalized(widget.surahNumber),
+                      fontSize: _isPageMode ? 18 : 22,
+                      maxLines: 1,
+                      color: isDark ? _mushafGold : AppColors.primary,
+                    ),
+                    const SizedBox(height: 2),
                     Text(
-                      'الجزء ${_toArabicNumber(juzNumber)}',
+                      _isPageMode
+                          ? 'صفحة ${_toArabicNumber(_currentPage)} • الجزء ${_toArabicNumber(juzNumber)}'
+                          : '$revelationType • ${_toArabicNumber(versesCount)} آيات • الجزء ${_toArabicNumber(juzNumber)}',
                       style: GoogleFonts.tajawal(
-                        fontSize: 12,
-                        color: AppColors.textSecondaryDark,
+                        fontSize: 10,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
                 ),
+              ),
+              if (!_isPageMode)
+                IconButton(
+                  tooltip: isFavorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                  onPressed: _toggleFavorite,
+                  icon: Icon(
+                    isFavorite ? Icons.bookmark : Icons.bookmark_border,
+                    color: isFavorite ? AppColors.primary : context.colors.iconSecondary,
+                    size: 22,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Bottom Row: Quick Actions
+          Container(
+            height: 36,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.surfaceDark.withValues(alpha: 0.5)
+                  : AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildQuickAction(
+                  icon: _isPageMode ? Icons.menu_book_outlined : Icons.chrome_reader_mode_rounded,
+                  label: _isPageMode ? 'السور' : 'الصفحات',
+                  onTap: () => setState(() {
+                    _isPageMode = !_isPageMode;
+                    if (_isPageMode) {
+                      _selectedVerse = -1;
+                    }
+                  }),
+                ),
+                Container(width: 1, height: 20, color: context.colors.borderSubtle),
+                if (_isPageMode)
+                  _buildQuickAction(
+                    icon: Icons.view_module_rounded,
+                    label: 'الأجزاء',
+                    onTap: _openJuzPicker,
+                  ),
+                if (_isPageMode)
+                  Container(width: 1, height: 20, color: context.colors.borderSubtle),
+                _buildQuickAction(
+                  icon: controlsVisible ? Icons.visibility_off : Icons.visibility,
+                  label: controlsVisible ? 'إخفاء' : 'إظهار',
+                  onTap: () => ref.read(quranReaderControlsVisibleProvider.notifier).save(!controlsVisible),
+                ),
+                Container(width: 1, height: 20, color: context.colors.borderSubtle),
+                _buildQuickAction(
+                  icon: Icons.text_fields,
+                  label: 'الخط',
+                  onTap: _showFontSizeSheet,
+                ),
               ],
             ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: controlsVisible ? 'إخفاء الأدوات' : 'إظهار الأدوات',
-                onPressed: () => ref
-                    .read(quranReaderControlsVisibleProvider.notifier)
-                    .save(!controlsVisible),
-                icon: Icon(
-                  controlsVisible ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white70,
-                ),
-              ),
-              IconButton(
-                tooltip: _isPageMode ? 'وضع السور' : 'وضع الصفحات',
-                onPressed: () => setState(() {
-                  _isPageMode = !_isPageMode;
-                  if (_isPageMode) {
-                    _selectedVerse = -1;
-                  }
-                }),
-                icon: Icon(
-                  _isPageMode
-                      ? Icons.menu_book_outlined
-                      : Icons.chrome_reader_mode_rounded,
-                  color: AppColors.primary,
-                ),
-              ),
-              if (_isPageMode)
-                IconButton(
-                  tooltip: 'الأجزاء',
-                  onPressed: _openJuzPicker,
-                  icon: const Icon(
-                    Icons.view_module_rounded,
-                    color: Colors.white70,
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                child: Text(
-                  'ص ${_toArabicNumber(_currentPage)}',
-                  style: GoogleFonts.tajawal(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBasmalah(double fontSize, Color textColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        QuranService.basmala,
-        style: _quranTextStyle(
-          size: fontSize + 5,
-          color: textColor,
-          height: 1.9,
+  Widget _buildQuickAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.tajawal(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
         ),
-        textDirection: TextDirection.rtl,
-        textAlign: TextAlign.center,
       ),
+    );
+  }
+
+  Widget _buildBasmalah(double fontSize, Color textColor) {
+    return Text(
+      QuranService.basmala,
+      style: _quranTextStyle(
+        size: fontSize + 4,
+        color: textColor,
+        height: 1.8,
+      ),
+      textDirection: TextDirection.rtl,
+      textAlign: TextAlign.center,
     );
   }
 
@@ -397,76 +419,32 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     final surahName = QuranService.getSurahNameArabicNormalized(
       widget.surahNumber,
     );
-    final versesCount = QuranService.getVerseCount(widget.surahNumber);
-    final revelationType =
-        QuranService.getPlaceOfRevelation(widget.surahNumber) == 'Makkah'
-        ? 'مكية'
-        : 'مدنية';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final goldColor = isDark ? _mushafGold : AppColors.primary;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF173F38), Color(0xFF102A25)],
-        ),
-        border: Border.all(
-          color: _mushafGold.withValues(alpha: 0.75),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _mushafGold.withValues(alpha: 0.10),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
+    return SizedBox(
+      height: 70,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Divider(
-                  color: _mushafGold.withValues(alpha: 0.7),
-                  thickness: 1,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '۞',
-                style: TextStyle(
-                  fontFamily: _hafsFontFamily,
-                  fontSize: 24,
-                  color: _mushafGold,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Divider(
-                  color: _mushafGold.withValues(alpha: 0.7),
-                  thickness: 1,
-                ),
-              ),
-            ],
+          SvgPicture.asset(
+            isDark
+                ? 'packages/quran_library/assets/svg/surahSvgBannerDark.svg'
+                : 'packages/quran_library/assets/svg/surahSvgBanner.svg',
+            width: 180,
+            height: 70,
+            colorFilter: ColorFilter.mode(
+              goldColor,
+              BlendMode.modulate,
+            ),
           ),
-          const SizedBox(height: 8),
-          SurahTitleText(
-            surahName,
-            fontSize: 31,
-            maxLines: 2,
-            color: _mushafGold,
-          ),
-          const SizedBox(height: 5),
-          Text(
-            '$revelationType • ${_toArabicNumber(versesCount)} آيات',
-            style: GoogleFonts.tajawal(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.86),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: SurahTitleText(
+              surahName,
+              fontSize: 20,
+              maxLines: 1,
+              color: Colors.black,
             ),
           ),
         ],
@@ -479,9 +457,11 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     required Color color,
     required double height,
   }) {
-    return TextStyle(
-      fontFamily: _hafsFontFamily,
-      fontFamilyFallback: const ['naskh'],
+    // استخدام hafsStyle من quran_library للحصول على التنسيق الصحيح للأحرف الخاصة
+    // الخط الوحيد المدعوم هو KFGQPC Uthmanic Script
+    final baseStyle = QuranLibrary().hafsStyle;
+
+    return baseStyle.copyWith(
       fontSize: size,
       height: height,
       color: color,
@@ -501,6 +481,10 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     final separatorColor = isSelected
         ? _mushafGold
         : _mushafGold.withValues(alpha: 0.86);
+
+    // Check if this verse is bookmarked with a color
+    final ayahId = QuranService.getAyahUniqueNumber(widget.surahNumber, verseNumber);
+    final bookmarkColor = ref.read(coloredBookmarksProvider.notifier).getBookmarkColor(ayahId);
 
     return TextSpan(
       children: [
@@ -522,12 +506,19 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               ),
         ),
         if (isSajdah)
-          TextSpan(
-            text: ' ۩',
-            style: _quranTextStyle(
-              size: quranFontSize - 2,
-              color: _mushafGold,
-              height: 2.1,
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: SvgPicture.asset(
+                'packages/quran_library/assets/svg/sajdaIcon.svg',
+                width: 18,
+                height: 18,
+                colorFilter: ColorFilter.mode(
+                  _mushafGold,
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
           ),
         WidgetSpan(
@@ -538,24 +529,52 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               margin: const EdgeInsets.symmetric(horizontal: 3),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? _mushafGold.withValues(alpha: 0.20)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: isSelected ? _mushafGold : separatorColor,
-                  width: isSelected ? 1.4 : 1.1,
-                ),
-              ),
-              child: Text(
-                '﴿${_toArabicNumber(verseNumber)}﴾',
-                style: _quranTextStyle(
-                  size: (quranFontSize - 7).clamp(12, 22).toDouble(),
-                  color: separatorColor,
-                  height: 1.0,
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // SVG decoration for ayah number
+                  SvgPicture.asset(
+                    'packages/quran_library/assets/svg/suraNum.svg',
+                    width: 32,
+                    height: 32,
+                    colorFilter: ColorFilter.mode(
+                      isSelected ? _mushafGold : separatorColor,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  // Bookmark color indicator (top right corner)
+                  if (bookmarkColor != null)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Color(bookmarkColor.colorCode),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Ayah number text
+                  Text(
+                    _toArabicNumber(verseNumber),
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? _mushafGold
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                      height: 1.0,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -583,9 +602,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
         Container(
           height: 64,
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.9),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            border: Border.all(color: context.colors.borderSubtle),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -605,18 +624,19 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               Container(
                 width: 1,
                 height: 24,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: context.colors.borderSubtle,
               ),
               _buildToolbarItem(
                 icon: isFavorite ? Icons.bookmark : Icons.bookmark_border,
                 label: 'حفظ',
                 isActive: isFavorite,
                 onTap: _toggleFavorite,
+                onLongPress: _openColoredBookmarkSheet,
               ),
               Container(
                 width: 1,
                 height: 24,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: context.colors.borderSubtle,
               ),
               _buildToolbarItem(
                 icon: Icons.menu_book,
@@ -626,7 +646,17 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               Container(
                 width: 1,
                 height: 24,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: context.colors.borderSubtle,
+              ),
+              _buildToolbarItem(
+                icon: Icons.info_outline,
+                label: 'كلمة',
+                onTap: _openWordInfo,
+              ),
+              Container(
+                width: 1,
+                height: 24,
+                color: context.colors.borderSubtle,
               ),
               _buildToolbarItem(
                 icon: Icons.headphones_outlined,
@@ -638,7 +668,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               Container(
                 width: 1,
                 height: 24,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: context.colors.borderSubtle,
               ),
               _buildToolbarItem(
                 icon: Icons.ios_share,
@@ -665,16 +695,16 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.92),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: context.colors.borderSubtle),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.keyboard_arrow_up_rounded,
-                  color: Colors.white70,
+                  color: context.colors.iconSecondary,
                   size: 18,
                 ),
                 const SizedBox(width: 6),
@@ -683,7 +713,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                   style: GoogleFonts.tajawal(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white70,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -702,7 +732,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
@@ -748,7 +778,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                       style: GoogleFonts.tajawal(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -758,7 +788,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                         audioState.moshaf!.name,
                         style: GoogleFonts.tajawal(
                           fontSize: 11,
-                          color: AppColors.textSecondaryDark,
+                          color: context.colors.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -775,7 +805,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               child: LinearProgressIndicator(
                 minHeight: 4,
                 value: audioState.progress,
-                backgroundColor: Colors.white10,
+                backgroundColor: context.colors.borderSubtle,
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   AppColors.primary,
                 ),
@@ -789,14 +819,14 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                   _formatAudioDuration(audioState.position),
                   style: GoogleFonts.tajawal(
                     fontSize: 11,
-                    color: AppColors.textSecondaryDark,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 Text(
                   _formatAudioDuration(duration),
                   style: GoogleFonts.tajawal(
                     fontSize: 11,
-                    color: AppColors.textSecondaryDark,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -865,9 +895,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: context.colors.borderSubtle),
       ),
       child: Row(
         children: [
@@ -935,8 +965,8 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white24),
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        side: BorderSide(color: context.colors.borderDefault),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -965,7 +995,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.tajawal(
                       fontSize: 10,
-                      color: Colors.white70,
+                      color: context.colors.textSecondary,
                     ),
                   ),
               ],
@@ -996,7 +1026,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
             children: [
               Icon(
                 icon,
-                color: isActive ? AppColors.primary : Colors.white,
+                color: isActive ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
                 size: 22,
               ),
               const SizedBox(height: 3),
@@ -1006,7 +1036,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                   fontSize: 10,
                   color: isActive
                       ? AppColors.primary
-                      : AppColors.textSecondaryDark,
+                      : context.colors.textSecondary,
                 ),
               ),
             ],
@@ -1086,7 +1116,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
     final selectedJuz = await showModalBottomSheet<int>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
@@ -1100,7 +1130,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
               Text(
                 'الانتقال إلى جزء',
                 style: GoogleFonts.tajawal(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1118,14 +1148,14 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                       title: Text(
                         'الجزء ${_toArabicNumber(juz)}',
                         style: GoogleFonts.tajawal(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
                         'يبدأ من صفحة ${_toArabicNumber(firstPage)}',
                         style: GoogleFonts.tajawal(
-                          color: AppColors.textSecondaryDark,
+                          color: context.colors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -1167,7 +1197,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1185,7 +1215,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                     style: GoogleFonts.tajawal(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1206,7 +1236,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                     child: Text(
                       'الحجم: ${temp.toStringAsFixed(0)}',
                       style: GoogleFonts.tajawal(
-                        color: AppColors.textSecondaryDark,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -1225,7 +1255,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.backgroundDark,
+                        foregroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.backgroundDark
+                            : Colors.white,
                       ),
                       child: Text(
                         'حفظ',
@@ -1274,6 +1306,168 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
       surahNumber: surahNumber,
       ayahNumber: ayahNumber,
       ayahUQNumber: ayahUq,
+    );
+  }
+
+  Future<void> _openWordInfo() async {
+    if (!mounted) return;
+    final surahNumber = _isPageMode ? _activeSurahNumber : widget.surahNumber;
+    final ayahNumber = _isPageMode
+        ? QuranService.getFirstAyahNumberOnPage(_currentPage)
+        : _selectedVerse;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // الحصول على نص الآية وتقسيمها إلى كلمات
+    final ayahText = QuranService.getVerse(surahNumber, ayahNumber, verseEndSymbol: false);
+    final words = ayahText.trim().split(' ');
+
+    // عرض dialog لاختيار الكلمة
+    await showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'اختر الكلمة',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              // Info message
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Text(
+                  'اضغط على أي كلمة لرؤية معلوماتها (التصريف، الإعراب، القراءات)',
+                  style: GoogleFonts.tajawal(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+              ),
+              const Divider(height: 1),
+              // كلمات الآية
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    textDirection: TextDirection.rtl,
+                    children: List.generate(words.length, (index) {
+                      return InkWell(
+                        onTap: () async {
+                          Navigator.of(ctx).pop();
+                          try {
+                            await QuranLibrary().showWordInfoByNumbers(
+                              context: context,
+                              surahNumber: surahNumber,
+                              ayahNumber: ayahNumber,
+                              wordNumber: index + 1,
+                              initialKind: WordInfoKind.eerab,
+                              isDark: isDark,
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'هذه الميزة تتطلب تحميل بيانات إضافية.\nيمكنك الوصول إلى معلومات الكلمات عبر الإنترنت.',
+                                  style: const TextStyle(fontFamily: 'Tajawal'),
+                                ),
+                                duration: const Duration(seconds: 4),
+                                action: SnackBarAction(
+                                  label: 'حسناً',
+                                  onPressed: () {},
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Text(
+                            words[index],
+                            style: GoogleFonts.amiriQuran(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openColoredBookmarkSheet() async {
+    if (!mounted) return;
+    final surahNumber = _isPageMode ? _activeSurahNumber : widget.surahNumber;
+    final ayahNumber = _isPageMode
+        ? QuranService.getFirstAyahNumberOnPage(_currentPage)
+        : (_selectedVerse > 0 ? _selectedVerse : 1);
+    await showColoredBookmarkSheet(
+      context,
+      surahNumber: surahNumber,
+      ayahNumber: ayahNumber,
     );
   }
 
@@ -1499,24 +1693,53 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
       if (_isAyahSajdah(ayah)) {
         spans.add(
-          TextSpan(
-            text: ' ۩',
-            style: _quranTextStyle(
-              size: quranFontSize - 1,
-              color: _mushafGold,
-              height: 2.0,
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: SvgPicture.asset(
+                'packages/quran_library/assets/svg/sajdaIcon.svg',
+                width: 18,
+                height: 18,
+                colorFilter: ColorFilter.mode(
+                  _mushafGold,
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
           ),
         );
       }
 
       spans.add(
-        TextSpan(
-          text: ' ﴿${_toArabicNumber(ayah.ayahNumber)}﴾ ',
-          style: _quranTextStyle(
-            size: (quranFontSize - 5).clamp(12, 22).toDouble(),
-            color: _mushafGold,
-            height: 2.0,
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SvgPicture.asset(
+                  'packages/quran_library/assets/svg/suraNum.svg',
+                  width: 32,
+                  height: 32,
+                  colorFilter: ColorFilter.mode(
+                    _mushafGold,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                Text(
+                  _toArabicNumber(ayah.ayahNumber),
+                  style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1571,10 +1794,10 @@ class _PageJumpDialogState extends State<_PageJumpDialog> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         title: Text(
           'الانتقال إلى صفحة',
-          style: GoogleFonts.tajawal(color: Colors.white),
+          style: GoogleFonts.tajawal(color: Theme.of(context).colorScheme.onSurface),
         ),
         content: TextFormField(
           key: const ValueKey('page-jump-input'),
@@ -1583,13 +1806,13 @@ class _PageJumpDialogState extends State<_PageJumpDialog> {
           textInputAction: TextInputAction.done,
           onChanged: (value) => _input = value,
           onFieldSubmitted: (_) => _submit(),
-          style: GoogleFonts.tajawal(color: Colors.white),
+          style: GoogleFonts.tajawal(color: Theme.of(context).colorScheme.onSurface),
           decoration: InputDecoration(
             hintText: 'من 1 إلى 604',
-            hintStyle: GoogleFonts.tajawal(color: AppColors.textSecondaryDark),
+            hintStyle: GoogleFonts.tajawal(color: context.colors.textSecondary),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF2D5E57)),
+              borderSide: BorderSide(color: context.colors.borderDefault),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -1602,7 +1825,7 @@ class _PageJumpDialogState extends State<_PageJumpDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'إلغاء',
-              style: GoogleFonts.tajawal(color: Colors.white70),
+              style: GoogleFonts.tajawal(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
@@ -1663,7 +1886,7 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: context.colors.borderSubtle,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1673,14 +1896,14 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                   style: GoogleFonts.tajawal(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   QuranService.getSurahNameArabicNormalized(widget.surahNumber),
                   style: GoogleFonts.tajawal(
                     fontSize: 13,
-                    color: AppColors.textSecondaryDark,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1688,36 +1911,36 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                   'اختر القارئ والرواية مرة واحدة، ثم التشغيل يصبح مباشرًا',
                   style: GoogleFonts.tajawal(
                     fontSize: 11,
-                    color: AppColors.textSecondaryDark.withValues(alpha: 0.65),
+                    color: context.colors.textSecondary.withValues(alpha: 0.65),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(color: Color(0xFF2D5E57), height: 1),
+          Divider(color: context.colors.borderDefault, height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
             child: TextFormField(
               key: ValueKey(_searchFieldVersion),
               initialValue: _query,
               textDirection: TextDirection.rtl,
-              style: GoogleFonts.tajawal(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.tajawal(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
               onChanged: (value) => setState(() => _query = value.trim()),
               decoration: InputDecoration(
                 hintText: 'ابحث عن القارئ أو الرواية',
                 hintStyle: GoogleFonts.tajawal(
-                  color: AppColors.textSecondaryDark,
+                  color: context.colors.textSecondary,
                   fontSize: 13,
                 ),
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.search_rounded,
-                  color: AppColors.textSecondaryDark,
+                  color: context.colors.iconSecondary,
                 ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.close_rounded, size: 18),
-                        color: AppColors.textSecondaryDark,
+                        color: context.colors.iconSecondary,
                         onPressed: () {
                           FocusScope.of(context).unfocus();
                           setState(() {
@@ -1727,10 +1950,10 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                         },
                       ),
                 filled: true,
-                fillColor: const Color(0xFF0F2824),
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2D5E57)),
+                  borderSide: BorderSide(color: context.colors.borderDefault),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1751,16 +1974,16 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.wifi_off,
-                      color: AppColors.textSecondaryDark,
+                      color: context.colors.textSecondary,
                       size: 48,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'تعذّر تحميل القراء\nيرجى التحقق من الاتصال بالإنترنت',
                       style: GoogleFonts.tajawal(
-                        color: AppColors.textSecondaryDark,
+                        color: context.colors.textSecondary,
                         fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
@@ -1781,7 +2004,7 @@ class _AudioSheetState extends ConsumerState<_AudioSheet> {
                     child: Text(
                       'لا توجد نتائج مطابقة',
                       style: GoogleFonts.tajawal(
-                        color: AppColors.textSecondaryDark,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   );
@@ -1951,12 +2174,12 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.primary.withValues(alpha: 0.1)
-            : const Color(0xFF0D2622),
+            : Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.5)
-              : const Color(0xFF2D5E57),
+              : context.colors.borderDefault,
         ),
       ),
       child: Column(
@@ -2041,7 +2264,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                                   fontWeight: FontWeight.bold,
                                   color: isSelected
                                       ? AppColors.primary
-                                      : Colors.white,
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2064,7 +2287,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                                 _selectedMoshaf.name,
                                 style: GoogleFonts.tajawal(
                                   fontSize: 12,
-                                  color: AppColors.textSecondaryDark,
+                                  color: context.colors.textSecondary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2141,7 +2364,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                           : Icons.favorite_border_rounded,
                       color: widget.isFavorite
                           ? Colors.redAccent
-                          : AppColors.textSecondaryDark,
+                          : context.colors.iconSecondary,
                       size: 20,
                     ),
                     onPressed: () async {
@@ -2184,7 +2407,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                           : Icons.star_border_rounded,
                       color: widget.isDefault
                           ? AppColors.primary
-                          : AppColors.textSecondaryDark,
+                          : context.colors.iconSecondary,
                       size: 20,
                     ),
                     onPressed: () async {
@@ -2241,7 +2464,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                 children: [
                   LinearProgressIndicator(
                     value: dlState.progress > 0 ? dlState.progress : null,
-                    backgroundColor: const Color(0xFF0D2622),
+                    backgroundColor: context.colors.borderSubtle,
                     color: AppColors.primary,
                     minHeight: 3,
                     borderRadius: BorderRadius.circular(2),
@@ -2254,7 +2477,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                               ' (${dlState.downloadedCount}/${dlState.totalCount})',
                     style: GoogleFonts.tajawal(
                       fontSize: 11,
-                      color: AppColors.textSecondaryDark,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -2271,7 +2494,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
   }) async {
     final selected = await showModalBottomSheet<Moshaf>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -2290,7 +2513,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                     child: Text(
                       'اختيار الرواية',
                       style: GoogleFonts.tajawal(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                       ),
@@ -2301,7 +2524,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                     child: Text(
                       'اضغط على الرواية المطلوبة',
                       style: GoogleFonts.tajawal(
-                        color: AppColors.textSecondaryDark,
+                        color: context.colors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -2317,7 +2540,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                         return Material(
                           color: isSelected
                               ? AppColors.primary.withValues(alpha: 0.14)
-                              : const Color(0xFF0F2D28),
+                              : Theme.of(context).colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(12),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(12),
@@ -2340,7 +2563,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                                           Text(
                                             moshaf.name,
                                             style: GoogleFonts.tajawal(
-                                              color: Colors.white,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                               fontSize: 14,
                                               fontWeight: isSelected
                                                   ? FontWeight.w700
@@ -2357,7 +2580,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                                             style: GoogleFonts.tajawal(
                                               color: isSelected
                                                   ? AppColors.primary
-                                                  : AppColors.textSecondaryDark,
+                                                  : context.colors.textSecondary,
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -2373,7 +2596,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                                                 .radio_button_unchecked_rounded,
                                       color: isSelected
                                           ? AppColors.primary
-                                          : AppColors.textSecondaryDark,
+                                          : context.colors.iconSecondary,
                                       size: 22,
                                     ),
                                   ],
@@ -2449,14 +2672,14 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              backgroundColor: AppColors.surfaceDark,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               title: Text(
                 'حذف التحميل',
-                style: GoogleFonts.tajawal(color: Colors.white),
+                style: GoogleFonts.tajawal(color: Theme.of(context).colorScheme.onSurface),
               ),
               content: Text(
                 'سيتم حذف القرآن المحمّل لهذه النسخة.',
-                style: GoogleFonts.tajawal(color: AppColors.textSecondaryDark),
+                style: GoogleFonts.tajawal(color: context.colors.textSecondary),
               ),
               actions: [
                 TextButton(
@@ -2464,7 +2687,7 @@ class _ReciterTileState extends ConsumerState<_ReciterTile> {
                   child: Text(
                     'إلغاء',
                     style: GoogleFonts.tajawal(
-                      color: AppColors.textSecondaryDark,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),

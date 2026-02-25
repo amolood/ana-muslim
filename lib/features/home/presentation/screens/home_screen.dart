@@ -8,10 +8,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:quran_library/quran_library.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/permissions/permissions_provider.dart';
+import '../../../../core/permissions/permissions_screen.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/services/quran_service.dart';
+import '../../../../core/services/widget_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../../../core/utils/prayer_utils.dart';
@@ -61,8 +65,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(prayerDailyProgressProvider.notifier).ensureToday();
       ref.read(sebhaStateProvider.notifier).ensureToday();
+      _checkAndShowPermissions();
     });
     _startClockTicker();
+  }
+
+  Future<void> _checkAndShowPermissions() async {
+    // فحص ما إذا كانت جميع الصلاحيات ممنوحة
+    final permissionsAsync = ref.read(permissionsCheckedProvider);
+    final allGranted = await permissionsAsync.whenOrNull(
+      data: (value) => value,
+    );
+
+    if (allGranted == false && mounted) {
+      // إظهار شاشة الصلاحيات
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const PermissionsScreen(),
+          fullscreenDialog: true,
+        ),
+      );
+    }
   }
 
   @override
@@ -147,6 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildBrandingHeader(context),
               ValueListenableBuilder<DateTime>(
                 valueListenable: _clock,
                 builder: (context, now, _) => Consumer(
@@ -172,6 +196,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBrandingHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/branding/logo.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'انا المسلم',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary(context),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'انا المسلم',
+                    style: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          IconButton(
+            onPressed: () => context.push('/settings'),
+            icon: Icon(
+              Icons.settings_outlined,
+              color: AppColors.textSecondary(context),
+              size: 26,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -281,9 +368,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   IconButton(
                     onPressed: () =>
                         ref.read(quranAudioProvider.notifier).stop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.stop_circle_rounded,
-                      color: Colors.white70,
+                      color: AppColors.textSecondary(context),
                       size: 28,
                     ),
                   ),
@@ -296,7 +383,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: LinearProgressIndicator(
                     minHeight: 4,
                     value: audioState.progress,
-                    backgroundColor: Colors.white12,
+                    backgroundColor: AppColors.surfaceElevated(context),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AppColors.primary,
                     ),
@@ -316,14 +403,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     HijriCalendar.setLocal('ar');
     final hijri = HijriCalendar.now();
     final gregorian = DateFormat('EEEE، d MMMM yyyy', 'ar').format(now);
-    final hijriText =
-        '${_toArabicNumber(hijri.hDay)} ${hijri.longMonthName} ${_toArabicNumber(hijri.hYear)} هـ';
+    final hijriText = '${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} هـ';
 
     return prayerTimesAsync.when(
       data: (prayerTimes) {
         final upcoming = PrayerUtils.getUpcomingPrayer(prayerTimes, now);
         final remaining = PrayerUtils.getRemainingTime(upcoming.time, now);
         final countdownStr = _formatDuration(remaining);
+
+        // Sync to Home Widgets
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetService.updatePrayerWidgets(
+            hijriDate: hijriText,
+            gregorianDate: gregorian,
+            dayName: DateFormat('EEEE', 'ar').format(now),
+            nextPrayerName: _getPrayerNameArabic(upcoming.prayer),
+            nextPrayerTime: ArabicUtils.ensureLatinDigits(
+              DateFormat.jm('ar').format(upcoming.time),
+            ),
+            countdown: 'متبقي $countdownStr',
+          );
+        });
 
         return locationNameAsync.when(
           data: (locName) => _buildDatePrayerCardContent(
@@ -379,15 +479,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomLeft,
-            colors: [const Color(0xFF1B5A52), AppColors.surfaceDarker],
-          ),
+          // خلفية داكنة بدون تدرج
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1B5A52) // لون داكن في الوضع المظلم
+              : AppColors.surfaceLightCard, // لون فاتح في الوضع النهاري
           border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : AppColors.primary.withValues(alpha: 0.15),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -416,7 +517,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         style: GoogleFonts.tajawal(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                       Text(
@@ -439,7 +542,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDarker.withValues(alpha: 0.50),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.surfaceDarker.withValues(alpha: 0.50)
+                          : Colors.white.withValues(alpha: 0.50),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: AppColors.primary.withValues(alpha: 0.2),
@@ -462,7 +567,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             style: GoogleFonts.tajawal(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ),
@@ -475,7 +582,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(
-                color: Colors.white.withValues(alpha: 0.14),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : AppColors.borderLight.withValues(alpha: 0.3),
                 height: 1,
               ),
             ),
@@ -501,7 +610,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.textPrimaryLight,
                     letterSpacing: 1.1,
                   ),
                 ),
@@ -520,11 +631,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               alignment: Alignment.centerRight,
               child: Text(
                 prayerName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'KFGQPC Uthmanic Script',
                   fontFamilyFallback: ['naskh'],
                   fontSize: 32,
-                  color: Color(0xFFD6B06B),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFD6B06B)
+                      : AppColors.primary,
                   height: 1.15,
                 ),
               ),
@@ -573,7 +686,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         accentColor: Color(0xFF3E78B2),
       ),
       const _QuickActionItem(
-        icon: Icons.crescent_moon_rounded,
+        icon: Icons.dark_mode_rounded,
         label: 'رمضان',
         subtitle: 'سحور وإفطار',
         route: '/ramadan',
@@ -642,10 +755,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               physics: const NeverScrollableScrollPhysics(),
               itemCount: actions.length,
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 210,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                mainAxisExtent: 104,
+                maxCrossAxisExtent: 200,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                mainAxisExtent: 75,
               ),
               itemBuilder: (context, index) =>
                   _buildActionItem(context, actions[index]),
@@ -658,12 +771,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildActionItem(BuildContext context, _QuickActionItem action) {
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       onTap: () => context.push(action.route),
       child: Ink(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: action.accentColor.withValues(alpha: 0.35)),
           gradient: LinearGradient(
             begin: Alignment.topRight,
@@ -677,13 +790,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: action.accentColor.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(action.icon, color: action.accentColor, size: 22),
+              child: Icon(action.icon, color: action.accentColor, size: 20),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -693,22 +806,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 children: [
                   Text(
                     action.label,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.tajawal(
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary(context),
-                      height: 1.15,
+                      height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     action.subtitle,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.tajawal(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       color: AppColors.textSecondary(context),
                       fontWeight: FontWeight.w600,
                       height: 1.2,
@@ -1003,7 +1115,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.surfaceDarker,
+                          foregroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.surfaceDarker
+                              : Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -1142,11 +1256,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     InkWell(
                       borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        QuranService.preloadSurah(wird.surah);
-                        context.push(
-                          '/quran/reader/${wird.surah}?ayah=${wird.ayah}',
-                        );
+                      onTap: () async {
+                        try {
+                          await AudioCtrl.instance.stopRangePlayback();
+
+                          await AudioCtrl.instance.playAyahRange(
+                            context: context,
+                            surahNumber: wird.surah,
+                            startAyah: wird.ayah,
+                            endAyah: wird.ayah,
+                          );
+
+                          if (context.mounted) {
+                            QuranService.preloadSurah(wird.surah);
+                            context.push(
+                              '/quran/reader/${wird.surah}?ayah=${wird.ayah}',
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('حدث خطأ أثناء التشغيل'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       },
                       child: Row(
                         children: [
@@ -1157,9 +1293,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.play_arrow,
-                              color: AppColors.surfaceDarker,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.surfaceDarker
+                                  : Colors.white,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1185,9 +1323,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                             );
                           },
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.share,
-                            color: AppColors.textSecondaryDark,
+                            color: AppColors.textSecondary(context),
                             size: 20,
                           ),
                         ),
@@ -1201,7 +1339,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             isFavorite ? Icons.bookmark : Icons.bookmark_border,
                             color: isFavorite
                                 ? AppColors.primary
-                                : AppColors.textSecondaryDark,
+                                : AppColors.textSecondary(context),
                             size: 20,
                           ),
                         ),
@@ -1372,17 +1510,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final hh = duration.inHours.toString().padLeft(2, '0');
     final mm = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final ss = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return ArabicUtils.toArabicDigitsFromText('$hh:$mm:$ss');
+    return '$hh:$mm:$ss';
   }
 
   String _toArabicNumber(int number) {
-    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    String numStr = number.toString();
-    for (int i = 0; i < english.length; i++) {
-      numStr = numStr.replaceAll(english[i], arabic[i]);
-    }
-    return numStr;
+    // Disabled: Return original Latin digits 1,2,3... as requested by user
+    return number.toString();
   }
 }
 

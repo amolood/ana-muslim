@@ -1,52 +1,22 @@
-import 'dart:async';
-import 'dart:collection';
-import 'dart:math' show atan2, cos, pi, sin, sqrt;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../../data/models/qibla_state.dart';
+import '../providers/qibla_provider.dart';
+import '../widgets/simple_compass_view.dart';
+import '../widgets/qibla_instructions.dart';
+import '../widgets/calibration_overlay.dart';
 import '../../../../core/providers/preferences_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/arabic_utils.dart';
-import '../providers/qibla_feedback_provider.dart';
 
-/// Explicit UI state machine for guided Qibla alignment.
-enum QiblaUiState {
-  loadingPermissions,
-  locationUnavailable,
-  sensorNotSupported,
-  compassUnreliableNeedsCalibration,
-  activeAligning,
-  nearAlignment,
-  alignedSuccess,
-  fallbackStaticDirection,
-  error,
-}
-
-extension QiblaUiStateName on QiblaUiState {
-  String get machineName => switch (this) {
-    QiblaUiState.loadingPermissions => 'loading_permissions',
-    QiblaUiState.locationUnavailable => 'location_unavailable',
-    QiblaUiState.sensorNotSupported => 'sensor_not_supported',
-    QiblaUiState.compassUnreliableNeedsCalibration =>
-      'compass_unreliable_needs_calibration',
-    QiblaUiState.activeAligning => 'active_aligning',
-    QiblaUiState.nearAlignment => 'near_alignment',
-    QiblaUiState.alignedSuccess => 'aligned_success',
-    QiblaUiState.fallbackStaticDirection => 'fallback_static_direction',
-    QiblaUiState.error => 'error',
-  };
-}
-
-enum _TurnDirection { left, right, hold }
-
-enum _SignalQuality { unknown, weak, medium, good }
-
+/// Main Qibla screen with Fixed-Target / Rotating-Compass design
+///
+/// Implementation follows the pattern where:
+/// - Kaaba icon is fixed at top of screen (0°)
+/// - Compass rotates beneath it
+/// - User turns phone to align indicator with Kaaba
 class QiblaScreen extends ConsumerStatefulWidget {
   const QiblaScreen({super.key});
 
@@ -54,1516 +24,269 @@ class QiblaScreen extends ConsumerStatefulWidget {
   ConsumerState<QiblaScreen> createState() => _QiblaScreenState();
 }
 
-class _QiblaScreenState extends ConsumerState<QiblaScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static const _alignedEnterDeg = 5.0;
-  static const _alignedExitDeg = 8.0;
-  static const _nearAlignmentDeg = 16.0;
-  static const _headingSmoothing = 0.16;
-  static const _deltaSmoothing = 0.22;
-  static const _uiThrottle = Duration(milliseconds: 55);
-  static const _successVisualLock = Duration(milliseconds: 1800);
-  static const _feedbackCooldown = Duration(milliseconds: 1200);
-  static const _weakFallbackAfter = Duration(seconds: 8);
-  static const _relativeConsistencyTolerance = 22.0;
-  static const _noCompassDataTimeout = Duration(seconds: 7);
-  static const _noCompassCheckInterval = Duration(seconds: 2);
-
-  StreamSubscription<QiblahDirection>? _qiblaSub;
-  Timer? _noCompassWatchdog;
-
-  late final AnimationController _pulseCtrl;
-  late final Animation<double> _pulseAnim;
-
-  QiblaUiState _uiState = QiblaUiState.loadingPermissions;
-  Object? _lastError;
-  bool _sensorSupported = true;
-  bool _bootstrapping = false;
-
-  double? _qiblaBearingDeg;
-  double? _smoothedHeadingDeg;
-  double? _smoothedDeltaDeg;
-
-  bool _isAligned = false;
-  DateTime? _alignedLockUntil;
-  DateTime _lastUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastFeedbackAt = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastCompassEventAt = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime? _weakSignalSince;
-
-  final Queue<double> _headingWindow = Queue<double>();
-  double _headingSinSum = 0;
-  double _headingCosSum = 0;
-  _SignalQuality _signalQuality = _SignalQuality.unknown;
-
-  _TurnDirection _turnDirection = _TurnDirection.right;
-  double _alignmentProgress = 0;
-  String _guidanceText = 'حرّك الجوال ببطء';
-
-  bool _showDetails = false;
-  bool _manualLocationLookupBusy = false;
-  bool _screenVisible = true;
-
-  ManualLocation? _lastManualLocation;
+class _QiblaScreenState extends ConsumerState<QiblaScreen> {
+  bool _permissionsChecked = false;
+  bool _hasLocationPermission = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _pulseAnim = CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_bootstrap(requestPermissionIfDenied: true));
-    });
+    _checkPermissionsAndStart();
   }
 
   @override
   void dispose() {
-    _qiblaSub?.cancel();
-    _stopCompassWatchdog();
-    WidgetsBinding.instance.removeObserver(this);
-    FlutterQiblah().dispose();
-    _pulseCtrl.dispose();
+    // Stop listening when leaving screen
+    ref.read(qiblaProvider.notifier).stopListening();
     super.dispose();
   }
 
+  /// Check location permissions and start Qibla stream
+  Future<void> _checkPermissionsAndStart() async {
+    try {
+      // Check if device supports Qibla
+      final deviceSupport = await FlutterQiblah.androidDeviceSensorSupport();
+      if (deviceSupport != null && !deviceSupport) {
+        setState(() {
+          _errorMessage = "جهازك لا يدعم حساسات البوصلة";
+          _permissionsChecked = true;
+        });
+        return;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        setState(() {
+          _errorMessage = "يرجى السماح بالوصول للموقع لتحديد اتجاه القبلة";
+          _permissionsChecked = true;
+          _hasLocationPermission = false;
+        });
+        return;
+      }
+
+      // Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _errorMessage = "يرجى تفعيل خدمات الموقع (GPS)";
+          _permissionsChecked = true;
+          _hasLocationPermission = false;
+        });
+        return;
+      }
+
+      // All good - start listening
+      setState(() {
+        _permissionsChecked = true;
+        _hasLocationPermission = true;
+      });
+
+      // Start Qibla stream
+      ref.read(qiblaProvider.notifier).startListening();
+    } catch (e) {
+      setState(() {
+        _errorMessage = "حدث خطأ: ${e.toString()}";
+        _permissionsChecked = true;
+      });
+    }
+  }
+
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (_screenVisible) {
-        _resumeCompassMonitorIfNeeded();
+  Widget build(BuildContext context) {
+    final state = ref.watch(qiblaProvider);
+
+    // Listen for alignment changes and trigger haptic feedback
+    ref.listen(qiblaProvider.select((s) => s.isFullyAligned), (prev, next) {
+      if (next == true && prev != true) {
+        HapticFeedback.heavyImpact();
       }
-      return;
-    }
-    unawaited(_pauseCompassMonitor());
-  }
+    });
 
-  Future<void> _bootstrap({
-    required bool requestPermissionIfDenied,
-    bool resetRuntime = true,
-  }) async {
-    if (_bootstrapping) return;
-    _bootstrapping = true;
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Main content
+            if (!_permissionsChecked)
+              _buildLoading()
+            else if (_errorMessage != null)
+              _buildError()
+            else
+              _buildCompassView(state),
 
-    if (resetRuntime) {
-      _resetRuntimeState();
-    }
-
-    _setUiState(QiblaUiState.loadingPermissions, forceRebuild: true);
-
-    try {
-      _lastError = null;
-      _sensorSupported =
-          (await FlutterQiblah.androidDeviceSensorSupport()) ?? true;
-
-      final hasBearing = await _resolveQiblaBearing(
-        requestPermissionIfDenied: requestPermissionIfDenied,
-      );
-
-      if (!hasBearing) {
-        _setUiState(QiblaUiState.locationUnavailable, forceRebuild: true);
-        return;
-      }
-
-      if (!_sensorSupported) {
-        _setUiState(QiblaUiState.sensorNotSupported, forceRebuild: true);
-        return;
-      }
-
-      if (_screenVisible) {
-        _startCompassMonitor();
-      }
-      _setUiState(QiblaUiState.activeAligning, forceRebuild: true);
-    } catch (error) {
-      _lastError = error;
-      _setUiState(QiblaUiState.error, forceRebuild: true);
-    } finally {
-      _bootstrapping = false;
-    }
-  }
-
-  void _resetRuntimeState() {
-    _qiblaSub?.cancel();
-    _qiblaSub = null;
-    _stopCompassWatchdog();
-
-    _qiblaBearingDeg = null;
-    _smoothedHeadingDeg = null;
-    _smoothedDeltaDeg = null;
-    _isAligned = false;
-    _alignedLockUntil = null;
-    _lastUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
-    _lastCompassEventAt = DateTime.fromMillisecondsSinceEpoch(0);
-    _weakSignalSince = null;
-    _headingWindow.clear();
-    _headingSinSum = 0;
-    _headingCosSum = 0;
-    _signalQuality = _SignalQuality.unknown;
-    _turnDirection = _TurnDirection.right;
-    _alignmentProgress = 0;
-    _guidanceText = 'حرّك الجوال ببطء';
-  }
-
-  void _setUiState(QiblaUiState state, {bool forceRebuild = false}) {
-    final changed = _uiState != state;
-    _uiState = state;
-    if (!mounted) return;
-    if (changed || forceRebuild) {
-      setState(() {});
-    }
-  }
-
-  Future<bool> _resolveQiblaBearing({
-    required bool requestPermissionIfDenied,
-  }) async {
-    final manualLocation = ref.read(manualLocationProvider);
-    if (manualLocation != null) {
-      _qiblaBearingDeg = _greatCircleBearingToKaaba(
-        latitude: manualLocation.lat,
-        longitude: manualLocation.lng,
-      );
-      return true;
-    }
-
-    var status = await FlutterQiblah.checkLocationStatus();
-    if (!status.enabled) {
-      final lastKnown = await _safeLastKnownPosition();
-      if (lastKnown == null) return false;
-      _qiblaBearingDeg = _greatCircleBearingToKaaba(
-        latitude: lastKnown.latitude,
-        longitude: lastKnown.longitude,
-      );
-      return true;
-    }
-
-    if (status.status == LocationPermission.denied) {
-      if (!requestPermissionIfDenied) return false;
-      final granted = await _requestLocationWithRationale();
-      if (!granted) return false;
-      status = await FlutterQiblah.checkLocationStatus();
-      if (!status.enabled) return false;
-    }
-
-    final permission = status.status;
-    if (permission != LocationPermission.whileInUse &&
-        permission != LocationPermission.always) {
-      return false;
-    }
-
-    Position? position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      ).timeout(const Duration(seconds: 8));
-    } on TimeoutException {
-      position = await _safeLastKnownPosition();
-    } catch (_) {
-      position = await _safeLastKnownPosition();
-    }
-
-    if (position != null) {
-      _qiblaBearingDeg = _greatCircleBearingToKaaba(
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
-      return true;
-    }
-
-    // Allow stream bootstrap; some devices expose relative qibla before a fresh GPS fix.
-    return true;
-  }
-
-  Future<Position?> _safeLastKnownPosition() async {
-    try {
-      return await Geolocator.getLastKnownPosition();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<bool> _requestLocationWithRationale() async {
-    if (!mounted) return false;
-
-    final proceed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          backgroundColor: AppColors.surfaceDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            'تفعيل الموقع',
-            style: GoogleFonts.tajawal(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          content: Text(
-            'نحتاج الموقع مرة واحدة لحساب اتجاه القبلة بدقة.',
-            style: GoogleFonts.tajawal(
-              color: Colors.white,
-              fontSize: 14,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(
-                'ليس الآن',
-                style: GoogleFonts.tajawal(color: AppColors.textSecondaryDark),
+            // Calibration overlay (if needed)
+            if (_hasLocationPermission && state.needsCalibration)
+              CalibrationOverlay(
+                onDismiss: () {
+                  ref.read(qiblaProvider.notifier).hideCalibration();
+                },
               ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(
-                'السماح',
-                style: GoogleFonts.tajawal(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
-
-    if (proceed != true || !mounted) return false;
-
-    final permission = await Geolocator.requestPermission();
-    return permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always;
   }
 
-  void _startCompassMonitor() {
-    if (!_screenVisible) return;
-    _qiblaSub?.cancel();
-    _qiblaSub = _safeQiblaStream().listen(
-      _onCompassEvent,
-      onError: _onCompassError,
+  Widget _buildLoading() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4AFFA3)),
+          ),
+          SizedBox(height: 24),
+          Text(
+            "جارٍ التحضير...",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontFamily: 'Tajawal',
+            ),
+          ),
+        ],
+      ),
     );
-    _startCompassWatchdog();
   }
 
-  Future<void> _pauseCompassMonitor() async {
-    await _qiblaSub?.cancel();
-    _qiblaSub = null;
-    _stopCompassWatchdog();
-    await ref.read(qiblaTonePlayerProvider).stop();
-  }
-
-  void _resumeCompassMonitorIfNeeded() {
-    if (_qiblaSub != null) return;
-    if (!_sensorSupported) return;
-    _startCompassMonitor();
-  }
-
-  void _startCompassWatchdog() {
-    _stopCompassWatchdog();
-    _lastCompassEventAt = DateTime.now();
-    _noCompassWatchdog = Timer.periodic(_noCompassCheckInterval, (_) {
-      if (!_screenVisible || _qiblaSub == null) return;
-      final staleFor = DateTime.now().difference(_lastCompassEventAt);
-      if (staleFor < _noCompassDataTimeout) return;
-      if (_uiState == QiblaUiState.fallbackStaticDirection ||
-          _uiState == QiblaUiState.error) {
-        return;
-      }
-
-      if (_qiblaBearingDeg != null) {
-        _setUiState(QiblaUiState.fallbackStaticDirection, forceRebuild: true);
-      } else {
-        _setUiState(QiblaUiState.error, forceRebuild: true);
-      }
-    });
-  }
-
-  void _stopCompassWatchdog() {
-    _noCompassWatchdog?.cancel();
-    _noCompassWatchdog = null;
-  }
-
-  void _handleVisibility(bool visible) {
-    if (_screenVisible == visible) return;
-    _screenVisible = visible;
-    if (_screenVisible) {
-      _resumeCompassMonitorIfNeeded();
-      return;
-    }
-    unawaited(_pauseCompassMonitor());
-  }
-
-  Stream<QiblahDirection> _safeQiblaStream() {
-    try {
-      return FlutterQiblah.qiblahStream;
-    } catch (_) {
-      return Stream.error(
-        StateError('Qibla stream is unavailable on this device'),
-      );
-    }
-  }
-
-  void _onCompassError(Object error) {
-    _lastError = error;
-    _stopCompassWatchdog();
-    if (_qiblaBearingDeg != null) {
-      _setUiState(QiblaUiState.fallbackStaticDirection, forceRebuild: true);
-      return;
-    }
-    _setUiState(QiblaUiState.error, forceRebuild: true);
-  }
-
-  void _onCompassEvent(QiblahDirection event) {
-    if (!_screenVisible) return;
-    if (event.direction.isNaN || event.qiblah.isNaN) return;
-
-    final now = DateTime.now();
-    _lastCompassEventAt = now;
-
-    if (_qiblaBearingDeg == null && !event.offset.isNaN) {
-      _qiblaBearingDeg = _normalize(event.offset);
-    }
-
-    final prevAligned = _isAligned;
-    final prevDirection = _turnDirection;
-    final prevProgress = _alignmentProgress;
-    final prevText = _guidanceText;
-    final prevQuality = _signalQuality;
-
-    final heading = _normalize(event.direction);
-    _smoothedHeadingDeg = _lerpCircular(
-      _smoothedHeadingDeg ?? heading,
-      heading,
-      _headingSmoothing,
-    );
-
-    final relativeDelta = _deltaFromRelativeQibla(event.qiblah);
-    final rawDelta = _qiblaBearingDeg == null
-        ? relativeDelta
-        : () {
-            final bearingDelta = _signedDelta(
-              current: _smoothedHeadingDeg!,
-              target: _qiblaBearingDeg!,
-            );
-            final expectedRelative = _normalize(
-              _smoothedHeadingDeg! + (360 - _qiblaBearingDeg!),
-            );
-            final relativeMismatch = _shortestDeltaAbs(
-              expectedRelative,
-              _normalize(event.qiblah),
-            );
-            return relativeMismatch > _relativeConsistencyTolerance
-                ? relativeDelta
-                : bearingDelta;
-          }();
-
-    _smoothedDeltaDeg = _lerpSignedAngle(
-      _smoothedDeltaDeg ?? rawDelta,
-      rawDelta,
-      _deltaSmoothing,
-    );
-
-    final absDelta = _smoothedDeltaDeg!.abs();
-
-    _updateSignalQuality(_smoothedHeadingDeg!, now);
-    _updateAlignment(absDelta, now);
-    _updateGuidance(absDelta, _smoothedDeltaDeg!);
-
-    final nextState = _deriveUiState(absDelta, now);
-    final stateChanged = _assignUiState(nextState);
-
-    final majorChange =
-        stateChanged ||
-        prevAligned != _isAligned ||
-        prevDirection != _turnDirection ||
-        prevText != _guidanceText ||
-        prevQuality != _signalQuality ||
-        (prevProgress - _alignmentProgress).abs() > 0.02;
-
-    if (!majorChange && now.difference(_lastUiUpdate) < _uiThrottle) {
-      return;
-    }
-
-    _lastUiUpdate = now;
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  bool _assignUiState(QiblaUiState next) {
-    if (_uiState == next) return false;
-    _uiState = next;
-    return true;
-  }
-
-  void _updateSignalQuality(double heading, DateTime now) {
-    const maxWindow = 24;
-    if (_headingWindow.length == maxWindow) {
-      final old = _headingWindow.removeFirst();
-      final oldRad = old * pi / 180;
-      _headingSinSum -= sin(oldRad);
-      _headingCosSum -= cos(oldRad);
-    }
-    _headingWindow.addLast(heading);
-    final rad = heading * pi / 180;
-    _headingSinSum += sin(rad);
-    _headingCosSum += cos(rad);
-
-    final previous = _signalQuality;
-
-    if (_headingWindow.length < 8) {
-      _signalQuality = _SignalQuality.unknown;
-    } else {
-      final size = _headingWindow.length;
-      final meanX = _headingSinSum / size;
-      final meanY = _headingCosSum / size;
-      final r = sqrt((meanX * meanX) + (meanY * meanY));
-
-      if (r >= 0.94) {
-        _signalQuality = _SignalQuality.good;
-      } else if (r >= 0.84) {
-        _signalQuality = _SignalQuality.medium;
-      } else {
-        _signalQuality = _SignalQuality.weak;
-      }
-    }
-
-    if (_signalQuality == _SignalQuality.weak) {
-      _weakSignalSince ??= now;
-    } else {
-      _weakSignalSince = null;
-    }
-
-    if (previous != _signalQuality &&
-        _signalQuality == _SignalQuality.good &&
-        _uiState == QiblaUiState.fallbackStaticDirection) {
-      _uiState = QiblaUiState.activeAligning;
-    }
-  }
-
-  void _updateAlignment(double absDelta, DateTime now) {
-    if (_isAligned) {
-      if (_alignedLockUntil != null && now.isBefore(_alignedLockUntil!)) {
-        return;
-      }
-      if (absDelta > _alignedExitDeg) {
-        _isAligned = false;
-        _alignedLockUntil = null;
-      }
-      return;
-    }
-
-    if (absDelta <= _alignedEnterDeg) {
-      _isAligned = true;
-      _alignedLockUntil = now.add(_successVisualLock);
-      unawaited(_triggerSuccessFeedback());
-    }
-  }
-
-  void _updateGuidance(double absDelta, double signedDelta) {
-    if (_isAligned) {
-      _turnDirection = _TurnDirection.hold;
-      _guidanceText = 'اتجاه القبلة صحيح';
-      _alignmentProgress = 1;
-      return;
-    }
-
-    if (absDelta <= 7) {
-      _turnDirection = _TurnDirection.hold;
-      _guidanceText = 'ثبت الجوال';
-    } else if (signedDelta >= 0) {
-      _turnDirection = _TurnDirection.right;
-      _guidanceText = absDelta <= _nearAlignmentDeg
-          ? 'اقتربت، كمل يمين'
-          : 'لف الجوال يمين';
-    } else {
-      _turnDirection = _TurnDirection.left;
-      _guidanceText = absDelta <= _nearAlignmentDeg
-          ? 'اقتربت، كمل يسار'
-          : 'لف الجوال يسار';
-    }
-
-    _alignmentProgress = (1 - (absDelta / 90)).clamp(0.05, 0.98);
-  }
-
-  QiblaUiState _deriveUiState(double absDelta, DateTime now) {
-    if (!_sensorSupported) {
-      return QiblaUiState.sensorNotSupported;
-    }
-
-    if (_signalQuality == _SignalQuality.weak) {
-      if (_weakSignalSince != null &&
-          now.difference(_weakSignalSince!) >= _weakFallbackAfter) {
-        return QiblaUiState.fallbackStaticDirection;
-      }
-      return QiblaUiState.compassUnreliableNeedsCalibration;
-    }
-
-    if (_isAligned) {
-      return QiblaUiState.alignedSuccess;
-    }
-
-    if (absDelta <= _nearAlignmentDeg) {
-      return QiblaUiState.nearAlignment;
-    }
-
-    return QiblaUiState.activeAligning;
-  }
-
-  Future<void> _triggerSuccessFeedback() async {
-    final now = DateTime.now();
-    if (now.difference(_lastFeedbackAt) < _feedbackCooldown) return;
-    _lastFeedbackAt = now;
-
-    try {
-      await HapticFeedback.lightImpact();
-      final playTone = ref.read(qiblaSuccessToneProvider);
-      if (playTone) {
-        final selectedTone = ref.read(qiblaSuccessToneOptionProvider);
-        await ref.read(qiblaTonePlayerProvider).play(selectedTone);
-      }
-    } catch (_) {
-      // Feedback is optional depending on device support.
-    }
-  }
-
-  Future<void> _retryCalibration() async {
-    _weakSignalSince = null;
-    _headingWindow.clear();
-    _signalQuality = _SignalQuality.unknown;
-    _smoothedDeltaDeg = null;
-    _smoothedHeadingDeg = null;
-    _isAligned = false;
-
-    if (!_sensorSupported) {
-      _setUiState(QiblaUiState.sensorNotSupported, forceRebuild: true);
-      return;
-    }
-
-    if (_screenVisible) {
-      _startCompassMonitor();
-    }
-    _setUiState(QiblaUiState.activeAligning, forceRebuild: true);
-  }
-
-  Future<void> _openManualLocationPicker() async {
-    if (_manualLocationLookupBusy) return;
-
-    String query = '';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) => Directionality(
-            textDirection: TextDirection.rtl,
-            child: AlertDialog(
-              backgroundColor: AppColors.surfaceDark,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.redAccent,
+              size: 64,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontFamily: 'Tajawal',
               ),
-              title: Text(
-                'اختيار المدينة',
-                style: GoogleFonts.tajawal(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _checkPermissionsAndStart,
+              icon: const Icon(Icons.refresh),
+              label: const Text("إعادة المحاولة"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4AFFA3),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
-              content: TextField(
-                autofocus: true,
-                style: GoogleFonts.tajawal(fontSize: 15, color: Colors.white),
-                onChanged: (value) =>
-                    setDialogState(() => query = value.trim()),
-                onSubmitted: (value) {
-                  query = value.trim();
-                  Navigator.pop(dialogContext, true);
+            ),
+            if (!_hasLocationPermission) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () async {
+                  await Geolocator.openLocationSettings();
                 },
-                decoration: InputDecoration(
-                  hintText: 'مثال: مكة المكرمة، القاهرة، جاكرتا',
-                  hintStyle: GoogleFonts.tajawal(
-                    fontSize: 13,
-                    color: Colors.white38,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.08),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
+                icon: const Icon(Icons.settings),
+                label: const Text("فتح الإعدادات"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white70,
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: Text(
-                    'إلغاء',
-                    style: GoogleFonts.tajawal(color: Colors.white54),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompassView(QiblaUiState state) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  const Spacer(flex: 1),
+
+                  // البوصلة في المنتصف تماماً
+                  SimpleCompassView(state: state),
+
+                  const Spacer(flex: 1),
+
+                  // التعليمات في الأسفل
+                  QiblaInstructions(state: state),
+
+                  const SizedBox(height: 16),
+
+                  // زر المعايرة وكتم الصوت في الأسفل
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // زر المعايرة (إذا لزم)
+                      if (state.confidence < 70)
+                        TextButton.icon(
+                          onPressed: () {
+                            ref.read(qiblaProvider.notifier).showCalibration();
+                          },
+                          icon: const Icon(Icons.refresh, color: Colors.white70),
+                          label: const Text(
+                            'تحتاج إلى معايرة البوصلة',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+
+                      if (state.confidence < 70)
+                        const SizedBox(width: 16),
+
+                      // زر كتم/تشغيل صوت النجاح
+                      _buildVolumeButton(),
+                    ],
                   ),
-                ),
-                TextButton(
-                  onPressed: query.isEmpty
-                      ? null
-                      : () => Navigator.pop(dialogContext, true),
-                  child: Text(
-                    'اعتماد',
-                    style: GoogleFonts.tajawal(
-                      color: query.isEmpty
-                          ? AppColors.textSecondaryDark
-                          : AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
 
-    if (confirmed != true || query.isEmpty) return;
+  /// زر التحكم في صوت النجاح (كتم/تشغيل)
+  Widget _buildVolumeButton() {
+    final isMuted = ref.watch(qiblaSuccessSoundMutedProvider);
 
-    setState(() {
-      _manualLocationLookupBusy = true;
-    });
-
-    try {
-      final results = await locationFromAddress(
-        query,
-      ).timeout(const Duration(seconds: 12));
-
-      if (results.isEmpty) {
-        _showInfo('لم يتم العثور على المدينة، حاول كتابة اسم آخر');
-      } else {
-        final loc = results.first;
+    return IconButton(
+      onPressed: () async {
         await ref
-            .read(manualLocationProvider.notifier)
-            .save(loc.latitude, loc.longitude, query);
-        _showInfo('تم اعتماد موقع $query');
-        await _bootstrap(requestPermissionIfDenied: false, resetRuntime: true);
-      }
-    } on TimeoutException {
-      _showInfo('انتهت مهلة البحث، تحقق من اتصال الإنترنت');
-    } catch (_) {
-      _showInfo('تعذّر تحديد المدينة');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _manualLocationLookupBusy = false;
-        });
-      }
-    }
-  }
-
-  void _showInfo(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
-          textDirection: TextDirection.rtl,
-        ),
-        behavior: SnackBarBehavior.floating,
+            .read(qiblaSuccessSoundMutedProvider.notifier)
+            .save(!isMuted);
+      },
+      icon: Icon(
+        isMuted ? Icons.volume_off : Icons.volume_up,
+        color: isMuted ? Colors.white38 : const Color(0xFF4AFFA3),
+      ),
+      tooltip: isMuted ? 'تشغيل الصوت' : 'كتم الصوت',
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.1),
+        padding: const EdgeInsets.all(12),
       ),
     );
   }
-
-  Future<void> _retryAll() =>
-      _bootstrap(requestPermissionIfDenied: true, resetRuntime: true);
-
-  double _normalize(double deg) {
-    var normalized = deg % 360;
-    if (normalized < 0) normalized += 360;
-    return normalized;
-  }
-
-  double _signedFromNormalized(double deg) {
-    final normalized = _normalize(deg);
-    return normalized > 180 ? normalized - 360 : normalized;
-  }
-
-  double _signedDelta({required double current, required double target}) {
-    return ((target - current + 540) % 360) - 180;
-  }
-
-  double _shortestDeltaAbs(double a, double b) {
-    return (((b - a + 540) % 360) - 180).abs();
-  }
-
-  double _deltaFromRelativeQibla(double relativeQibla) {
-    final signed = _signedFromNormalized(relativeQibla);
-    return -signed;
-  }
-
-  double _lerpCircular(double from, double to, double t) {
-    final diff = ((to - from + 540) % 360) - 180;
-    return (from + diff * t + 360) % 360;
-  }
-
-  double _lerpSignedAngle(double from, double to, double t) {
-    final current = _normalize(from);
-    final target = _normalize(to);
-    final blended = _lerpCircular(current, target, t);
-    return _signedFromNormalized(blended);
-  }
-
-  double _greatCircleBearingToKaaba({
-    required double latitude,
-    required double longitude,
-  }) {
-    const kaabaLat = 21.422487;
-    const kaabaLon = 39.826206;
-
-    final phi1 = latitude * pi / 180.0;
-    final phi2 = kaabaLat * pi / 180.0;
-    final dLon = (kaabaLon - longitude) * pi / 180.0;
-
-    final y = sin(dLon) * cos(phi2);
-    final x = cos(phi1) * sin(phi2) - sin(phi1) * cos(phi2) * cos(dLon);
-
-    final bearing = atan2(y, x) * 180.0 / pi;
-    return _normalize(bearing);
-  }
-
-  bool _sameManualLocation(ManualLocation? a, ManualLocation? b) {
-    if (identical(a, b)) return true;
-    if (a == null && b == null) return true;
-    if (a == null || b == null) return false;
-    return a.lat == b.lat && a.lng == b.lng && a.name == b.name;
-  }
-
-  String get _qualityLabel => switch (_signalQuality) {
-    _SignalQuality.good => 'جيدة',
-    _SignalQuality.medium => 'متوسطة',
-    _SignalQuality.weak => 'ضعيفة',
-    _SignalQuality.unknown => 'غير مستقرة',
-  };
-
-  Color get _guidanceColor => switch (_uiState) {
-    QiblaUiState.nearAlignment => const Color(0xFFE2A64C),
-    QiblaUiState.alignedSuccess => AppColors.primary,
-    _ => const Color(0xFF75B8C2),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    _handleVisibility(TickerMode.valuesOf(context).enabled);
-    final manualLocation = ref.watch(manualLocationProvider);
-
-    if (!_sameManualLocation(_lastManualLocation, manualLocation)) {
-      _lastManualLocation = manualLocation;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        unawaited(
-          _bootstrap(requestPermissionIfDenied: false, resetRuntime: true),
-        );
-      });
-    }
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: Text(
-            'القبلة',
-            style: GoogleFonts.tajawal(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          actions: [
-            TextButton.icon(
-              onPressed: () => setState(() => _showDetails = !_showDetails),
-              icon: Icon(
-                _showDetails ? Icons.visibility_off : Icons.info_outline,
-                color: Colors.white70,
-                size: 18,
-              ),
-              label: Text(
-                _showDetails ? 'إخفاء' : 'تفاصيل',
-                style: GoogleFonts.tajawal(color: Colors.white70, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        body: _buildBody(manualLocation),
-      ),
-    );
-  }
-
-  Widget _buildBody(ManualLocation? manualLocation) {
-    return switch (_uiState) {
-      QiblaUiState.loadingPermissions => _buildLoadingState(),
-      QiblaUiState.locationUnavailable => _buildLocationUnavailableState(
-        manualLocation,
-      ),
-      QiblaUiState.sensorNotSupported => _buildFallbackStaticState(
-        title: 'البوصلة غير متوفرة في هذا الجهاز',
-        subtitle: 'سنعرض اتجاهًا تقريبيًا اعتمادًا على الموقع',
-        manualLocation: manualLocation,
-      ),
-      QiblaUiState.fallbackStaticDirection => _buildFallbackStaticState(
-        title: 'الاتجاه التقريبي للقبلة',
-        subtitle: 'تعذّر الاعتماد على البوصلة بدقة الآن',
-        manualLocation: manualLocation,
-      ),
-      QiblaUiState.error => _buildErrorState(),
-      QiblaUiState.compassUnreliableNeedsCalibration ||
-      QiblaUiState.activeAligning ||
-      QiblaUiState.nearAlignment ||
-      QiblaUiState.alignedSuccess => _buildGuidedAlignmentState(manualLocation),
-    };
-  }
-
-  Widget _buildLoadingState() => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(color: AppColors.primary),
-        const SizedBox(height: 14),
-        Text(
-          'جاري تجهيز توجيه القبلة...',
-          style: GoogleFonts.tajawal(
-            color: AppColors.textSecondaryDark,
-            fontSize: 14,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildLocationUnavailableState(ManualLocation? manualLocation) {
-    return _buildStateCard(
-      icon: Icons.location_off,
-      iconColor: Colors.orange.shade300,
-      title: 'لا يمكن تحديد موقعك حاليًا',
-      subtitle: 'فعّل الموقع أو اختر مدينة يدويًا، وسنحسب اتجاه القبلة مباشرة.',
-      extra: [
-        if (manualLocation != null)
-          _stateBadge('الموقع اليدوي الحالي: ${manualLocation.name}'),
-      ],
-      actions: [
-        _StateAction(label: 'إعادة المحاولة', primary: true, onTap: _retryAll),
-        _StateAction(
-          label: _manualLocationLookupBusy
-              ? 'جاري البحث...'
-              : 'اختيار مدينة يدويًا',
-          onTap: _manualLocationLookupBusy ? null : _openManualLocationPicker,
-        ),
-        _StateAction(
-          label: 'فتح إعدادات الموقع',
-          onTap: Geolocator.openLocationSettings,
-        ),
-        _StateAction(
-          label: 'فتح إعدادات التطبيق',
-          onTap: Geolocator.openAppSettings,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorState() {
-    return _buildStateCard(
-      icon: Icons.error_outline,
-      iconColor: Colors.red.shade300,
-      title: 'حدث خطأ في ميزة القبلة',
-      subtitle: 'أعد المحاولة، وإن تكررت المشكلة استخدم الاتجاه التقريبي.',
-      extra: _showDetails && _lastError != null
-          ? [_stateBadge('تفاصيل: $_lastError')]
-          : const [],
-      actions: [
-        _StateAction(label: 'إعادة المحاولة', primary: true, onTap: _retryAll),
-        _StateAction(
-          label: _manualLocationLookupBusy
-              ? 'جاري البحث...'
-              : 'اختيار مدينة يدويًا',
-          onTap: _manualLocationLookupBusy ? null : _openManualLocationPicker,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGuidedAlignmentState(ManualLocation? manualLocation) {
-    final baseBg = Theme.of(context).scaffoldBackgroundColor;
-    final nearBg = const Color(0xFF29240F);
-    final successBg = const Color(0xFF113427);
-    final bgColor = switch (_uiState) {
-      QiblaUiState.alignedSuccess => successBg,
-      QiblaUiState.nearAlignment => nearBg,
-      _ => baseBg,
-    };
-
-    return Stack(
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          color: bgColor,
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: _isAligned ? _alignedSuccessView() : _activeGuidanceView(),
-            ),
-          ),
-        ),
-        if (_uiState == QiblaUiState.compassUnreliableNeedsCalibration)
-          _buildCalibrationOverlay(),
-        Positioned(
-          left: 18,
-          right: 18,
-          bottom: 16,
-          child: _bottomStatusBar(manualLocation),
-        ),
-      ],
-    );
-  }
-
-  Widget _activeGuidanceView() {
-    final icon = switch (_turnDirection) {
-      _TurnDirection.left => Icons.keyboard_double_arrow_left_rounded,
-      _TurnDirection.right => Icons.keyboard_double_arrow_right_rounded,
-      _TurnDirection.hold => Icons.pan_tool_alt_rounded,
-    };
-
-    return Padding(
-      key: const ValueKey('active-guidance'),
-      padding: const EdgeInsets.symmetric(horizontal: 26),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedBuilder(
-            animation: _pulseAnim,
-            builder: (_, child) => Transform.scale(
-              scale: 1 + (_pulseAnim.value * 0.08),
-              child: child,
-            ),
-            child: Icon(icon, size: 220, color: _guidanceColor),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _guidanceText,
-            style: GoogleFonts.tajawal(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'حرّك الجوال حتى تظهر علامة القبلة',
-            style: GoogleFonts.tajawal(
-              fontSize: 14,
-              color: AppColors.textSecondaryDark,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: LinearProgressIndicator(
-              value: _alignmentProgress,
-              minHeight: 10,
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(_guidanceColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _alignedSuccessView() {
-    return Padding(
-      key: const ValueKey('aligned-success'),
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedBuilder(
-            animation: _pulseAnim,
-            builder: (_, child) => Transform.scale(
-              scale: 1 + (_pulseAnim.value * 0.05),
-              child: child,
-            ),
-            child: const Text('🕋', style: TextStyle(fontSize: 170, height: 1)),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'أنت الآن باتجاه القبلة',
-            style: GoogleFonts.tajawal(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'ثبت الجوال',
-            style: GoogleFonts.tajawal(
-              fontSize: 14,
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomStatusBar(ManualLocation? manualLocation) {
-    if (!_showDetails) return const SizedBox.shrink();
-
-    final stateName = _uiState.machineName;
-    final qiblaDeg = _qiblaBearingDeg;
-    final delta = _smoothedDeltaDeg?.abs();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xCC0E1F1C),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Text(
-        [
-          'الحالة: $stateName',
-          'الإشارة: $_qualityLabel',
-          if (manualLocation != null) 'الموقع: ${manualLocation.name}',
-          if (qiblaDeg != null) 'زاوية القبلة: ${_toArabicFloat(qiblaDeg)}°',
-          if (delta != null) 'الفرق الحالي: ${_toArabicFloat(delta)}°',
-        ].join('  •  '),
-        style: GoogleFonts.tajawal(
-          fontSize: 11,
-          color: Colors.white70,
-          fontWeight: FontWeight.w600,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildCalibrationOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: const Color(0x8A000000),
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 22),
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF19332F),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2A64C)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 120,
-                  height: 64,
-                  child: CustomPaint(painter: _Figure8Painter()),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'البوصلة تحتاج معايرة',
-                  style: GoogleFonts.tajawal(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'حرّك الجوال بشكل 8\nوابتعد عن المعادن أو الغطاء المغناطيسي',
-                  style: GoogleFonts.tajawal(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _retryCalibration,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'إعادة الفحص',
-                          style: GoogleFonts.tajawal(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _manualLocationLookupBusy
-                            ? null
-                            : _openManualLocationPicker,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'اختيار مدينة',
-                          style: GoogleFonts.tajawal(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFallbackStaticState({
-    required String title,
-    required String subtitle,
-    required ManualLocation? manualLocation,
-  }) {
-    final bearing = _qiblaBearingDeg;
-    final hasBearing = bearing != null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.tajawal(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: GoogleFonts.tajawal(
-              fontSize: 14,
-              color: AppColors.textSecondaryDark,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF0D2622),
-              border: Border.all(color: const Color(0xFF2D5E57), width: 2),
-            ),
-            child: Center(
-              child: hasBearing
-                  ? Transform.rotate(
-                      angle: bearing * pi / 180,
-                      child: const Icon(
-                        Icons.navigation_rounded,
-                        size: 150,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.explore_off_rounded,
-                      size: 120,
-                      color: Colors.white38,
-                    ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            hasBearing ? 'هذا اتجاه تقريبي للقبلة' : 'تعذّر حساب زاوية القبلة',
-            style: GoogleFonts.tajawal(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFFE2A64C),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            hasBearing
-                ? 'للحصول على دقة أعلى: أصلح البوصلة أو استخدم جهاز آخر'
-                : 'فعّل الموقع أو اختر مدينة يدويًا ثم أعد المحاولة',
-            style: GoogleFonts.tajawal(
-              fontSize: 13,
-              color: AppColors.textSecondaryDark,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (_showDetails) ...[
-            const SizedBox(height: 10),
-            if (hasBearing)
-              _stateBadge(
-                'زاوية القبلة: ${_toArabicFloat(bearing)}°  •  الإشارة: $_qualityLabel',
-              )
-            else
-              _stateBadge(
-                'زاوية القبلة غير متاحة حاليًا  •  الإشارة: $_qualityLabel',
-              ),
-            if (manualLocation != null) ...[
-              const SizedBox(height: 6),
-              _stateBadge('الموقع: ${manualLocation.name}'),
-            ],
-          ],
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: _retryAll,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'إعادة المحاولة',
-                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
-                ),
-              ),
-              OutlinedButton(
-                onPressed: Geolocator.openLocationSettings,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'إعدادات الموقع',
-                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
-                ),
-              ),
-              OutlinedButton(
-                onPressed: _manualLocationLookupBusy
-                    ? null
-                    : _openManualLocationPicker,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  _manualLocationLookupBusy
-                      ? 'جاري البحث...'
-                      : 'اختيار مدينة يدويًا',
-                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStateCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required List<_StateAction> actions,
-    List<Widget> extra = const [],
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 68, color: iconColor),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: GoogleFonts.tajawal(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: GoogleFonts.tajawal(
-                  color: AppColors.textSecondaryDark,
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              if (extra.isNotEmpty) ...[const SizedBox(height: 12), ...extra],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: actions
-                    .map(
-                      (action) => action.primary
-                          ? ElevatedButton(
-                              onPressed: action.onTap,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                action.label,
-                                style: GoogleFonts.tajawal(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            )
-                          : OutlinedButton(
-                              onPressed: action.onTap,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white24),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                action.label,
-                                style: GoogleFonts.tajawal(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _stateBadge(String text) => Container(
-    margin: const EdgeInsets.only(top: 2),
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.white10),
-    ),
-    child: Text(
-      ArabicUtils.toArabicDigitsFromText(text),
-      style: GoogleFonts.tajawal(
-        color: Colors.white70,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-      ),
-      textAlign: TextAlign.center,
-    ),
-  );
-
-  String _toArabicFloat(double value) {
-    return ArabicUtils.toArabicDigitsFromText(value.toStringAsFixed(1));
-  }
-}
-
-class _StateAction {
-  final String label;
-  final VoidCallback? onTap;
-  final bool primary;
-
-  const _StateAction({
-    required this.label,
-    required this.onTap,
-    this.primary = false,
-  });
-}
-
-class _Figure8Painter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    for (int i = 0; i <= 360; i += 3) {
-      final t = i * pi / 180;
-      final x = size.width * 0.5 + (size.width * 0.32 * sin(t));
-      final y = size.height * 0.5 + (size.height * 0.28 * sin(2 * t));
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

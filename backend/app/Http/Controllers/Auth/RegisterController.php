@@ -24,22 +24,6 @@ class RegisterController extends Controller implements HasMiddleware
     |
     */
 
-    use RegistersUsers;
-
-    /**
-     * Where to redirect users after registration.
-     *
-     * @var string
-     */
-    protected $redirectTo = '/home';
-
-    public static function middleware(): array
-    {
-        return [
-            new Middleware('guest'),
-        ];
-    }
-
     /**
      * Get a validator for an incoming registration request.
      *

@@ -119,6 +119,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
   Widget build(BuildContext context) {
     _handleTabVisibility(TickerMode.valuesOf(context).enabled);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final locationNameAsync = ref.watch(locationNameProvider);
     final adjustedAsync = ref.watch(adjustedPrayerTimesProvider);
 
@@ -130,10 +131,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
           padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children: [
-              _buildHeader(context),
+              _buildHeader(context, isDark),
               const SizedBox(height: 24),
               locationNameAsync.when(
-                data: _buildLocationAndDate,
+                data: (locationName) => _buildLocationAndDate(locationName, isDark),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
                   child: Text(
@@ -146,7 +147,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
               ValueListenableBuilder<DateTime>(
                 valueListenable: _secondClock,
                 builder: (context, now, _) => adjustedAsync.when(
-                  data: (adjusted) => _buildTimerCard(adjusted, now),
+                  data: (adjusted) => _buildTimerCard(adjusted, now, isDark),
                   loading: () => const SizedBox(
                     height: 200,
                     child: Center(child: CircularProgressIndicator()),
@@ -161,7 +162,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
               ValueListenableBuilder<DateTime>(
                 valueListenable: _minuteClock,
                 builder: (context, now, _) => adjustedAsync.when(
-                  data: (adjusted) => _buildPrayerList(adjusted, now),
+                  data: (adjusted) => _buildPrayerList(adjusted, now, isDark),
                   loading: () => const SizedBox.shrink(),
                   error: (_, stackTrace) => const SizedBox.shrink(),
                 ),
@@ -173,13 +174,15 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildCircleButton(
+            context: context,
+            isDark: isDark,
             icon: Icons.settings,
             onTap: () => context.push('/settings'),
           ),
@@ -188,10 +191,12 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
             style: GoogleFonts.tajawal(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.textPrimaryLight,
             ),
           ),
           _buildCircleButton(
+            context: context,
+            isDark: isDark,
             icon: Icons.notifications_none,
             onTap: () => _showNotificationsSheet(context),
           ),
@@ -201,6 +206,8 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
   }
 
   Widget _buildCircleButton({
+    required BuildContext context,
+    required bool isDark,
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -213,24 +220,29 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.5),
+            color: isDark
+                ? AppColors.surfaceDark.withValues(alpha: 0.5)
+                : AppColors.surfaceLight.withValues(alpha: 0.8),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.grey[300], size: 20),
+          child: Icon(
+            icon,
+            color: isDark ? Colors.grey[300] : AppColors.textSecondaryLight,
+            size: 20,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLocationAndDate(String locationName) {
+  Widget _buildLocationAndDate(String locationName, bool isDark) {
     HijriCalendar.setLocal('ar');
     final hijri = HijriCalendar.now();
     final gregorian = DateFormat(
       'EEEE، d MMMM yyyy',
       'ar',
     ).format(DateTime.now());
-    final hijriText =
-        '${_toArabicNumber(hijri.hDay)} ${hijri.longMonthName} ${_toArabicNumber(hijri.hYear)} هـ';
+    final hijriText = '${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} هـ';
 
     return Column(
       children: [
@@ -247,7 +259,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                 style: GoogleFonts.tajawal(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 ),
               ),
             ),
@@ -256,14 +268,19 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
         const SizedBox(height: 8),
         Text(
           hijriText,
-          style: GoogleFonts.tajawal(fontSize: 14, color: Colors.white),
+          style: GoogleFonts.tajawal(
+            fontSize: 14,
+            color: isDark ? Colors.white : AppColors.textPrimaryLight,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           gregorian,
           style: GoogleFonts.tajawal(
             fontSize: 13,
-            color: AppColors.textSecondaryDark,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
           ),
         ),
       ],
@@ -294,7 +311,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
     );
   }
 
-  Widget _buildTimerCard(AdjustedPrayerTimes adjusted, DateTime now) {
+  Widget _buildTimerCard(AdjustedPrayerTimes adjusted, DateTime now, bool isDark) {
     final upcoming = _getUpcomingFromAdjusted(adjusted, now);
     final remaining = PrayerUtils.getRemainingTime(upcoming.time, now);
 
@@ -304,12 +321,14 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: isDark ? AppColors.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: isDark ? 0.1 : 0.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
+            color: AppColors.primary.withValues(alpha: isDark ? 0.05 : 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -321,17 +340,19 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
             'الصلاة القادمة',
             style: GoogleFonts.tajawal(
               fontSize: 14,
-              color: AppColors.textSecondaryDark,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             _getPrayerNameArabic(upcoming.prayer),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'KFGQPC Uthmanic Script',
               fontFamilyFallback: ['naskh'],
               fontSize: 32,
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.textPrimaryLight,
             ),
           ),
           const SizedBox(height: 16),
@@ -349,7 +370,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
             'متبقي على الأذان',
             style: GoogleFonts.tajawal(
               fontSize: 14,
-              color: AppColors.textSecondaryDark,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
@@ -357,7 +380,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
     );
   }
 
-  Widget _buildPrayerList(AdjustedPrayerTimes adjusted, DateTime now) {
+  Widget _buildPrayerList(AdjustedPrayerTimes adjusted, DateTime now, bool isDark) {
     final format = DateFormat('hh:mm a');
     final upcoming = _getUpcomingFromAdjusted(adjusted, now);
 
@@ -385,7 +408,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
           final isCompleted =
               isTrackable && prayerProgress.isCompleted(prayerType);
           final time = format.format((p['time'] as DateTime).toLocal());
-          final timeStrAr = ArabicUtils.toArabicDigitsFromText(
+          final timeStrAr = ArabicUtils.ensureLatinDigits(
             time.replaceAll('AM', 'ص').replaceAll('PM', 'م'),
           );
 
@@ -394,17 +417,19 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: isCompleted
-                  ? Colors.green.withValues(alpha: 0.12)
+                  ? Colors.green.withValues(alpha: isDark ? 0.12 : 0.15)
                   : isActive
-                  ? AppColors.primary.withValues(alpha: 0.1)
-                  : AppColors.surfaceDark,
+                  ? AppColors.primary.withValues(alpha: isDark ? 0.1 : 0.15)
+                  : (isDark ? AppColors.surfaceDark : Colors.white),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isCompleted
-                    ? Colors.green.withValues(alpha: 0.45)
+                    ? Colors.green.withValues(alpha: isDark ? 0.45 : 0.5)
                     : isActive
-                    ? AppColors.primary.withValues(alpha: 0.3)
-                    : Colors.white.withValues(alpha: 0.05),
+                    ? AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.4)
+                    : (isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : AppColors.borderLight),
               ),
             ),
             child: Row(
@@ -416,7 +441,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                       Icons.schedule,
                       color: isActive
                           ? AppColors.primary
-                          : AppColors.textSecondaryDark,
+                          : (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight),
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -428,10 +455,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                             ? FontWeight.bold
                             : FontWeight.w500,
                         color: isCompleted
-                            ? Colors.greenAccent
+                            ? Colors.green
                             : isActive
                             ? AppColors.primary
-                            : Colors.white,
+                            : (isDark ? Colors.white : AppColors.textPrimaryLight),
                       ),
                     ),
                   ],
@@ -447,7 +474,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                             : FontWeight.w500,
                         color: isActive
                             ? AppColors.primary
-                            : AppColors.textSecondaryDark,
+                            : (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -482,8 +511,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                                 ? Icons.check_circle_rounded
                                 : Icons.radio_button_unchecked_rounded,
                             color: isCompleted
-                                ? Colors.greenAccent
-                                : AppColors.textSecondaryDark,
+                                ? Colors.green
+                                : (isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight),
                             size: 22,
                           ),
                         ),
@@ -493,7 +524,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                       adhanAlertsEnabled ? Icons.volume_up : Icons.volume_off,
                       color: adhanAlertsEnabled
                           ? AppColors.primary
-                          : Colors.grey[600],
+                          : (isDark ? Colors.grey[600] : Colors.grey[400]),
                       size: 20,
                     ),
                   ],
@@ -508,9 +539,10 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
 
   void _showNotificationsSheet(BuildContext context) {
     final rootContext = this.context;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -527,7 +559,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                 style: GoogleFonts.tajawal(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 ),
               ),
               const SizedBox(height: 8),
@@ -535,7 +567,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                 'عند تفعيلها سيتم تنبيهك داخل التطبيق عند دخول وقت الصلاة القادمة.',
                 style: GoogleFonts.tajawal(
                   fontSize: 13,
-                  color: AppColors.textSecondaryDark,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
               const SizedBox(height: 18),
@@ -546,7 +580,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
                       enabled ? 'مفعلة' : 'غير مفعلة',
                       style: GoogleFonts.tajawal(
                         fontSize: 16,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
                       ),
                     ),
                   ),
@@ -626,16 +660,6 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen>
     final hh = duration.inHours.toString().padLeft(2, '0');
     final mm = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final ss = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return ArabicUtils.toArabicDigitsFromText('$hh:$mm:$ss');
-  }
-
-  String _toArabicNumber(int number) {
-    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    String numStr = number.toString();
-    for (int i = 0; i < english.length; i++) {
-      numStr = numStr.replaceAll(english[i], arabic[i]);
-    }
-    return numStr;
+    return '$hh:$mm:$ss';
   }
 }

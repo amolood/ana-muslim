@@ -5,10 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hadith/hadith.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 import '../../data/hadith_repository.dart';
 import '../providers/hadith_providers.dart';
 import 'hadith_book_screen.dart';
-import 'hadith_search_screen.dart';
 
 class HadithScreen extends ConsumerWidget {
   const HadithScreen({super.key});
@@ -56,71 +56,59 @@ class HadithScreen extends ConsumerWidget {
   }
 
   // ── Header ─────────────────────────────────────────────────────────────────
-  Widget _header(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-    child: Row(
-      children: [
-        GestureDetector(
-          onTap: () => context.push('/hadith/islamic-content'),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
+  Widget _header(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: isDark ? Colors.white : colors.textPrimary,
             ),
-            child: const Icon(
-              Icons.library_books_rounded,
-              color: AppColors.primary,
-              size: 20,
+            style: IconButton.styleFrom(
+              backgroundColor: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+              padding: const EdgeInsets.all(8),
             ),
           ),
-        ),
-        Expanded(
-          child: Column(
-            children: [
-              Text(
-                'مكتبة الحديث الشريف',
-                style: GoogleFonts.tajawal(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'مكتبة الحديث الشريف',
+              style: GoogleFonts.tajawal(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => context.push('/hadith/search'),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                'كل المجموعات: البخاري، مسلم، السنن وغيرها',
-                style: GoogleFonts.tajawal(
-                  fontSize: 13,
-                  color: AppColors.textSecondaryDark,
-                ),
-              ),
-            ],
-          ),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const HadithSearchScreen()),
-          ),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
+              child: const Icon(
+                Icons.search,
+                color: AppColors.primary,
+                size: 20,
               ),
             ),
-            child: const Icon(Icons.search, color: AppColors.primary, size: 20),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _CollectionsTabs extends StatelessWidget {
@@ -134,7 +122,7 @@ class _CollectionsTabs extends StatelessWidget {
       length: collections.length,
       child: Column(
         children: [
-          _tabBar(),
+          _tabBar(context),
           Expanded(
             child: TabBarView(
               children: collections
@@ -147,32 +135,37 @@ class _CollectionsTabs extends StatelessWidget {
     );
   }
 
-  Widget _tabBar() => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    padding: const EdgeInsets.all(4),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceDark,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: TabBar(
-      isScrollable: collections.length > 3,
-      indicator: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(10),
+  Widget _tabBar(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+        borderRadius: BorderRadius.circular(14),
       ),
-      indicatorSize: TabBarIndicatorSize.tab,
-      labelColor: Colors.black,
-      unselectedLabelColor: AppColors.textSecondaryDark,
-      dividerColor: Colors.transparent,
-      tabAlignment: collections.length > 3 ? TabAlignment.start : null,
-      labelStyle: GoogleFonts.tajawal(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
+      child: TabBar(
+        isScrollable: collections.length > 3,
+        indicator: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: isDark ? Colors.black : AppColors.surfaceDarker,
+        unselectedLabelColor: colors.textSecondary,
+        dividerColor: Colors.transparent,
+        tabAlignment: collections.length > 3 ? TabAlignment.start : null,
+        labelStyle: GoogleFonts.tajawal(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: GoogleFonts.tajawal(fontSize: 13),
+        tabs: collections.map((c) => Tab(text: c.displayName)).toList(),
       ),
-      unselectedLabelStyle: GoogleFonts.tajawal(fontSize: 13),
-      tabs: collections.map((c) => Tab(text: c.displayName)).toList(),
-    ),
-  );
+    );
+  }
 }
 
 class _CollectionsError extends StatelessWidget {
@@ -182,13 +175,15 @@ class _CollectionsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'تعذر تحميل مجموعات الحديث',
-            style: GoogleFonts.tajawal(color: Colors.white54),
+            style: GoogleFonts.tajawal(color: colors.textSecondary),
           ),
           const SizedBox(height: 8),
           TextButton(
@@ -263,6 +258,9 @@ class _BookTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () => context.push(
         '/hadith/book',
@@ -277,9 +275,12 @@ class _BookTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF2D5E57), width: 1),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2D5E57) : colors.borderDefault,
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
@@ -316,7 +317,7 @@ class _BookTile extends StatelessWidget {
                     style: GoogleFonts.tajawal(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -324,7 +325,7 @@ class _BookTile extends StatelessWidget {
                     '${book.numberOfHadith} حديث',
                     style: GoogleFonts.tajawal(
                       fontSize: 12,
-                      color: AppColors.textSecondaryDark,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -332,7 +333,7 @@ class _BookTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_left,
-              color: AppColors.textSecondaryDark,
+              color: colors.iconSecondary,
               size: 20,
             ),
           ],

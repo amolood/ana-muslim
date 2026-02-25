@@ -693,6 +693,76 @@ await QuranLibrary().seekPreviousAyah(
 );
 ```
 
+* ### Ayah Range Playback (NEW!)
+
+Play a specific range of ayahs with high reliability and precise control. Perfect for memorization, study sessions, or targeted recitation.
+
+```dart
+/// Play ayahs from 4 to 20 in Surah Ar-Rahman (55)
+await AudioCtrl.instance.playAyahRange(
+  context: context,
+  surahNumber: 55,        // Surah Ar-Rahman
+  startAyah: 4,           // First ayah to play
+  endAyah: 20,            // Last ayah to play (inclusive)
+  loop: false,            // Loop the range when finished
+  stopAtEnd: true,        // Stop automatically at end
+);
+
+/// Example: Play first 10 ayahs of Al-Baqarah with looping
+await AudioCtrl.instance.playAyahRange(
+  context: context,
+  surahNumber: 2,         // Al-Baqarah
+  startAyah: 1,
+  endAyah: 10,
+  loop: true,             // Keep repeating for memorization
+  stopAtEnd: false,
+);
+
+/// Example: Play ayahs 5-15 from Al-Kahf (18)
+await AudioCtrl.instance.playAyahRange(
+  context: context,
+  surahNumber: 18,
+  startAyah: 5,
+  endAyah: 15,
+);
+
+/// Skip to next ayah in range
+await AudioCtrl.instance.skipNextInRange();
+
+/// Skip to previous ayah in range
+await AudioCtrl.instance.skipPreviousInRange();
+
+/// Stop range playback
+await AudioCtrl.instance.stopRangePlayback();
+
+/// Check if currently playing a range
+bool isRangePlaying = AudioCtrl.instance.state.isPlayingRangeMode;
+
+/// Get current range information
+final rangeInfo = AudioCtrl.instance.state.currentRangeInfo.value;
+if (rangeInfo != null) {
+  print('Playing ${rangeInfo.ayahCount} ayahs from surah ${rangeInfo.surahNumber}');
+  print('Range: ${rangeInfo.startAyah} to ${rangeInfo.endAyah}');
+  print('Loop enabled: ${rangeInfo.loop}');
+}
+```
+
+**Features:**
+- ✅ Precise stopping at end ayah (no overshoot)
+- ✅ Support for pause/resume/stop during playback
+- ✅ Automatic download management for missing ayahs
+- ✅ Visual ayah highlighting and page navigation
+- ✅ Loop mode for memorization
+- ✅ State tracking with current range information
+- ✅ Full backward compatibility with existing APIs
+- ✅ Comprehensive error handling
+
+**Use Cases:**
+- 📖 Memorization of specific ayah ranges
+- 🎓 Study sessions focused on particular passages
+- 🔁 Repetitive practice with loop mode
+- 📱 Targeted recitation practice
+
 * ### Surah Audio Playback
 
 ```dart

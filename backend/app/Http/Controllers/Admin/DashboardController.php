@@ -10,6 +10,7 @@ use App\Models\AnaMuslimAttachment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -35,122 +36,151 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $itemsCount = AnaMuslimItem::count();
-        $categoriesCount = AnaMuslimCategory::count();
-        $authorsCount = AnaMuslimAuthor::count();
-        $attachmentsCount = AnaMuslimAttachment::count();
+        $stats = Cache::remember('ana_muslim_admin_dashboard_stats_v2', now()->addMinutes(10), function () {
+            $itemsCount = AnaMuslimItem::count();
+            $categoriesCount = AnaMuslimCategory::count();
+            $authorsCount = AnaMuslimAuthor::count();
+            $attachmentsCount = AnaMuslimAttachment::count();
 
-        $itemsWithCategories = $this->countDistinct('ana_muslim_item_category', 'item_id');
-        $itemsWithAuthors = $this->countDistinct('ana_muslim_item_author', 'item_id');
-        $itemsWithAttachments = $this->countDistinct('ana_muslim_attachments', 'item_id');
+            $itemsWithCategories = $this->countDistinct('ana_muslim_item_category', 'item_id');
+            $itemsWithAuthors = $this->countDistinct('ana_muslim_item_author', 'item_id');
+            $itemsWithAttachments = $this->countDistinct('ana_muslim_attachments', 'item_id');
 
-        $typeDistribution = $this->buildItemDistribution(
-            column: 'type',
-            totalItems: $itemsCount,
-            labelResolver: fn (string $key): string => $this->resolveTypeLabel($key)
-        );
+            $typeDistribution = $this->buildItemDistribution(
+                column: 'type',
+                totalItems: $itemsCount,
+                labelResolver: fn (string $key): string => $this->resolveTypeLabel($key)
+            );
 
-        $sourceLanguageDistribution = $this->buildItemDistribution(
-            column: 'source_language',
-            totalItems: $itemsCount,
-            labelResolver: fn (string $key): string => $this->resolveLanguageLabel($key)
-        );
+            $sourceLanguageDistribution = $this->buildItemDistribution(
+                column: 'source_language',
+                totalItems: $itemsCount,
+                labelResolver: fn (string $key): string => $this->resolveLanguageLabel($key)
+            );
 
-        $translatedLanguageDistribution = $this->buildItemDistribution(
-            column: 'translated_language',
-            totalItems: $itemsCount,
-            labelResolver: fn (string $key): string => $this->resolveLanguageLabel($key)
-        );
+            $translatedLanguageDistribution = $this->buildItemDistribution(
+                column: 'translated_language',
+                totalItems: $itemsCount,
+                labelResolver: fn (string $key): string => $this->resolveLanguageLabel($key)
+            );
 
-        $topCategories = DB::table('ana_muslim_categories as c')
-            ->leftJoin('ana_muslim_item_category as ic', 'c.id', '=', 'ic.category_id')
-            ->select('c.id', 'c.title', 'c.language', 'c.items_count')
-            ->selectRaw('COUNT(DISTINCT ic.item_id) as linked_items')
-            ->groupBy('c.id', 'c.title', 'c.language', 'c.items_count')
-            ->orderByDesc('linked_items')
-            ->orderByDesc('c.items_count')
-            ->limit(10)
-            ->get()
-            ->map(function ($row) use ($itemsCount): array {
-                $linkedItems = (int) $row->linked_items;
+            $topCategories = DB::table('ana_muslim_categories as c')
+                ->leftJoin('ana_muslim_item_category as ic', 'c.id', '=', 'ic.category_id')
+                ->select('c.id', 'c.title', 'c.language', 'c.items_count')
+                ->selectRaw('COUNT(DISTINCT ic.item_id) as linked_items')
+                ->groupBy('c.id', 'c.title', 'c.language', 'c.items_count')
+                ->orderByDesc('linked_items')
+                ->orderByDesc('c.items_count')
+                ->limit(10)
+                ->get()
+                ->map(function ($row) use ($itemsCount): array {
+                    $linkedItems = (int) $row->linked_items;
 
-                return [
-                    'id' => (int) $row->id,
-                    'title' => (string) $row->title,
-                    'language' => $this->resolveLanguageLabel((string) ($row->language ?? 'unknown')),
-                    'linked_items' => $linkedItems,
-                    'share' => $itemsCount > 0 ? round(($linkedItems / $itemsCount) * 100, 1) : 0.0,
-                ];
-            });
+                    return [
+                        'id' => (int) $row->id,
+                        'title' => (string) $row->title,
+                        'language' => $this->resolveLanguageLabel((string) ($row->language ?? 'unknown')),
+                        'linked_items' => $linkedItems,
+                        'share' => $itemsCount > 0 ? round(($linkedItems / $itemsCount) * 100, 1) : 0.0,
+                    ];
+                });
 
-        $topAuthors = DB::table('ana_muslim_authors as a')
-            ->leftJoin('ana_muslim_item_author as ia', 'a.id', '=', 'ia.author_id')
-            ->select('a.id', 'a.title', 'a.type')
-            ->selectRaw('COUNT(DISTINCT ia.item_id) as linked_items')
-            ->groupBy('a.id', 'a.title', 'a.type')
-            ->orderByDesc('linked_items')
-            ->limit(10)
-            ->get()
-            ->map(function ($row) use ($itemsCount): array {
-                $linkedItems = (int) $row->linked_items;
+            $topAuthors = DB::table('ana_muslim_authors as a')
+                ->leftJoin('ana_muslim_item_author as ia', 'a.id', '=', 'ia.author_id')
+                ->select('a.id', 'a.title', 'a.type')
+                ->selectRaw('COUNT(DISTINCT ia.item_id) as linked_items')
+                ->groupBy('a.id', 'a.title', 'a.type')
+                ->orderByDesc('linked_items')
+                ->limit(10)
+                ->get()
+                ->map(function ($row) use ($itemsCount): array {
+                    $linkedItems = (int) $row->linked_items;
 
-                return [
-                    'id' => (int) $row->id,
-                    'title' => (string) $row->title,
-                    'type' => $this->resolveTypeLabel((string) ($row->type ?? 'unknown')),
-                    'linked_items' => $linkedItems,
-                    'share' => $itemsCount > 0 ? round(($linkedItems / $itemsCount) * 100, 1) : 0.0,
-                ];
-            });
+                    return [
+                        'id' => (int) $row->id,
+                        'title' => (string) $row->title,
+                        'language' => 'ar', // Defaulting to AR since not present in authors
+                        'linked_items' => $linkedItems,
+                        'share' => $itemsCount > 0 ? round(($linkedItems / $itemsCount) * 100, 1) : 0.0,
+                    ];
+                });
 
-        $attachmentTypeDistribution = AnaMuslimAttachment::query()
-            ->selectRaw("LOWER(COALESCE(NULLIF(TRIM(extension_type), ''), 'unknown')) as ext_key")
-            ->selectRaw('COUNT(*) as total')
-            ->groupBy('ext_key')
-            ->orderByDesc('total')
-            ->limit(8)
-            ->get()
-            ->map(function ($row) use ($attachmentsCount): array {
-                $count = (int) $row->total;
-                $key = (string) $row->ext_key;
-                $label = $key === 'unknown' ? 'غير محدد' : strtoupper($key);
+            $attachmentTypeDistribution = AnaMuslimAttachment::query()
+                ->selectRaw("LOWER(COALESCE(NULLIF(TRIM(extension_type), ''), 'unknown')) as ext_key")
+                ->selectRaw('COUNT(*) as total')
+                ->groupBy('ext_key')
+                ->orderByDesc('total')
+                ->limit(8)
+                ->get()
+                ->map(function ($row) use ($attachmentsCount): array {
+                    $count = (int) $row->total;
+                    $key = (string) $row->ext_key;
+                    $label = $key === 'unknown' ? 'غير محدد' : strtoupper($key);
 
-                return [
-                    'key' => $key,
-                    'label' => $label,
-                    'count' => $count,
-                    'share' => $attachmentsCount > 0 ? round(($count / $attachmentsCount) * 100, 1) : 0.0,
-                ];
-            });
+                    return [
+                        'key' => $key,
+                        'label' => $label,
+                        'count' => $count,
+                        'share' => $attachmentsCount > 0 ? round(($count / $attachmentsCount) * 100, 1) : 0.0,
+                    ];
+                });
 
-        $apiHealth = $this->buildApiHealth();
-        $queueHealth = $this->buildQueueHealth();
-        $quranStats = $this->buildQuranStats();
-        $metadataStats = $this->buildMetadataStats();
+            $apiHealth = $this->buildApiHealth();
+            $queueHealth = $this->buildQueueHealth();
+            $quranStats = $this->buildQuranStats();
+            $metadataStats = $this->buildMetadataStats();
 
-        $stats = [
-            'items_count' => $itemsCount,
-            'categories_count' => $categoriesCount,
-            'authors_count' => $authorsCount,
-            'attachments_count' => $attachmentsCount,
-            'items_with_categories' => $itemsWithCategories,
-            'items_with_authors' => $itemsWithAuthors,
-            'items_with_attachments' => $itemsWithAttachments,
-            'uncategorized_items' => max(0, $itemsCount - $itemsWithCategories),
-            'unattributed_items' => max(0, $itemsCount - $itemsWithAuthors),
-            'recent_items' => AnaMuslimItem::with('categories')->latest()->take(8)->get(),
-            'type_distribution' => $typeDistribution,
-            'source_language_distribution' => $sourceLanguageDistribution,
-            'translated_language_distribution' => $translatedLanguageDistribution,
-            'attachment_type_distribution' => $attachmentTypeDistribution,
-            'top_categories' => $topCategories,
-            'top_authors' => $topAuthors,
-            'api_health' => $apiHealth,
-            'queue_health' => $queueHealth,
-            'quran_stats' => $quranStats,
-            'metadata_stats' => $metadataStats,
-            'last_content_update' => AnaMuslimItem::max('updated_at'),
-        ];
+            return [
+                'items_count' => $itemsCount,
+                'categories_count' => $categoriesCount,
+                'authors_count' => $authorsCount,
+                'attachments_count' => $attachmentsCount,
+                'reciters_count' => \App\Models\AnaMuslimReciter::count(),
+                'items_with_categories' => $itemsWithCategories,
+                'items_with_authors' => $itemsWithAuthors,
+                'items_with_attachments' => $itemsWithAttachments,
+                'uncategorized_items' => max(0, $itemsCount - $itemsWithCategories),
+                'unattributed_items' => max(0, $itemsCount - $itemsWithAuthors),
+                'recent_items' => AnaMuslimItem::with('categories')->latest()->take(8)->get(),
+                'type_distribution' => $typeDistribution,
+                'source_language_distribution' => $sourceLanguageDistribution,
+                'translated_language_distribution' => $translatedLanguageDistribution,
+                'attachment_type_distribution' => $attachmentTypeDistribution,
+                'top_categories' => $topCategories,
+                'top_authors' => $topAuthors,
+                'api_health' => $apiHealth,
+                'queue_health' => $queueHealth,
+                'quran_stats' => $quranStats,
+                'metadata_stats' => $metadataStats,
+                'last_content_update' => AnaMuslimItem::max('updated_at'),
+                
+                // Visit Analytics
+                'total_visits' => \App\Models\AnaMuslimVisit::count(),
+                'unique_visitors' => \App\Models\AnaMuslimVisit::where('is_unique', true)->count(),
+                'visits_today' => \App\Models\AnaMuslimVisit::where('created_at', '>=', today())->count(),
+                'unique_today' => \App\Models\AnaMuslimVisit::where('created_at', '>=', today())->where('is_unique', true)->count(),
+                'recent_visits' => \App\Models\AnaMuslimVisit::latest()->limit(10)->get(),
+                'visits_by_country' => \App\Models\AnaMuslimVisit::select('country', DB::raw('count(*) as count'))
+                    ->groupBy('country')
+                    ->orderBy('count', 'desc')
+                    ->limit(10)
+                    ->get(),
+                'visits_last_7_days' => \App\Models\AnaMuslimVisit::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+                    ->where('created_at', '>=', now()->subDays(7)->startOfDay())
+                    ->groupBy('date')
+                    ->get(),
+                'top_visited_pages' => \App\Models\AnaMuslimVisit::select('url', DB::raw('count(*) as count'))
+                    ->groupBy('url')
+                    ->orderBy('count', 'desc')
+                    ->limit(10)
+                    ->get(),
+                'platform_distribution' => \App\Models\AnaMuslimVisit::select('os', DB::raw('count(*) as count'))
+                    ->groupBy('os')
+                    ->orderBy('count', 'desc')
+                    ->limit(5)
+                    ->get(),
+            ];
+        });
 
         return view('admin.dashboard', compact('stats'));
     }
@@ -184,7 +214,7 @@ class DashboardController extends Controller
 
     private function buildApiHealth(): array
     {
-        if (!Schema::hasTable('islamhouse_endpoint_snapshots')) {
+        if (!$this->tableExists('islamhouse_endpoint_snapshots')) {
             return [
                 'enabled' => false,
                 'snapshots_total' => 0,
@@ -248,19 +278,22 @@ class DashboardController extends Controller
 
     private function buildQueueHealth(): array
     {
+        $hasJobs = $this->tableExists('jobs');
+        $hasFailedJobs = $this->tableExists('failed_jobs');
+
         return [
-            'jobs_table_exists' => Schema::hasTable('jobs'),
-            'failed_jobs_table_exists' => Schema::hasTable('failed_jobs'),
-            'pending' => Schema::hasTable('jobs') ? (int) DB::table('jobs')->count() : 0,
-            'failed' => Schema::hasTable('failed_jobs') ? (int) DB::table('failed_jobs')->count() : 0,
-            'last_failed_at' => Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->max('failed_at') : null,
+            'jobs_table_exists' => $hasJobs,
+            'failed_jobs_table_exists' => $hasFailedJobs,
+            'pending' => $hasJobs ? (int) DB::table('jobs')->count() : 0,
+            'failed' => $hasFailedJobs ? (int) DB::table('failed_jobs')->count() : 0,
+            'last_failed_at' => $hasFailedJobs ? DB::table('failed_jobs')->max('failed_at') : null,
         ];
     }
 
     private function buildQuranStats(): array
     {
         return [
-            'enabled' => Schema::hasTable('islamhouse_quran_categories'),
+            'enabled' => $this->tableExists('islamhouse_quran_categories'),
             'categories' => $this->tableCount('islamhouse_quran_categories'),
             'authors' => $this->tableCount('islamhouse_quran_authors'),
             'recitations' => $this->tableCount('islamhouse_quran_recitations'),
@@ -285,7 +318,7 @@ class DashboardController extends Controller
 
         $rows = [];
         foreach ($metadataTables as $table => $label) {
-            if (!Schema::hasTable($table)) {
+            if (!$this->tableExists($table)) {
                 continue;
             }
 
@@ -321,9 +354,22 @@ class DashboardController extends Controller
         return strtoupper($normalized);
     }
 
+    private function tableExists(string $table): bool
+    {
+        $existingTables = Cache::remember('ana_muslim_table_list', 3600, function () {
+            try {
+                return DB::connection()->getSchemaBuilder()->getTableListing();
+            } catch (\Exception $e) {
+                return [];
+            }
+        });
+
+        return in_array($table, $existingTables, true);
+    }
+
     private function countDistinct(string $table, string $column): int
     {
-        if (!Schema::hasTable($table)) {
+        if (!$this->tableExists($table)) {
             return 0;
         }
 
@@ -332,7 +378,7 @@ class DashboardController extends Controller
 
     private function tableCount(string $table): int
     {
-        if (!Schema::hasTable($table)) {
+        if (!$this->tableExists($table)) {
             return 0;
         }
 

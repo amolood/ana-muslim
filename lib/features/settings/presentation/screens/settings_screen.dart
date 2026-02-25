@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../../qibla/presentation/providers/qibla_feedback_provider.dart';
@@ -50,10 +51,12 @@ class SettingsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── Appearance ──────────────────────────────────────
-            _buildSectionTitle('المظهر'),
+            _buildSectionTitle('المظهر', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.dark_mode,
                   title: 'الثيم',
                   trailingText: theme,
@@ -66,8 +69,9 @@ class SettingsScreen extends ConsumerWidget {
                         ref.read(appThemeProvider.notifier).save(val),
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.format_size,
                   title: 'حجم الخط',
                   trailingText: fontSize,
@@ -89,8 +93,9 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.language,
                   title: 'اللغة',
                   trailingText: language,
@@ -107,10 +112,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // ─── Prayer ──────────────────────────────────────────
-            _buildSectionTitle('الصلاة'),
+            _buildSectionTitle('الصلاة', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.calculate,
                   title: 'طريقة الحساب',
                   trailingText: calcMethod,
@@ -129,22 +136,25 @@ class SettingsScreen extends ConsumerWidget {
                         ref.read(calculationMethodProvider.notifier).save(val),
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.tune,
                   title: 'ضبط مواقيت الصلاة',
                   subtitle: 'تقديم أو تأخير كل صلاة بدقائق',
                   onTap: () => context.push('/settings/prayer-adjustment'),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.notifications_active,
                   title: 'تنبيهات الصلاة',
                   trailingText: adhanAlerts ? 'مفعلة' : 'موقفة',
                   onTap: () => context.push('/settings/notifications'),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.spatial_audio,
                   title: 'نغمة نجاح القبلة',
                   trailingText: qiblaToneEnabled ? 'مفعلة' : 'موقفة',
@@ -158,20 +168,23 @@ class SettingsScreen extends ConsumerWidget {
                         .save(val == 'مفعلة'),
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.music_note_rounded,
                   title: 'نوع نغمة القبلة',
                   trailingText: qiblaToneOption.label,
                   onTap: () => _showSelectionSheet(
                     context,
                     'نوع نغمة القبلة',
-                    ['soft', 'bell'],
+                    ['high', 'bell', 'labbaik'],
                     qiblaToneOption.key,
                     (val) async {
-                      final option = val == 'bell'
-                          ? QiblaSuccessToneOption.bell
-                          : QiblaSuccessToneOption.soft;
+                      final option = switch (val) {
+                        'bell' => QiblaSuccessToneOption.bell,
+                        'labbaik' => QiblaSuccessToneOption.labbaik,
+                        _ => QiblaSuccessToneOption.high,
+                      };
                       await ref
                           .read(qiblaSuccessToneOptionProvider.notifier)
                           .save(option);
@@ -179,8 +192,9 @@ class SettingsScreen extends ConsumerWidget {
                     displayMapper: _qiblaToneOptionLabel,
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.play_arrow_rounded,
                   title: 'معاينة نغمة القبلة',
                   subtitle: 'تشغيل النغمة المختارة للتأكد من الصوت',
@@ -202,8 +216,9 @@ class SettingsScreen extends ConsumerWidget {
                     }
                   },
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.location_on,
                   title: 'الموقع الحالي',
                   trailingText: locationNameAsync.maybeWhen(
@@ -228,10 +243,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // ─── Calendar ────────────────────────────────────────
-            _buildSectionTitle('التقويم'),
+            _buildSectionTitle('التقويم', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.calendar_month,
                   title: 'التقويم الهجري',
                   subtitle: 'عرض ومنتقي التاريخ الهجري',
@@ -241,10 +258,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // ─── Quran ───────────────────────────────────────────
-            _buildSectionTitle('القرآن الكريم'),
+            _buildSectionTitle('القرآن الكريم', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.menu_book,
                   title: 'مصدر التفسير',
                   trailingText: _tafsirDisplayName(
@@ -266,8 +285,9 @@ class SettingsScreen extends ConsumerWidget {
                     displayMapper: _tafsirDisplayName,
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.record_voice_over,
                   title: 'القارئ الافتراضي',
                   trailingText:
@@ -278,10 +298,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // ─── Sebha ───────────────────────────────────────────
-            _buildSectionTitle('السبحة'),
+            _buildSectionTitle('السبحة', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.track_changes_rounded,
                   title: 'الهدف الافتراضي للتسبيح',
                   trailingText: _sebhaGoalLabel(sebhaDefaultGoal),
@@ -292,8 +314,9 @@ class SettingsScreen extends ConsumerWidget {
                     currentGoal: sebhaDefaultGoal,
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.format_list_bulleted_rounded,
                   title: 'قائمة التسبيحات',
                   trailingText: ArabicUtils.toArabicDigits(
@@ -307,10 +330,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // ─── Other ───────────────────────────────────────────
-            _buildSectionTitle('أخرى'),
+            _buildSectionTitle('أخرى', context),
             _buildSectionContainer(
+              context,
               children: [
                 _buildSettingsItem(
+                  context,
                   icon: Icons.privacy_tip,
                   title: 'الخصوصية',
                   onTap: () => _showInfoDialog(
@@ -320,15 +345,17 @@ class SettingsScreen extends ConsumerWidget {
                         'لا يتم إرسال بياناتك الشخصية إلى خوادم خارجية. يتم حفظ الإعدادات محليًا على جهازك فقط.',
                   ),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.chat,
                   title: 'تواصل معنا',
                   subtitle: 'واتساب',
                   onTap: () => _openWhatsapp(context),
                 ),
-                _buildDivider(),
+                _buildDivider(context),
                 _buildSettingsItem(
+                  context,
                   icon: Icons.info,
                   title: 'عن التطبيق',
                   trailingText: 'الإصدار 1.0.0',
@@ -360,10 +387,14 @@ class SettingsScreen extends ConsumerWidget {
   static String _tafsirDisplayName(String key) =>
       _tafsirMap[key] ?? 'تفسير السعدي';
 
-  static const _qiblaToneOptionMap = {'soft': 'نغمة هادئة', 'bell': 'نغمة جرس'};
+  static const _qiblaToneOptionMap = {
+    'high': 'نغمة عالية',
+    'bell': 'نغمة جرس',
+    'labbaik': 'لبيك اللهم',
+  };
 
   static String _qiblaToneOptionLabel(String key) =>
-      _qiblaToneOptionMap[key] ?? 'نغمة هادئة';
+      _qiblaToneOptionMap[key] ?? 'نغمة عالية';
 
   static String _sebhaGoalLabel(int goal) {
     if (goal <= 0) return 'غير محدد';
@@ -788,7 +819,8 @@ class SettingsScreen extends ConsumerWidget {
     ).whenComplete(controller.dispose);
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Text(
@@ -796,55 +828,97 @@ class SettingsScreen extends ConsumerWidget {
         style: GoogleFonts.tajawal(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: AppColors.textSecondaryDark,
+          color: colors.textSecondary,
         ),
       ),
     );
   }
 
-  Widget _buildSectionContainer({required List<Widget> children}) {
+  Widget _buildSectionContainer(BuildContext context, {required List<Widget> children}) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: colors.borderSubtle,
+          width: 1.5,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(children: children),
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildDivider(BuildContext context) {
+    final colors = context.colors;
     return Divider(
       height: 1,
       thickness: 1,
-      color: Colors.white.withValues(alpha: 0.05),
+      color: colors.borderSubtle,
       indent: 64,
     );
   }
 
-  Widget _buildSettingsItem({
+  Widget _buildSettingsItem(BuildContext context, {
     required IconData icon,
     required String title,
     String? trailingText,
     String? subtitle,
     required VoidCallback onTap,
   }) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: AppColors.primary.withValues(alpha: 0.1),
+        highlightColor: AppColors.primary.withValues(alpha: 0.05),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.15),
+                      AppColors.primary.withValues(alpha: 0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 20),
+                child: Icon(icon, color: AppColors.primary, size: 22),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -856,7 +930,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: GoogleFonts.tajawal(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: colors.textPrimary,
                       ),
                     ),
                     if (subtitle != null)
@@ -864,7 +938,7 @@ class SettingsScreen extends ConsumerWidget {
                         subtitle,
                         style: GoogleFonts.tajawal(
                           fontSize: 12,
-                          color: AppColors.textSecondaryDark,
+                          color: colors.textSecondary,
                         ),
                       ),
                   ],
@@ -876,14 +950,14 @@ class SettingsScreen extends ConsumerWidget {
                   style: GoogleFonts.tajawal(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondaryDark,
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: AppColors.textSecondaryDark,
+                color: colors.iconSecondary,
                 size: 16,
               ),
             ],

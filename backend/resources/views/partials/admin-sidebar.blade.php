@@ -87,6 +87,39 @@
                     <i class="fa-solid fa-book-quran w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
                     <span x-show="!sidebar.collapsed">الحديث الشريف</span>
                 </a>
+                <a href="{{ route('admin.reciters.index') }}"
+                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.reciters.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
+                    <i class="fas fa-microphone-lines w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
+                    <span x-show="!sidebar.collapsed">القراء</span>
+                </a>
+            </div>
+
+            <!-- Group: System -->
+            @php
+                $systemActive = request()->routeIs('admin.notifications.*') || request()->routeIs('admin.settings.*');
+            @endphp
+            <button type="button"
+                class="mt-4 w-full flex items-center px-4 py-3 rounded-xl font-black transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 {{ $systemActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : '' }}"
+                :aria-expanded="nav.isOpen('system', sidebar.collapsed) ? 'true' : 'false'"
+                @click="nav.toggle('system')">
+                <i class="fa-solid fa-gears w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
+                <span class="flex-1 text-right truncate" x-show="!sidebar.collapsed">النظام</span>
+                <i class="fas fa-chevron-down text-xs transition-transform"
+                    :class="nav.isOpen('system', sidebar.collapsed) ? 'rotate-180' : ''"
+                    x-show="!sidebar.collapsed"></i>
+            </button>
+            <div class="mt-1 space-y-1 overflow-hidden"
+                x-show="nav.isOpen('system', sidebar.collapsed)" x-transition.opacity.duration.150ms>
+                <a href="{{ route('admin.notifications.index') }}"
+                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.notifications.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
+                    <i class="fas fa-bell w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
+                    <span x-show="!sidebar.collapsed">التنبيهات</span>
+                </a>
+                <a href="{{ route('admin.settings.index') }}"
+                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.settings.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
+                    <i class="fas fa-cog w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
+                    <span x-show="!sidebar.collapsed">الإعدادات</span>
+                </a>
             </div>
         </div>
     </nav>
