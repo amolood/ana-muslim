@@ -15,14 +15,14 @@ class AnaMuslimInitialDataSeeder extends Seeder
         // Reciters
         $reciters = [
             // Official mp3quran.net v3 IDs for top Sudanese reciters
-            ['id' => 13, 'name' => 'الزين محمد أحمد', 'nationality' => 'سوداني', 'path' => 'alzain/', 'base_url' => 'https://server9.mp3quran.net/', 'display_order' => 1],
-            ['id' => 138, 'name' => 'نورين محمد صديق', 'nationality' => 'سوداني', 'path' => 'nourin_siddig/Rewayat-Aldori-A-n-Abi-Amr/', 'base_url' => 'https://server16.mp3quran.net/', 'display_order' => 2],
-            ['id' => 211, 'name' => 'الفاتح محمد زبير', 'nationality' => 'سوداني', 'path' => 'fateh/', 'base_url' => 'https://server6.mp3quran.net/', 'display_order' => 3],
-            ['id' => 115, 'name' => 'محمد عبدالكريم', 'nationality' => 'سوداني', 'path' => 'm_krm/', 'base_url' => 'https://server12.mp3quran.net/', 'display_order' => 4],
-            
+            ['id' => 13, 'name' => 'الزين محمد أحمد', 'nationality' => 'SD', 'path' => 'alzain/', 'base_url' => 'https://server9.mp3quran.net/', 'display_order' => 1],
+            ['id' => 138, 'name' => 'نورين محمد صديق', 'nationality' => 'SD', 'path' => 'nourin_siddig/Rewayat-Aldori-A-n-Abi-Amr/', 'base_url' => 'https://server16.mp3quran.net/', 'display_order' => 2],
+            ['id' => 211, 'name' => 'الفاتح محمد زبير', 'nationality' => 'SD', 'path' => 'fateh/', 'base_url' => 'https://server6.mp3quran.net/', 'display_order' => 3],
+            ['id' => 115, 'name' => 'محمد عبدالكريم', 'nationality' => 'SD', 'path' => 'm_krm/', 'base_url' => 'https://server12.mp3quran.net/', 'display_order' => 4],
+
             // Custom Sudanese Reciters
-            ['id' => 910001, 'name' => 'محمد عثمان الحاج', 'nationality' => 'سوداني', 'path' => 'mohamed_osman_links.json', 'base_url' => 'json://', 'display_order' => 5],
-            ['id' => 910002, 'name' => 'أحمد محمد طاهر', 'nationality' => 'سوداني', 'path' => 'quran3/4431/14647/128/', 'base_url' => 'https://download.quran.islamway.net/', 'display_order' => 6],
+            ['id' => 910001, 'name' => 'محمد عثمان الحاج', 'nationality' => 'SD', 'path' => 'mohamed_osman_links.json', 'base_url' => 'json://', 'display_order' => 5],
+            ['id' => 910002, 'name' => 'أحمد محمد طاهر', 'nationality' => 'SD', 'path' => 'quran3/4431/14647/128/', 'base_url' => 'https://download.quran.islamway.net/', 'display_order' => 6],
         ];
 
         foreach ($reciters as $reciter) {

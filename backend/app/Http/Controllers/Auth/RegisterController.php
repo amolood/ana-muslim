@@ -13,6 +13,8 @@ use Illuminate\Routing\Controllers\Middleware;
 
 class RegisterController extends Controller implements HasMiddleware
 {
+    use RegistersUsers;
+
     /*
     |--------------------------------------------------------------------------
     | Register Controller
@@ -23,6 +25,15 @@ class RegisterController extends Controller implements HasMiddleware
     | provide this functionality without requiring any additional code.
     |
     */
+
+    protected $redirectTo = '/admin';
+
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('guest'),
+        ];
+    }
 
     /**
      * Get a validator for an incoming registration request.

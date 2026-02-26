@@ -20,22 +20,104 @@
         </div>
     @endif
 
+    <!-- Filters -->
+    @php
+        $nationalities = [
+            'SA' => 'سعودي',
+            'EG' => 'مصري',
+            'AE' => 'إماراتي',
+            'KW' => 'كويتي',
+            'QA' => 'قطري',
+            'BH' => 'بحريني',
+            'OM' => 'عماني',
+            'YE' => 'يمني',
+            'IQ' => 'عراقي',
+            'SY' => 'سوري',
+            'JO' => 'أردني',
+            'PS' => 'فلسطيني',
+            'LB' => 'لبناني',
+            'LY' => 'ليبي',
+            'TN' => 'تونسي',
+            'DZ' => 'جزائري',
+            'MA' => 'مغربي',
+            'MR' => 'موريتاني',
+            'SD' => 'سوداني',
+            'SO' => 'صومالي',
+            'DJ' => 'جيبوتي',
+            'KM' => 'قمري',
+            'TR' => 'تركي',
+            'IR' => 'إيراني',
+            'AF' => 'أفغاني',
+            'PK' => 'باكستاني',
+            'IN' => 'هندي',
+            'BD' => 'بنغلاديشي',
+            'MY' => 'ماليزي',
+            'ID' => 'إندونيسي',
+            'NG' => 'نيجيري',
+            'SN' => 'سنغالي',
+            'ML' => 'مالي',
+            'TD' => 'تشادي',
+            'OTHER' => 'أخرى',
+        ];
+    @endphp
+    <div class="mb-6 admin-card p-4">
+        <form method="GET" action="{{ route('admin.reciters.index') }}" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">بحث</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث باسم القارئ..."
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50 py-2.5 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
+            </div>
+            <div class="w-44">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">الجنسية</label>
+                <select name="nationality"
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50 py-2.5 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
+                    <option value="">الكل</option>
+                    @foreach($nationalities as $code => $label)
+                        <option value="{{ $code }}" {{ request('nationality') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="w-36">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">الحالة</label>
+                <select name="status"
+                    class="block w-full rounded-xl border-gray-200 bg-gray-50 py-2.5 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
+                    <option value="">الكل</option>
+                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>نشط</option>
+                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>معطل</option>
+                </select>
+            </div>
+            <button type="submit" class="admin-btn bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                <i class="fa-solid fa-search ml-1"></i> بحث
+            </button>
+            @if(request()->hasAny(['search', 'nationality', 'status']))
+                <a href="{{ route('admin.reciters.index') }}" class="admin-btn bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300">مسح</a>
+            @endif
+        </form>
+    </div>
+
     <div class="admin-card overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-right text-sm border-collapse">
                 <thead>
                     <tr class="bg-gray-50/80 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-b border-gray-100 dark:border-white/10">
+                        <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider w-10"></th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider w-20"># ID</th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider">اسم القارئ</th>
+                        <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider">الجنسية</th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider">المسار (Path)</th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider">رابط السيرفر (Base URL)</th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider">الحالة</th>
                         <th class="px-6 py-4 font-bold text-xs uppercase tracking-wider text-left w-32">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                <tbody id="reciters-list" class="divide-y divide-gray-100 dark:divide-white/10">
                     @forelse($reciters as $reciter)
-                        <tr class="group hover:bg-gray-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                        <tr data-id="{{ $reciter->id }}" class="group hover:bg-gray-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                            <td class="px-4 py-4 text-center">
+                                <span class="drag-handle cursor-move text-gray-400 hover:text-gray-600 transition-colors">
+                                    <i class="fa-solid fa-grip-vertical"></i>
+                                </span>
+                            </td>
                             <td class="px-6 py-4">
                                 <span class="inline-flex items-center justify-center rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-mono font-bold text-gray-600 dark:bg-white/5 dark:text-gray-400">
                                     {{ $reciter->id }}
@@ -43,6 +125,15 @@
                             </td>
                             <td class="px-6 py-4">
                                 <span class="font-bold text-gray-900 dark:text-white">{{ $reciter->name }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if($reciter->nationality)
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-600 ring-1 ring-inset ring-indigo-600/10 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                        {{ $nationalities[$reciter->nationality] ?? $reciter->nationality }}
+                                    </span>
+                                @else
+                                    <span class="text-xs text-gray-400">—</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 <code class="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{{ $reciter->path }}</code>
@@ -78,7 +169,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">لا يوجد قراء مسجلين حالياً.</td>
+                            <td colspan="8" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">لا يوجد قراء مسجلين حالياً.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -90,4 +181,40 @@
             </div>
         @endif
     </div>
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const el = document.getElementById('reciters-list');
+            if (el) {
+                Sortable.create(el, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function() {
+                        const order = [];
+                        el.querySelectorAll('tr').forEach(tr => {
+                            order.push(tr.dataset.id);
+                        });
+
+                        fetch('{{ route('admin.reciters.update-order') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ order: order })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Optional: show a small toast or notification
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    }
+                });
+            }
+        });
+    </script>
+    @endpush
 </x-admin-layout>

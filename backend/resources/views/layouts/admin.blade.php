@@ -16,7 +16,7 @@
 
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script>
@@ -85,7 +85,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300" dir="rtl"
+<body class="bg-gray-50/80 dark:bg-[#0f1117] transition-colors duration-300" dir="rtl"
     style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;" x-data="adminApp()">
 
     <div class="flex h-screen overflow-hidden">
@@ -95,7 +95,7 @@
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
             x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0" @click="sidebar.open = false"
-            class="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm lg:hidden" x-cloak></div>
+            class="fixed inset-0 z-40 bg-gray-900/60 backdrop-blur-sm lg:hidden" x-cloak></div>
 
         <!-- Sidebar -->
         @include('partials.admin-sidebar')
@@ -106,13 +106,12 @@
             @include('partials.admin-header')
 
             <!-- Main Body -->
-            <main class="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-gray-900/50">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                 @yield('content')
             </main>
         </div>
     </div>
 
-    <!-- We defer specific DataTables initializations to the individual views if needed. -->
     @stack('scripts')
 </body>
 

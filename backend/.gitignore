@@ -19,6 +19,12 @@
 /storage/*.key
 /storage/pail
 /vendor
+.mcp.json
+AGENTS.md
+CLAUDE.md
+.junie/
+boost.json
+opencode.json
 Homestead.json
 Homestead.yaml
 Thumbs.db

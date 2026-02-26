@@ -14,11 +14,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('attachments', \App\Http\Controllers\Admin\AttachmentController::class);
     Route::get('hadith', [\App\Http\Controllers\Admin\HadithLibraryController::class, 'index'])->name('hadith.index');
     Route::get('hadith/{book}', [\App\Http\Controllers\Admin\HadithLibraryController::class, 'show'])->name('hadith.show');
+    Route::post('reciters/update-order', [\App\Http\Controllers\Admin\ReciterController::class, 'updateOrder'])->name('reciters.update-order');
     Route::resource('reciters', \App\Http\Controllers\Admin\ReciterController::class);
     Route::resource('notifications', \App\Http\Controllers\Admin\NotificationController::class);
     Route::post('notifications/send', [\App\Http\Controllers\Admin\NotificationController::class, 'send'])->name('notifications.send');
     Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+    Route::get('messages', [\App\Http\Controllers\Admin\ContactMessageController::class, 'index'])->name('messages.index');
+    Route::get('messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'show'])->name('messages.show');
+    Route::delete('messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
 
     // Hisnmuslim Admin Routes
     Route::prefix('hisnmuslim')->name('hisnmuslim.')->group(function () {
@@ -75,6 +79,8 @@ Route::get('/terms', function () {
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
+
+Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
 
 Route::get('/faq', function () {
     return view('faq');

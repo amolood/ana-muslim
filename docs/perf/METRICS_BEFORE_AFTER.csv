@@ -1,7 +1,0 @@
-phase,date,build,device_model,android_version,screen,scenario_id,run,avg_ui_ms,p95_ui_ms,max_ui_ms,janky_frames,avg_raster_ms,p95_raster_ms,max_raster_ms,cpu_hot_functions,memory_start_mb,memory_peak_mb,memory_end_mb,heap_trend,gc_per_min,gc_pause_trend,rebuild_observations,user_visible_symptoms,notes
-before,,,,,,,,,,,,,,,,,,,,,,,,
-before,,,,,,,,,,,,,,,,,,,,,,,,
-before,,,,,,,,,,,,,,,,,,,,,,,,
-after,,,,,,,,,,,,,,,,,,,,,,,,
-after,,,,,,,,,,,,,,,,,,,,,,,,
-after,,,,,,,,,,,,,,,,,,,,,,,,

@@ -465,16 +465,15 @@
                         </div>
 
                         <!-- Repeat & Download Buttons -->
-                        <div class="flex items-center justify-between gap-2">
-                            <button @click="toggleRepeat()" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors" :class="repeatMode ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'">
+                        <div class="flex items-center gap-2">
+                            <button @click="toggleRepeat()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all" :class="repeatMode ? 'bg-[#11D4B4]/10 text-[#11D4B4] border border-[#11D4B4]/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent'">
                                 <iconify-icon icon="solar:repeat-bold" class="text-lg"></iconify-icon>
                                 <span>تكرار</span>
                             </button>
 
-                            <button @click="downloadSurah()" :disabled="downloading" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-primary-600 dark:bg-primary-700 text-white hover:bg-primary-500 dark:hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                <iconify-icon x-show="!downloading" icon="solar:download-minimalistic-bold" class="text-lg"></iconify-icon>
-                                <iconify-icon x-show="downloading" icon="solar:spinner-bold-duotone" class="text-lg animate-spin"></iconify-icon>
-                                <span x-text="downloading ? 'جاري التحميل...' : 'تحميل السورة'"></span>
+                            <button @click="downloadSurah()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90" style="background-color: #11D4B4;">
+                                <iconify-icon icon="solar:download-minimalistic-bold" class="text-lg"></iconify-icon>
+                                <span>تحميل</span>
                             </button>
                         </div>
                     </div>
@@ -583,32 +582,6 @@
         </div>
     </div>
 
-    <!-- Download Progress Modal -->
-    <div x-show="showDownloadModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8" @click.stop>
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">جاري تحميل السورة</h3>
-
-                <!-- Circular Progress -->
-                <div class="relative w-32 h-32 mx-auto mb-6">
-                    <svg class="w-32 h-32 transform -rotate-90">
-                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" class="text-slate-200 dark:text-slate-700" />
-                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" class="text-primary-600 dark:text-primary-500 transition-all duration-300"
-                                :stroke-dasharray="2 * Math.PI * 56"
-                                :stroke-dashoffset="2 * Math.PI * 56 * (1 - downloadProgress / 100)"
-                                stroke-linecap="round" />
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-2xl font-bold text-primary-600 dark:text-primary-400" x-text="Math.round(downloadProgress) + '%'"></span>
-                    </div>
-                </div>
-
-                <p class="text-slate-600 dark:text-slate-400 mb-2 font-medium" x-text="currentSurahData?.name + ' - ' + selectedReciterName"></p>
-                <p class="text-sm text-slate-500 dark:text-slate-500" x-text="downloadedSize + ' / ' + totalSize"></p>
-            </div>
-        </div>
-    </div>
-
     <!-- Custom Alert Dialog -->
     <div x-show="showDialog" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop" @click.self="showDialog = false">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in-up" @click.stop>
@@ -639,16 +612,33 @@
                     <iconify-icon icon="solar:user-circle-bold-duotone" style="color: #11D4B4;"></iconify-icon>
                     اختر القارئ
                 </h3>
-                <button @click="showReciterModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <button @click="showReciterModal = false; selectedNationality = ''; reciterSearchQuery = ''; filterReciters()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                     <iconify-icon icon="solar:close-circle-bold" class="text-3xl"></iconify-icon>
                 </button>
             </div>
 
             <!-- Search Bar -->
-            <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700 space-y-4">
                 <div class="relative">
                     <iconify-icon icon="solar:magnifer-linear" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></iconify-icon>
                     <input type="text" x-model="reciterSearchQuery" @input="filterReciters()" placeholder="ابحث عن القارئ..." class="w-full bg-slate-50 dark:bg-slate-900 text-sm rounded-xl py-3 pr-11 pl-4 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#11D4B4] focus:border-transparent outline-none transition-all text-slate-900 dark:text-white">
+                </div>
+                <!-- Nationality Filter -->
+                <div x-show="availableNationalities.length > 0" class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+                    <button @click="selectedNationality = ''; filterReciters()"
+                            :class="selectedNationality === '' ? 'bg-[#11D4B4] text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                            class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
+                        الكل
+                        <span class="mr-0.5 opacity-75" x-text="'(' + reciters.length + ')'"></span>
+                    </button>
+                    <template x-for="nat in availableNationalities" :key="nat.code">
+                        <button @click="selectedNationality = nat.code; filterReciters()"
+                                :class="selectedNationality === nat.code ? 'bg-[#11D4B4] text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                                class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
+                            <span x-text="nat.label"></span>
+                            <span class="mr-0.5 opacity-75" x-text="'(' + nat.count + ')'"></span>
+                        </button>
+                    </template>
                 </div>
             </div>
 
@@ -665,7 +655,12 @@
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="font-bold text-slate-900 dark:text-white" x-text="reciter.name"></h4>
-                                    <p class="text-sm text-slate-500 dark:text-slate-400" x-text="reciter.style || 'مرتل'"></p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-sm text-slate-500 dark:text-slate-400" x-text="reciter.style || 'مرتل'"></p>
+                                        <template x-if="reciter.nationality">
+                                            <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium" x-text="nationalityLabels[reciter.nationality] || reciter.nationality"></span>
+                                        </template>
+                                    </div>
                                 </div>
                                 <iconify-icon x-show="selectedReciter === reciter.id" icon="solar:check-circle-bold" class="text-2xl" style="color: #11D4B4;"></iconify-icon>
                             </button>
@@ -692,11 +687,13 @@
          x-transition:leave="transition ease-in duration-300"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[200] overflow-y-auto"
-         style="background: url('{{ asset('assets/backgound.png') }}') center/cover no-repeat, linear-gradient(135deg, #f5f1e8 0%, #ebe4d1 100%);">
+         class="fixed inset-0 z-[200] overflow-hidden flex flex-col"
+         style="background: linear-gradient(135deg, #f5f1e8 0%, #ebe4d1 100%);">
 
+        <!-- Background Image (fixed, covers viewport) -->
+        <div class="fixed inset-0 z-[199] pointer-events-none" style="background: url('{{ asset('assets/backgound.png') }}') center/cover no-repeat;"></div>
         <!-- Top Control Bar -->
-        <div class="fixed top-0 left-0 right-0 z-[300] glass-panel-focus border-b border-amber-200/30">
+        <div class="fixed top-0 left-0 right-0 z-[302] glass-panel-focus border-b border-amber-200/30">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
 
                 <!-- Exit Button -->
@@ -738,7 +735,7 @@
         </div>
 
         <!-- Main Content Area -->
-        <div class="pt-24 pb-12 px-4 sm:px-6">
+        <div class="flex-1 overflow-y-auto pt-24 pb-12 px-4 sm:px-6 relative z-[201]">
             <div class="max-w-5xl mx-auto">
 
                 <!-- Mushaf Page -->
@@ -843,7 +840,7 @@
 
     .mushaf-page-premium {
         position: relative;
-        min-height: 60vh;
+        min-height: calc(100vh - 10rem);
     }
 
     .mushaf-page-premium::before {
@@ -1066,21 +1063,55 @@
                 locale: localStorage.getItem('locale') || 'ar',
                 translations: {
                     ar: {
+                        brand: {
+                            name: 'أنا المسلم'
+                        },
                         nav: {
                             home: 'الرئيسية',
                             quranPremium: 'القرآن الكريم',
                             quranText: 'القرآن النصي',
                             hisnmuslim: 'حصن المسلم',
                             privacy: 'الخصوصية'
+                        },
+                        footer: {
+                            description: 'تطبيق إسلامي شامل يجمع بين القرآن الكريم، الأذكار، الأحاديث، ومواقيت الصلاة في مكان واحد. استمتع بتجربة روحانية فريدة مع تصميم عصري وأنيق.',
+                            quickLinks: 'روابط سريعة',
+                            legalSupport: 'الدعم والقانونية',
+                            privacy: 'سياسة الخصوصية',
+                            terms: 'شروط الاستخدام',
+                            contact: 'تواصل معنا',
+                            faq: 'الأسئلة الشائعة',
+                            downloadApp: 'حمّل التطبيق الآن',
+                            availableOn: 'متاح على جميع المنصات',
+                            availableOnStore: 'متوفر على',
+                            rights: 'جميع الحقوق محفوظة',
+                            madeWithLove: 'صُنع بحب من أجل الأمة الإسلامية'
                         }
                     },
                     en: {
+                        brand: {
+                            name: "I'm Muslim"
+                        },
                         nav: {
                             home: 'Home',
                             quranPremium: 'Holy Quran',
                             quranText: 'Quran Text',
                             hisnmuslim: 'Hisn Al-Muslim',
                             privacy: 'Privacy'
+                        },
+                        footer: {
+                            description: 'A comprehensive Islamic app combining the Holy Quran, supplications, hadiths, and prayer times in one place. Enjoy a unique spiritual experience with modern and elegant design.',
+                            quickLinks: 'Quick Links',
+                            legalSupport: 'Legal & Support',
+                            privacy: 'Privacy Policy',
+                            terms: 'Terms of Use',
+                            contact: 'Contact Us',
+                            faq: 'FAQ',
+                            downloadApp: 'Download the App Now',
+                            availableOn: 'Available on all platforms',
+                            availableOnStore: 'Available on',
+                            rights: 'All rights reserved',
+                            madeWithLove: 'Made with love for the Muslim Ummah'
                         }
                     }
                 },
@@ -1166,8 +1197,34 @@
 
                 // Reciter Search & Default
                 reciterSearchQuery: '',
+                selectedNationality: '',
                 filteredReciters: [],
                 defaultReciterId: localStorage.getItem('defaultReciterId') ? parseInt(localStorage.getItem('defaultReciterId')) : 7,
+
+                nationalityLabels: {
+                    'SA': 'سعودي', 'EG': 'مصري', 'AE': 'إماراتي', 'KW': 'كويتي',
+                    'QA': 'قطري', 'BH': 'بحريني', 'OM': 'عماني', 'YE': 'يمني',
+                    'IQ': 'عراقي', 'SY': 'سوري', 'JO': 'أردني', 'PS': 'فلسطيني',
+                    'LB': 'لبناني', 'LY': 'ليبي', 'TN': 'تونسي', 'DZ': 'جزائري',
+                    'MA': 'مغربي', 'MR': 'موريتاني', 'SD': 'سوداني', 'SO': 'صومالي',
+                    'DJ': 'جيبوتي', 'KM': 'قمري', 'TR': 'تركي', 'IR': 'إيراني',
+                    'AF': 'أفغاني', 'PK': 'باكستاني', 'IN': 'هندي', 'BD': 'بنغلاديشي',
+                    'MY': 'ماليزي', 'ID': 'إندونيسي', 'NG': 'نيجيري', 'SN': 'سنغالي',
+                    'ML': 'مالي', 'TD': 'تشادي', 'OTHER': 'أخرى',
+                },
+
+                get availableNationalities() {
+                    const counts = {};
+                    this.reciters.forEach(r => {
+                        if (r.nationality) {
+                            const code = r.nationality;
+                            counts[code] = (counts[code] || 0) + 1;
+                        }
+                    });
+                    return Object.entries(counts)
+                        .map(([code, count]) => ({ code, label: this.nationalityLabels[code] || code, count }))
+                        .sort((a, b) => b.count - a.count);
+                },
 
                 async init() {
                     await this.fetchReciters();
@@ -1220,15 +1277,18 @@
                 },
 
                 filterReciters() {
-                    if (!this.reciterSearchQuery) {
-                        this.filteredReciters = this.reciters;
-                        return;
+                    let result = this.reciters;
+
+                    if (this.selectedNationality) {
+                        result = result.filter(r => r.nationality === this.selectedNationality);
                     }
 
-                    const query = this.reciterSearchQuery.toLowerCase();
-                    this.filteredReciters = this.reciters.filter(reciter =>
-                        reciter.name.toLowerCase().includes(query)
-                    );
+                    if (this.reciterSearchQuery) {
+                        const query = this.reciterSearchQuery.toLowerCase();
+                        result = result.filter(r => r.name.toLowerCase().includes(query));
+                    }
+
+                    this.filteredReciters = result;
                 },
 
                 setDefaultReciter(reciter) {
@@ -1260,10 +1320,21 @@
                         const data = await response.json();
 
                         if (data.code === 200) {
-                            this.currentAyahs = data.data.ayahs.map(ayah => ({
+                            let ayahs = data.data.ayahs.map(ayah => ({
                                 ...ayah,
                                 surahName: this.currentSurahData.name
                             }));
+
+                            // Strip Bismillah from the first ayah (it's shown separately in the UI)
+                            // Except for Al-Fatiha (1) where it IS the first ayah, and At-Tawbah (9) which has none
+                            if (this.selectedSurah !== 1 && this.selectedSurah !== 9 && ayahs.length > 0) {
+                                ayahs[0].text = ayahs[0].text
+                                    .replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, '')
+                                    .replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/, '')
+                                    .trim();
+                            }
+
+                            this.currentAyahs = ayahs;
                             await this.setupAudio();
                         }
                     } catch (error) {
@@ -1550,74 +1621,21 @@
                         return;
                     }
 
-                    this.downloading = true;
-                    this.showDownloadModal = true;
-                    this.downloadProgress = 0;
-                    this.downloadedSize = '0 MB';
-                    this.totalSize = '0 MB';
-
                     try {
-                        const response = await fetch(this.audio.src);
-                        const contentLength = response.headers.get('content-length');
-                        const total = parseInt(contentLength, 10);
-
-                        if (!contentLength) {
-                            // Fallback if content-length not available
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const surahName = this.currentSurahData.name;
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = `${surahName} - ${this.selectedReciterName}.mp3`;
-                            link.click();
-                            window.URL.revokeObjectURL(url);
-                            this.downloadProgress = 100;
-                            setTimeout(() => {
-                                this.showDownloadModal = false;
-                                this.downloading = false;
-                            }, 500);
-                            return;
-                        }
-
-                        this.totalSize = this.formatBytes(total);
-
-                        const reader = response.body.getReader();
-                        const chunks = [];
-                        let receivedLength = 0;
-
-                        while(true) {
-                            const {done, value} = await reader.read();
-
-                            if (done) break;
-
-                            chunks.push(value);
-                            receivedLength += value.length;
-
-                            this.downloadProgress = (receivedLength / total) * 100;
-                            this.downloadedSize = this.formatBytes(receivedLength);
-                        }
-
-                        // Create blob and download
-                        const blob = new Blob(chunks);
-                        const url = window.URL.createObjectURL(blob);
-                        const surahName = this.currentSurahData.name;
+                        const surahName = this.currentSurahData?.name || 'سورة';
                         const link = document.createElement('a');
-                        link.href = url;
+                        link.href = this.audio.src;
                         link.download = `${surahName} - ${this.selectedReciterName}.mp3`;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
                         link.click();
-                        window.URL.revokeObjectURL(url);
-
-                        // Close modal after brief delay
-                        setTimeout(() => {
-                            this.showDownloadModal = false;
-                            this.downloading = false;
-                        }, 500);
-
+                        document.body.removeChild(link);
+                        this.showAlert('success', 'تم', 'بدأ تحميل السورة');
                     } catch (error) {
                         console.error('Download error:', error);
-                        this.showDownloadModal = false;
-                        this.downloading = false;
-                        this.showAlert('error', 'خطأ في التحميل', 'حدث خطأ أثناء تحميل السورة. يرجى المحاولة مرة أخرى.');
+                        // Fallback: open in new tab
+                        window.open(this.audio.src, '_blank');
                     }
                 },
 

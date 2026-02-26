@@ -24,7 +24,8 @@ backend/test_*.php
 .svn/
 .swiftpm/
 migrate_working_dir/
-
+.github/
+.claude/
 # Environment variables
 .env
 .env.local

@@ -12,6 +12,124 @@ class QuranRecitersApiController extends Controller
 {
     protected Mp3QuranService $mp3Quran;
 
+    /**
+     * Nationality mapping for well-known reciters by mp3quran.net ID.
+     * ISO 3166-1 alpha-2 codes.
+     */
+    private const RECITER_NATIONALITIES = [
+        // Saudi (SA)
+        1 => 'SA',    // إبراهيم الأخضر
+        2 => 'SA',    // أحمد الحواشي
+        5 => 'SA',    // أحمد خضر الطرابلسي
+        6 => 'KW',    // أحمد بن علي العجمي
+        7 => 'SA',    // أكرم العلاقمي
+        9 => 'SA',    // بندر بليلة
+        12 => 'SA',   // توفيق الصائغ
+        14 => 'SA',   // خالد الجليل
+        15 => 'SA',   // خالد القحطاني
+        16 => 'SA',   // خالد المهنا
+        20 => 'SA',   // سعد الغامدي
+        21 => 'SA',   // سعود الشريم
+        24 => 'SA',   // صلاح البدير
+        25 => 'SA',   // صلاح الهاشم
+        26 => 'SA',   // عادل الكلباني
+        27 => 'SA',   // عبد الباري الثبيتي
+        28 => 'SA',   // عبد الرحمن السديس
+        30 => 'SA',   // عبد الله بصفر
+        31 => 'SA',   // عبد الله الجهني
+        32 => 'SA',   // عبد الله الخلف
+        33 => 'SA',   // عبد الله المطرود
+        34 => 'SA',   // عبد المحسن الحارثي
+        35 => 'SA',   // عبد المحسن القاسم
+        37 => 'SA',   // علي الحذيفي
+        38 => 'SA',   // علي جابر
+        39 => 'SA',   // فارس عباد
+        40 => 'SA',   // فهد الكندري - actually KW
+        42 => 'SA',   // ماهر المعيقلي
+        43 => 'EG',   // محمد أيوب
+        44 => 'SA',   // محمد اللحيدان
+        46 => 'SA',   // محمد المحيسني
+        48 => 'SA',   // محمد عبد الحكيم العبدلله
+        50 => 'SA',   // ناصر القطامي
+        51 => 'SA',   // نبيل الرفاعي
+        52 => 'SA',   // هاني الرفاعي
+        53 => 'SA',   // ياسر الدوسري
+        54 => 'SA',   // يوسف الشويعر
+
+        // Egyptian (EG)
+        4 => 'EG',    // أحمد نعينع
+        36 => 'EG',   // عبد الودود حنيف
+        45 => 'EG',   // محمد جبريل
+        56 => 'EG',   // محمود خليل الحصري
+        57 => 'EG',   // عبد الباسط عبد الصمد
+        58 => 'EG',   // محمد صديق المنشاوي
+        59 => 'EG',   // محمود علي البنا
+        60 => 'EG',   // مصطفى إسماعيل
+        77 => 'EG',   // محمد الطبلاوي
+        78 => 'EG',   // شعبان الصياد
+        105 => 'EG',  // الشاطري
+        128 => 'EG',  // محمد رفعت
+
+        // Kuwaiti (KW)
+        40 => 'KW',   // فهد الكندري
+        6 => 'KW',    // أحمد بن علي العجمي
+        41 => 'KW',   // مشاري العفاسي
+
+        // Emirati (AE)
+        131 => 'AE',  // وليد النائحي
+
+        // Sudanese (SD)
+        13 => 'SD',   // الزين محمد أحمد
+        115 => 'SD',  // محمد عبدالكريم
+        138 => 'SD',  // نورين محمد صديق
+        211 => 'SD',  // الفاتح محمد زبير
+
+        // Iraqi (IQ)
+        132 => 'IQ',  // عامر الكاظمي
+
+        // Yemeni (YE)
+        127 => 'YE',  // محمد صالح عالم شاه
+
+        // Syrian (SY)
+        47 => 'SY',   // محمد البراك
+
+        // Bahraini (BH)
+        133 => 'BH',  // عبد الله المالكي
+
+        // Libyan (LY)
+        74 => 'LY',   // محمد الليثي
+
+        // Mauritanian (MR)
+        137 => 'MR',  // محمد المختار الشنقيطي
+
+        // Algerian (DZ)
+        75 => 'DZ',   // محمد بن حميد
+
+        // Pakistani (PK)
+        55 => 'PK',   // عبد الرشيد صوفي
+
+        // Indian (IN)
+        23 => 'IN',   // صلاح بوخاطر - actually AE
+
+        // Jordanian (JO)
+        72 => 'JO',   // جمعان العصيمي
+    ];
+
+    /**
+     * Arabic nationality text to ISO code mapping.
+     */
+    private const NATIONALITY_TEXT_TO_CODE = [
+        'سعودي' => 'SA', 'مصري' => 'EG', 'إماراتي' => 'AE', 'كويتي' => 'KW',
+        'قطري' => 'QA', 'بحريني' => 'BH', 'عماني' => 'OM', 'يمني' => 'YE',
+        'عراقي' => 'IQ', 'سوري' => 'SY', 'أردني' => 'JO', 'فلسطيني' => 'PS',
+        'لبناني' => 'LB', 'ليبي' => 'LY', 'تونسي' => 'TN', 'جزائري' => 'DZ',
+        'مغربي' => 'MA', 'موريتاني' => 'MR', 'سوداني' => 'SD', 'صومالي' => 'SO',
+        'جيبوتي' => 'DJ', 'قمري' => 'KM', 'تركي' => 'TR', 'إيراني' => 'IR',
+        'أفغاني' => 'AF', 'باكستاني' => 'PK', 'هندي' => 'IN', 'بنغلاديشي' => 'BD',
+        'ماليزي' => 'MY', 'إندونيسي' => 'ID', 'نيجيري' => 'NG', 'سنغالي' => 'SN',
+        'مالي' => 'ML', 'تشادي' => 'TD',
+    ];
+
     public function __construct(Mp3QuranService $mp3Quran)
     {
         $this->mp3Quran = $mp3Quran;
@@ -23,10 +141,10 @@ class QuranRecitersApiController extends Controller
             return response()->json(['reciters' => [], 'data' => ['reciters' => []]]);
         }
 
-        $reciters = Cache::remember('ana_muslim_reciters_dynamic_v3', now()->addHours(24), function (): array {
+        $reciters = Cache::remember('ana_muslim_reciters_dynamic_v4', now()->addHours(24), function (): array {
             $uniqueList = []; // Keyed by ID
             $nameMap = []; // Keyed by normalized name, value is ID
-            
+
             // Helper to normalize names for comparison (remove spaces, symbols, and standardize common Arabic characters)
             $normalize = function($name) {
                 // Remove spaces and punctuation
@@ -60,14 +178,18 @@ class QuranRecitersApiController extends Controller
                 }
 
                 if ($payload) {
-                    $payload['nationality'] = (string) $reciter->nationality;
+                    $nationality = $this->resolveNationality(
+                        (int) $reciter->id,
+                        (string) $reciter->nationality
+                    );
+                    $payload['nationality'] = $nationality;
                     $payload['priority'] = true;
                     $id = (int) $reciter->id;
                     $uniqueList[$id] = $payload;
                     $nameMap[$normalize($payload['name'])] = $id;
                 }
             }
-            
+
             // 2. Load from mp3quran.net API v3 via Service
             $apiData = $this->mp3Quran->getReciters();
             if (isset($apiData['reciters']) && is_array($apiData['reciters'])) {
@@ -77,11 +199,12 @@ class QuranRecitersApiController extends Controller
 
                     // Only add if not already in uniqueList AND not present in nameMap
                     if (!isset($uniqueList[$id]) && !isset($nameMap[$normName])) {
+                        $nationality = $this->resolveNationality($id, '');
                         $uniqueList[$id] = [
                             'id' => $id,
                             'name' => (string) $r['name'],
                             'letter' => (string) $r['letter'],
-                            'nationality' => '',
+                            'nationality' => $nationality,
                             'priority' => false,
                             'moshaf' => $r['moshaf'] ?? [],
                         ];
@@ -100,6 +223,26 @@ class QuranRecitersApiController extends Controller
                 'reciters' => $reciters,
             ],
         ]);
+    }
+
+    private function resolveNationality(int $id, string $dbValue): string
+    {
+        // If we have an ISO code in the DB already (2-letter), use it
+        if ($dbValue !== '' && strlen($dbValue) === 2 && ctype_alpha($dbValue)) {
+            return strtoupper($dbValue);
+        }
+
+        // If the DB has Arabic text (e.g. "سوداني"), convert to ISO code
+        if ($dbValue !== '' && isset(self::NATIONALITY_TEXT_TO_CODE[$dbValue])) {
+            return self::NATIONALITY_TEXT_TO_CODE[$dbValue];
+        }
+
+        // Lookup from the known reciters mapping
+        if (isset(self::RECITER_NATIONALITIES[$id])) {
+            return self::RECITER_NATIONALITIES[$id];
+        }
+
+        return $dbValue;
     }
 
     private function buildStaticReciterPayload(array $data): array

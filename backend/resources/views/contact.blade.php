@@ -100,6 +100,9 @@
                                required
                                class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-900 dark:text-white"
                                placeholder="أدخل اسمك الكامل">
+                        <template x-if="errors.name">
+                            <p class="mt-1 text-sm text-red-600" x-text="errors.name[0]"></p>
+                        </template>
                     </div>
 
                     <!-- Email -->
@@ -113,6 +116,43 @@
                                required
                                class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-900 dark:text-white"
                                placeholder="example@email.com">
+                        <template x-if="errors.email">
+                            <p class="mt-1 text-sm text-red-600" x-text="errors.email[0]"></p>
+                        </template>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Phone -->
+                        <div>
+                            <label for="phone" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                رقم الهاتف (اختياري)
+                            </label>
+                            <input type="tel"
+                                   id="phone"
+                                   x-model="form.phone"
+                                   class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-900 dark:text-white text-left"
+                                   dir="ltr"
+                                   placeholder="+966XXXXXXXXX">
+                            <template x-if="errors.phone">
+                                <p class="mt-1 text-sm text-red-600" x-text="errors.phone[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- WhatsApp -->
+                        <div>
+                            <label for="whatsapp" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                رقم الواتساب (اختياري)
+                            </label>
+                            <input type="tel"
+                                   id="whatsapp"
+                                   x-model="form.whatsapp"
+                                   class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-900 dark:text-white text-left"
+                                   dir="ltr"
+                                   placeholder="+966XXXXXXXXX">
+                            <template x-if="errors.whatsapp">
+                                <p class="mt-1 text-sm text-red-600" x-text="errors.whatsapp[0]"></p>
+                            </template>
+                        </div>
                     </div>
 
                     <!-- Subject -->
@@ -131,6 +171,9 @@
                             <option value="feedback">ملاحظات وتقييم</option>
                             <option value="other">أخرى</option>
                         </select>
+                        <template x-if="errors.subject">
+                            <p class="mt-1 text-sm text-red-600" x-text="errors.subject[0]"></p>
+                        </template>
                     </div>
 
                     <!-- Message -->
@@ -144,6 +187,17 @@
                                   rows="6"
                                   class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-900 dark:text-white resize-none"
                                   placeholder="اكتب رسالتك هنا..."></textarea>
+                        <template x-if="errors.message">
+                            <p class="mt-1 text-sm text-red-600" x-text="errors.message[0]"></p>
+                        </template>
+                    </div>
+
+                    <!-- Cloudflare Turnstile -->
+                    <div>
+                        <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.key') }}" data-callback="onTurnstileSuccess" data-theme="auto"></div>
+                        <template x-if="errors['cf-turnstile-response']">
+                            <p class="mt-1 text-sm text-red-600" x-text="errors['cf-turnstile-response'][0]"></p>
+                        </template>
                     </div>
 
                     <!-- Submit Button -->
@@ -172,7 +226,7 @@
                          x-transition
                          class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3">
                         <iconify-icon icon="solar:danger-circle-bold" class="text-2xl text-red-600"></iconify-icon>
-                        <p class="text-red-800 dark:text-red-200 font-medium">حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.</p>
+                        <p class="text-red-800 dark:text-red-200 font-medium" x-text="errorMessage"></p>
                     </div>
                 </form>
             </div>
@@ -192,49 +246,76 @@
     </div>
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>
+let turnstileToken = '';
+function onTurnstileSuccess(token) {
+    turnstileToken = token;
+}
+
 function contactApp() {
     return {
         ...i18n(),
         form: {
             name: '',
             email: '',
+            phone: '',
+            whatsapp: '',
             subject: '',
             message: ''
         },
         submitting: false,
         success: false,
         error: false,
+        errorMessage: 'حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.',
+        errors: {},
 
         async submitForm() {
             this.submitting = true;
             this.success = false;
             this.error = false;
+            this.errors = {};
 
-            // Simulate form submission (replace with actual API call)
             try {
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                const response = await fetch('{{ route("contact.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        ...this.form,
+                        'cf-turnstile-response': turnstileToken
+                    })
+                });
 
-                // Success
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (response.status === 422 && data.errors) {
+                        this.errors = data.errors;
+                        this.error = true;
+                        this.errorMessage = 'يرجى تصحيح الأخطاء أدناه.';
+                    } else {
+                        this.error = true;
+                        this.errorMessage = data.message || 'حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.';
+                    }
+                    return;
+                }
+
                 this.success = true;
-                this.form = {
-                    name: '',
-                    email: '',
-                    subject: '',
-                    message: ''
-                };
+                this.form = { name: '', email: '', phone: '', whatsapp: '', subject: '', message: '' };
+                turnstileToken = '';
+                if (typeof turnstile !== 'undefined') {
+                    turnstile.reset();
+                }
 
-                // Hide success message after 5 seconds
-                setTimeout(() => {
-                    this.success = false;
-                }, 5000);
+                setTimeout(() => { this.success = false; }, 5000);
             } catch (err) {
                 this.error = true;
-
-                // Hide error message after 5 seconds
-                setTimeout(() => {
-                    this.error = false;
-                }, 5000);
+                this.errorMessage = 'حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.';
+                setTimeout(() => { this.error = false; }, 5000);
             } finally {
                 this.submitting = false;
             }

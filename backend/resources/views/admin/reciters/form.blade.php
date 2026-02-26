@@ -19,10 +19,62 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">الجنسية</label>
+                    @php
+                        $nationalities = [
+                            'SA' => 'سعودي',
+                            'EG' => 'مصري',
+                            'AE' => 'إماراتي',
+                            'KW' => 'كويتي',
+                            'QA' => 'قطري',
+                            'BH' => 'بحريني',
+                            'OM' => 'عماني',
+                            'YE' => 'يمني',
+                            'IQ' => 'عراقي',
+                            'SY' => 'سوري',
+                            'JO' => 'أردني',
+                            'PS' => 'فلسطيني',
+                            'LB' => 'لبناني',
+                            'LY' => 'ليبي',
+                            'TN' => 'تونسي',
+                            'DZ' => 'جزائري',
+                            'MA' => 'مغربي',
+                            'MR' => 'موريتاني',
+                            'SD' => 'سوداني',
+                            'SO' => 'صومالي',
+                            'DJ' => 'جيبوتي',
+                            'KM' => 'قمري',
+                            'TR' => 'تركي',
+                            'IR' => 'إيراني',
+                            'AF' => 'أفغاني',
+                            'PK' => 'باكستاني',
+                            'IN' => 'هندي',
+                            'BD' => 'بنغلاديشي',
+                            'MY' => 'ماليزي',
+                            'ID' => 'إندونيسي',
+                            'NG' => 'نيجيري',
+                            'SN' => 'سنغالي',
+                            'ML' => 'مالي',
+                            'TD' => 'تشادي',
+                            'OTHER' => 'أخرى',
+                        ];
+                    @endphp
+                    <select name="nationality"
+                        class="block w-full rounded-xl border-gray-200 bg-gray-50 py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
+                        <option value="">اختر الجنسية</option>
+                        @foreach($nationalities as $code => $label)
+                            <option value="{{ $code }}" {{ old('nationality', $reciter->nationality ?? '') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">ترتيب العرض</label>
                     <input type="number" name="display_order" value="{{ old('display_order', $reciter->display_order ?? 0) }}"
                         class="block w-full rounded-xl border-gray-200 bg-gray-50 py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
                 </div>
+
+
 
                 <div>
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">المسار (Path)</label>

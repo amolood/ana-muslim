@@ -84,7 +84,7 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 pt-32 pb-40 relative z-10">
-        <div x-data="quranApp()" class="flex flex-col gap-8">
+        <div class="flex flex-col gap-8">
             <!-- Header Section -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div class="flex items-center gap-4">
@@ -104,14 +104,34 @@
                 <!-- Global Search (Visible in Reciters View) -->
                 <template x-if="view === 'reciters'">
                     <div class="relative w-full md:w-96">
-                        <iconify-icon icon="solar:magnifer-linear" 
+                        <iconify-icon icon="solar:magnifer-linear"
                                       class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-xl"></iconify-icon>
-                        <input type="text" 
-                               x-model="search" 
-                               placeholder="ابحث عن قارئ..." 
+                        <input type="text"
+                               x-model="search"
+                               placeholder="ابحث عن قارئ..."
                                class="w-full h-14 pr-13 pl-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-primary/10 backdrop-blur-xl focus:border-primary focus:ring-4 focus:ring-primary/10 text-base font-semibold transition-all outline-none text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600">
                     </div>
                 </template>
+            </div>
+
+            <!-- Nationality Filter (Visible in Reciters View) -->
+            <div x-show="view === 'reciters' && availableNationalities.length > 0" x-transition class="relative">
+                <div class="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+                    <button @click="selectedNationality = ''"
+                            :class="selectedNationality === '' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'glass-panel text-slate-600 dark:text-slate-400 hover:text-primary hover:border-primary/20'"
+                            class="shrink-0 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border border-transparent">
+                        الكل
+                        <span class="mr-1 text-xs opacity-75" x-text="'(' + reciters.length + ')'"></span>
+                    </button>
+                    <template x-for="nat in availableNationalities" :key="nat.label">
+                        <button @click="selectedNationality = nat.label"
+                                :class="selectedNationality === nat.label ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'glass-panel text-slate-600 dark:text-slate-400 hover:text-primary hover:border-primary/20'"
+                                class="shrink-0 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border border-transparent">
+                            <span x-text="nat.label"></span>
+                            <span class="mr-1 text-xs opacity-75" x-text="'(' + nat.count + ')'"></span>
+                        </button>
+                    </template>
+                </div>
             </div>
 
             <!-- Reciters Grid View -->
@@ -123,9 +143,8 @@
                             <div class="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all font-bold text-2xl shadow-sm" x-text="r.letter"></div>
                             <h3 class="font-bold text-slate-800 dark:text-white text-base group-hover:text-primary transition-colors" x-text="r.name"></h3>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium" x-text="'ID: ' + r.id"></span>
                                 <template x-if="r.nationality">
-                                    <span class="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-md font-medium" x-text="r.nationality"></span>
+                                    <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md font-medium" x-text="getNationalityLabel(r.nationality)"></span>
                                 </template>
                             </div>
                         </button>
@@ -207,6 +226,18 @@
     <!-- ✅ تعريف quranApp() قبل تحميل Alpine.js -->
     <script>
         function quranApp() {
+            const nationalityLabels = {
+                'SA': 'سعودي', 'EG': 'مصري', 'AE': 'إماراتي', 'KW': 'كويتي',
+                'QA': 'قطري', 'BH': 'بحريني', 'OM': 'عماني', 'YE': 'يمني',
+                'IQ': 'عراقي', 'SY': 'سوري', 'JO': 'أردني', 'PS': 'فلسطيني',
+                'LB': 'لبناني', 'LY': 'ليبي', 'TN': 'تونسي', 'DZ': 'جزائري',
+                'MA': 'مغربي', 'MR': 'موريتاني', 'SD': 'سوداني', 'SO': 'صومالي',
+                'DJ': 'جيبوتي', 'KM': 'قمري', 'TR': 'تركي', 'IR': 'إيراني',
+                'AF': 'أفغاني', 'PK': 'باكستاني', 'IN': 'هندي', 'BD': 'بنغلاديشي',
+                'MY': 'ماليزي', 'ID': 'إندونيسي', 'NG': 'نيجيري', 'SN': 'سنغالي',
+                'ML': 'مالي', 'TD': 'تشادي', 'OTHER': 'أخرى',
+            };
+
             return {
                 view: 'reciters',
                 locale: localStorage.getItem('locale') || 'ar',
@@ -223,11 +254,12 @@
                 },
                 // ... (rest of search/select logic)
                 search: '',
+                selectedNationality: '',
                 reciters: [],
                 selectedReciter: null,
                 currentSurahNum: null,
                 isPlaying: false,
-                
+
                 async init() {
                     await this.fetchReciters();
                     // Sync local state with global audio state if needed
@@ -236,7 +268,7 @@
                         this.isPlaying = window.isPlaying;
                     }, 500);
                 },
-                
+
                 async fetchReciters() {
                     try {
                         const resp = await fetch('/api/mp3quran/reciters');
@@ -246,18 +278,42 @@
                         console.error('Error fetching reciters:', e);
                     }
                 },
-                
+
+                get availableNationalities() {
+                    const counts = {};
+                    this.reciters.forEach(r => {
+                        if (r.nationality) {
+                            const label = this.getNationalityLabel(r.nationality);
+                            counts[label] = (counts[label] || 0) + 1;
+                        }
+                    });
+                    return Object.entries(counts)
+                        .map(([label, count]) => ({ label, count }))
+                        .sort((a, b) => b.count - a.count);
+                },
+
                 get filteredReciters() {
-                    if (!this.search) return this.reciters;
-                    const s = this.search.toLowerCase();
-                    return this.reciters.filter(r => r.name.toLowerCase().includes(s));
+                    let result = this.reciters;
+                    if (this.selectedNationality) {
+                        result = result.filter(r => this.getNationalityLabel(r.nationality) === this.selectedNationality);
+                    }
+                    if (this.search) {
+                        const s = this.search.toLowerCase();
+                        result = result.filter(r => r.name.toLowerCase().includes(s));
+                    }
+                    return result;
                 },
                 
                 selectReciter(r) {
                     this.selectedReciter = r;
                     this.view = 'surahs';
                     this.search = '';
+                    this.selectedNationality = '';
                     window.currentReciter = r;
+                },
+
+                getNationalityLabel(code) {
+                    return nationalityLabels[code] || code;
                 },
 
                 playSurah(num) {

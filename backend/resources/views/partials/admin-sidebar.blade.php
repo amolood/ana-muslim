@@ -1,151 +1,122 @@
 <aside
-    class="fixed right-0 top-0 z-50 flex h-screen flex-col border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300 lg:static lg:z-auto lg:translate-x-0"
+    class="fixed right-0 top-0 z-50 flex h-screen flex-col bg-white dark:bg-[#12141c] border-l border-gray-100/80 dark:border-gray-800/50 transition-all duration-300 lg:static lg:z-auto lg:translate-x-0"
     :class="[
         sidebar.open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
-        sidebar.collapsed ? 'w-20' : 'w-72'
+        sidebar.collapsed ? 'w-[72px]' : 'w-[260px]'
     ]" id="admin-sidebar">
 
     <!-- Logo -->
-    <div class="border-b border-gray-100 dark:border-gray-800 p-6 flex justify-between items-center h-20">
-        <div class="flex items-center">
-            <div
-                class="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-lg shadow-emerald-600/20">
-                <i class="fa-solid fa-moon text-white"></i>
+    <div class="flex h-16 items-center justify-between border-b border-gray-100/80 dark:border-gray-800/50 px-5">
+        <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-moon text-sm text-white"></i>
             </div>
-            <h2 class="mr-3 text-lg font-bold text-gray-900 dark:text-white truncate"
-                x-show="!sidebar.collapsed">
+            <span class="text-base font-bold text-gray-900 dark:text-white" x-show="!sidebar.collapsed" x-transition>
                 أنا مسلم
-            </h2>
+            </span>
         </div>
-        <button @click="sidebar.open = false" class="lg:hidden text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-xl"></i>
+        <button @click="sidebar.open = false" class="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <i class="fas fa-times"></i>
         </button>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar">
-        <div class="space-y-1">
-            <!-- Group: Admin -->
-            @php
-                $adminActive = request()->routeIs('admin.dashboard');
-            @endphp
-            <button type="button"
-                class="w-full flex items-center px-4 py-3 rounded-xl font-black transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 {{ $adminActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : '' }}"
-                :aria-expanded="nav.isOpen('admin', sidebar.collapsed) ? 'true' : 'false'"
-                @click="nav.toggle('admin')">
-                <i class="fas fa-sliders w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                <span class="flex-1 text-right truncate" x-show="!sidebar.collapsed">الإدارة</span>
-                <i class="fas fa-chevron-down text-xs transition-transform"
-                    :class="nav.isOpen('admin', sidebar.collapsed) ? 'rotate-180' : ''" x-show="!sidebar.collapsed"></i>
-            </button>
-            <div class="mt-1 space-y-1 overflow-hidden"
-                x-show="nav.isOpen('admin', sidebar.collapsed)" x-transition.opacity.duration.150ms>
-                <a href="{{ route('admin.dashboard') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.dashboard') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-tachometer-alt w-6 text-lg"
-                        :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">لوحة التحكم</span>
-                </a>
-            </div>
+    <nav class="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+        <div class="space-y-0.5">
+            {{-- Dashboard Link (always visible) --}}
+            <a href="{{ route('admin.dashboard') }}"
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors
+                {{ request()->routeIs('admin.dashboard')
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50' }}">
+                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-emerald-500/10 dark:bg-emerald-500/15' : 'bg-gray-100 dark:bg-gray-800' }}">
+                    <i class="fas fa-home text-xs {{ request()->routeIs('admin.dashboard') ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' }}"></i>
+                </div>
+                <span x-show="!sidebar.collapsed" x-transition>لوحة التحكم</span>
+            </a>
 
-            <!-- Group: Content -->
-            @php
-                $contentActive = request()->routeIs('admin.categories.*')
-                    || request()->routeIs('admin.authors.*')
-                    || request()->routeIs('admin.items.*')
-                    || request()->routeIs('admin.hadith.*');
-            @endphp
-            <button type="button"
-                class="mt-4 w-full flex items-center px-4 py-3 rounded-xl font-black transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 {{ $contentActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : '' }}"
-                :aria-expanded="nav.isOpen('content', sidebar.collapsed) ? 'true' : 'false'"
-                @click="nav.toggle('content')">
-                <i class="fa-solid fa-book-open w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                <span class="flex-1 text-right truncate" x-show="!sidebar.collapsed">المحتوى</span>
-                <i class="fas fa-chevron-down text-xs transition-transform"
-                    :class="nav.isOpen('content', sidebar.collapsed) ? 'rotate-180' : ''"
-                    x-show="!sidebar.collapsed"></i>
-            </button>
-            <div class="mt-1 space-y-1 overflow-hidden"
-                x-show="nav.isOpen('content', sidebar.collapsed)" x-transition.opacity.duration.150ms>
-                <a href="{{ route('admin.categories.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.categories.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-tags w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">التصنيفات</span>
-                </a>
-                <a href="{{ route('admin.authors.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.authors.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-users w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">المؤلفون</span>
-                </a>
-                <a href="{{ route('admin.items.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.items.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fa-solid fa-layer-group w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">المواد</span>
-                </a>
-                <a href="{{ route('admin.hadith.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.hadith.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fa-solid fa-book-quran w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">الحديث الشريف</span>
-                </a>
-                <a href="{{ route('admin.reciters.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.reciters.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-microphone-lines w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">القراء</span>
-                </a>
+            {{-- Content Section Label --}}
+            <div class="px-3 pb-1 pt-5" x-show="!sidebar.collapsed">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-gray-600">المحتوى</span>
             </div>
+            <div class="mx-3 mb-2 border-b border-gray-100 dark:border-gray-800/50" x-show="sidebar.collapsed"></div>
 
-            <!-- Group: System -->
             @php
-                $systemActive = request()->routeIs('admin.notifications.*') || request()->routeIs('admin.settings.*');
+                $contentLinks = [
+                    ['route' => 'admin.categories.*', 'href' => route('admin.categories.index'), 'icon' => 'fa-tags', 'label' => 'التصنيفات'],
+                    ['route' => 'admin.authors.*', 'href' => route('admin.authors.index'), 'icon' => 'fa-users', 'label' => 'المؤلفون'],
+                    ['route' => 'admin.items.*', 'href' => route('admin.items.index'), 'icon' => 'fa-layer-group', 'label' => 'المواد'],
+                    ['route' => 'admin.hadith.*', 'href' => route('admin.hadith.index'), 'icon' => 'fa-book-quran', 'label' => 'الحديث الشريف'],
+                    ['route' => 'admin.reciters.*', 'href' => route('admin.reciters.index'), 'icon' => 'fa-microphone-lines', 'label' => 'القراء'],
+                ];
             @endphp
-            <button type="button"
-                class="mt-4 w-full flex items-center px-4 py-3 rounded-xl font-black transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 {{ $systemActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : '' }}"
-                :aria-expanded="nav.isOpen('system', sidebar.collapsed) ? 'true' : 'false'"
-                @click="nav.toggle('system')">
-                <i class="fa-solid fa-gears w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                <span class="flex-1 text-right truncate" x-show="!sidebar.collapsed">النظام</span>
-                <i class="fas fa-chevron-down text-xs transition-transform"
-                    :class="nav.isOpen('system', sidebar.collapsed) ? 'rotate-180' : ''"
-                    x-show="!sidebar.collapsed"></i>
-            </button>
-            <div class="mt-1 space-y-1 overflow-hidden"
-                x-show="nav.isOpen('system', sidebar.collapsed)" x-transition.opacity.duration.150ms>
-                <a href="{{ route('admin.notifications.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.notifications.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-bell w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">التنبيهات</span>
+
+            @foreach($contentLinks as $link)
+                <a href="{{ $link['href'] }}"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors
+                    {{ request()->routeIs($link['route'])
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50' }}">
+                    <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg {{ request()->routeIs($link['route']) ? 'bg-emerald-500/10 dark:bg-emerald-500/15' : 'bg-gray-100 dark:bg-gray-800' }}">
+                        <i class="fa-solid {{ $link['icon'] }} text-xs {{ request()->routeIs($link['route']) ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' }}"></i>
+                    </div>
+                    <span x-show="!sidebar.collapsed" x-transition>{{ $link['label'] }}</span>
                 </a>
-                <a href="{{ route('admin.settings.index') }}"
-                    class="flex items-center px-4 py-3 {{ request()->routeIs('admin.settings.*') ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800' }} rounded-xl font-medium transition-colors">
-                    <i class="fas fa-cog w-6 text-lg" :class="sidebar.collapsed ? 'ml-0' : 'ml-3'"></i>
-                    <span x-show="!sidebar.collapsed">الإعدادات</span>
-                </a>
+            @endforeach
+
+            {{-- System Section Label --}}
+            <div class="px-3 pb-1 pt-5" x-show="!sidebar.collapsed">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-300 dark:text-gray-600">النظام</span>
             </div>
+            <div class="mx-3 mb-2 border-b border-gray-100 dark:border-gray-800/50" x-show="sidebar.collapsed"></div>
+
+            @php
+                $unreadMessagesCount = \App\Models\ContactMessage::unread()->count();
+                $systemLinks = [
+                    ['route' => 'admin.messages.*', 'href' => route('admin.messages.index'), 'icon' => 'fa-envelope', 'label' => 'الرسائل', 'badge' => $unreadMessagesCount],
+                    ['route' => 'admin.notifications.*', 'href' => route('admin.notifications.index'), 'icon' => 'fa-bell', 'label' => 'التنبيهات'],
+                    ['route' => 'admin.settings.*', 'href' => route('admin.settings.index'), 'icon' => 'fa-cog', 'label' => 'الإعدادات'],
+                ];
+            @endphp
+
+            @foreach($systemLinks as $link)
+                <a href="{{ $link['href'] }}"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors
+                    {{ request()->routeIs($link['route'])
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50' }}">
+                    <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg {{ request()->routeIs($link['route']) ? 'bg-emerald-500/10 dark:bg-emerald-500/15' : 'bg-gray-100 dark:bg-gray-800' }}">
+                        <i class="fas {{ $link['icon'] }} text-xs {{ request()->routeIs($link['route']) ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' }}"></i>
+                    </div>
+                    <span x-show="!sidebar.collapsed" x-transition class="flex-1">{{ $link['label'] }}</span>
+                    @if(! empty($link['badge']))
+                        <span x-show="!sidebar.collapsed" x-transition class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-rose-500 rounded-full">{{ $link['badge'] }}</span>
+                    @endif
+                </a>
+            @endforeach
         </div>
     </nav>
 
-    <!-- User -->
-    <div class="border-t border-gray-100 dark:border-gray-800 p-4 space-y-2">
-        <div class="flex items-center p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-            <div class="h-10 w-10 rounded-full bg-emerald-600 flex items-center justify-center text-white">
-                <i class="fas fa-user"></i>
+    <!-- User Section -->
+    <div class="border-t border-gray-100/80 dark:border-gray-800/50 p-3">
+        <div class="flex items-center gap-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/30 p-2.5">
+            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white text-xs font-bold">
+                {{ mb_substr(Auth::user()->name ?? 'م', 0, 1) }}
             </div>
-            <div class="mr-3 flex-1 overflow-hidden" x-show="!sidebar.collapsed">
-                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {{ Auth::user()->name ?? 'المدير' }}</p>
-                <p class="text-xs text-gray-500 truncate">مدير النظام</p>
+            <div class="flex-1 min-w-0" x-show="!sidebar.collapsed" x-transition>
+                <p class="text-[13px] font-bold text-gray-900 dark:text-white truncate">{{ Auth::user()->name ?? 'المدير' }}</p>
+                <p class="text-[10px] text-gray-400 truncate">مدير النظام</p>
             </div>
         </div>
 
-        <form method="POST" action="{{ route('logout') }}">
+        <form method="POST" action="{{ route('logout') }}" class="mt-1.5">
             @csrf
             <button type="submit"
-                class="w-full flex items-center p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group">
-                <div class="h-10 w-10 flex items-center justify-center">
-                    <i
-                        class="fas fa-sign-out-alt text-xl group-hover:rotate-180 transition-transform duration-300"></i>
+                class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-500/5">
+                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
+                    <i class="fas fa-sign-out-alt text-xs"></i>
                 </div>
-                <div class="mr-3 font-bold" x-show="!sidebar.collapsed">تسجيل الخروج</div>
+                <span x-show="!sidebar.collapsed" x-transition>تسجيل الخروج</span>
             </button>
         </form>
     </div>
