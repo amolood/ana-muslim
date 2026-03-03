@@ -16,8 +16,8 @@ class CompassHero extends StatelessWidget {
     final Color accentColor = _getAccentColor(state.alignmentStatus);
 
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.85,
-      height: MediaQuery.of(context).size.width * 0.85,
+      width: MediaQuery.sizeOf(context).width * 0.85,
+      height: MediaQuery.sizeOf(context).width * 0.85,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -73,7 +73,7 @@ class CompassHero extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: state.isFullyAligned
-                ? accentColor.withOpacity(0.3)
+                ? accentColor.withValues(alpha:0.3)
                 : Colors.black87,
             border: Border.all(
               color: accentColor,
@@ -82,7 +82,7 @@ class CompassHero extends StatelessWidget {
             boxShadow: [
               if (isNear)
                 BoxShadow(
-                  color: accentColor.withOpacity(0.5),
+                  color: accentColor.withValues(alpha:0.5),
                   blurRadius: 20,
                   spreadRadius: 5,
                 )
@@ -104,7 +104,7 @@ class CompassHero extends StatelessWidget {
             boxShadow: [
               if (isNear)
                 BoxShadow(
-                  color: accentColor.withOpacity(0.6),
+                  color: accentColor.withValues(alpha:0.6),
                   blurRadius: 8,
                 )
             ],
@@ -126,14 +126,14 @@ class CompassDisk extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha:0.3),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha:0.2),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha:0.3),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -144,7 +144,7 @@ class CompassDisk extends StatelessWidget {
           // Compass ticks and cardinal directions
           CustomPaint(
             painter: CompassTicksPainter(
-              tickColor: Colors.white.withOpacity(0.3),
+              tickColor: Colors.white.withValues(alpha:0.3),
               accentColor: accentColor,
             ),
           ),
@@ -186,12 +186,12 @@ class CenterHub extends StatelessWidget {
         color: const Color(0xFF1A1A1A),
         shape: BoxShape.circle,
         border: Border.all(
-          color: accentColor.withOpacity(0.6),
+          color: accentColor.withValues(alpha:0.6),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.3),
+            color: accentColor.withValues(alpha:0.3),
             blurRadius: 15,
             spreadRadius: 2,
           ),
@@ -214,7 +214,7 @@ class CenterHub extends StatelessWidget {
           Text(
             "اتجاهك",
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha:0.5),
               fontSize: 10,
               fontFamily: 'Tajawal',
             ),
@@ -224,7 +224,7 @@ class CenterHub extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.2),
+              color: accentColor.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -275,7 +275,7 @@ class CompassTicksPainter extends CustomPainter {
 
       tickPaint.strokeWidth = tickWidth;
       if (isMajor) {
-        tickPaint.color = accentColor.withOpacity(0.6);
+        tickPaint.color = accentColor.withValues(alpha:0.6);
       } else {
         tickPaint.color = tickColor;
       }
@@ -313,7 +313,7 @@ class CompassTicksPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: label,
         style: TextStyle(
-          color: angleDeg == 0 ? accentColor : Colors.white.withOpacity(0.7),
+          color: angleDeg == 0 ? accentColor : Colors.white.withValues(alpha:0.7),
           fontSize: angleDeg == 0 ? 18 : 16,
           fontWeight: angleDeg == 0 ? FontWeight.bold : FontWeight.normal,
           fontFamily: 'Tajawal',
@@ -369,7 +369,7 @@ class DirectionArrowPainter extends CustomPainter {
 
     // Draw outline
     final outlinePaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = Colors.white.withValues(alpha:0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawPath(path, outlinePaint);

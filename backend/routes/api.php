@@ -1,19 +1,22 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AppVersionController;
 use App\Http\Controllers\Api\AzkarApiController;
 use App\Http\Controllers\Api\HadithApiController;
 use App\Http\Controllers\Api\HisnmuslimController;
-use App\Http\Controllers\Api\IslamicContentController;
 use App\Http\Controllers\Api\IslamicContentApiController;
+use App\Http\Controllers\Api\IslamicContentController;
 use App\Http\Controllers\Api\PusherTestController;
 use App\Http\Controllers\Api\QuranRecitersApiController;
 use App\Http\Controllers\Api\RamadanApiController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::get('/app-version', [AppVersionController::class, 'check']);
 
 Route::prefix('mp3quran')->group(function () {
     Route::get('/reciters', [QuranRecitersApiController::class, 'index']);

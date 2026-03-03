@@ -1,7 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+
+import '../notifications/notifications_service.dart';
 
 /// خدمة Pusher للاتصال الفوري (Real-time)
 /// تستخدم فقط للإشعارات المخصصة من الإدارة
@@ -39,11 +42,12 @@ class PusherService {
       );
 
       await _pusher!.connect();
+      await _pusher!.subscribe(channelName: 'ana-muslim-channel');
       _initialized = true;
 
-      print('✅ Pusher initialized successfully');
+      debugPrint('✅ Pusher initialized and subscribed to ana-muslim-channel');
     } catch (e) {
-      print('❌ Pusher initialization failed: $e');
+      debugPrint('❌ Pusher initialization failed: $e');
       rethrow;
     }
   }
@@ -56,9 +60,9 @@ class PusherService {
 
     try {
       await _pusher!.subscribe(channelName: channelName);
-      print('✅ Subscribed to channel: $channelName');
+      debugPrint('✅ Subscribed to channel: $channelName');
     } catch (e) {
-      print('❌ Failed to subscribe to channel $channelName: $e');
+      debugPrint('❌ Failed to subscribe to channel $channelName: $e');
     }
   }
 
@@ -66,9 +70,9 @@ class PusherService {
   static Future<void> unsubscribe(String channelName) async {
     try {
       await _pusher!.unsubscribe(channelName: channelName);
-      print('✅ Unsubscribed from channel: $channelName');
+      debugPrint('✅ Unsubscribed from channel: $channelName');
     } catch (e) {
-      print('❌ Failed to unsubscribe from channel $channelName: $e');
+      debugPrint('❌ Failed to unsubscribe from channel $channelName: $e');
     }
   }
 
@@ -77,60 +81,58 @@ class PusherService {
     try {
       await _pusher?.disconnect();
       _initialized = false;
-      print('✅ Pusher disconnected');
+      debugPrint('✅ Pusher disconnected');
     } catch (e) {
-      print('❌ Failed to disconnect Pusher: $e');
+      debugPrint('❌ Failed to disconnect Pusher: $e');
     }
   }
 
   // ─── Event Handlers ──────────────────────────────────────────────────────
 
   static void _onEvent(PusherEvent event) {
-    print('📨 Pusher Event:');
-    print('  Channel: ${event.channelName}');
-    print('  Event: ${event.eventName}');
-    print('  Data: ${event.data}');
+    debugPrint('📨 Pusher Event:');
+    debugPrint('  Channel: ${event.channelName}');
+    debugPrint('  Event: ${event.eventName}');
+    debugPrint('  Data: ${event.data}');
 
-    // يمكنك معالجة الأحداث هنا
-    // مثال: إرسال إشعار محلي عند استقبال حدث معين
     _handleEvent(event);
   }
 
   static void _onSubscriptionSucceeded(String channelName, dynamic data) {
-    print('✅ Subscription succeeded: $channelName');
-    print('  Data: $data');
+    debugPrint('✅ Subscription succeeded: $channelName');
+    debugPrint('  Data: $data');
   }
 
   static void _onSubscriptionError(String message, dynamic e) {
-    print('❌ Subscription error: $message');
-    print('  Error: $e');
+    debugPrint('❌ Subscription error: $message');
+    debugPrint('  Error: $e');
   }
 
   static void _onDecryptionFailure(String event, String reason) {
-    print('❌ Decryption failure: $event');
-    print('  Reason: $reason');
+    debugPrint('❌ Decryption failure: $event');
+    debugPrint('  Reason: $reason');
   }
 
   static void _onMemberAdded(String channelName, PusherMember member) {
-    print('👤 Member added to $channelName: ${member.userId}');
+    debugPrint('👤 Member added to $channelName: ${member.userId}');
   }
 
   static void _onMemberRemoved(String channelName, PusherMember member) {
-    print('👤 Member removed from $channelName: ${member.userId}');
+    debugPrint('👤 Member removed from $channelName: ${member.userId}');
   }
 
   static void _onError(String message, int? code, dynamic e) {
-    print('❌ Pusher error: $message (code: $code)');
-    print('  Error: $e');
+    debugPrint('❌ Pusher error: $message (code: $code)');
+    debugPrint('  Error: $e');
   }
 
   static void _onConnectionStateChange(
     String currentState,
     String previousState,
   ) {
-    print('🔄 Connection state changed:');
-    print('  From: $previousState');
-    print('  To: $currentState');
+    debugPrint('🔄 Connection state changed:');
+    debugPrint('  From: $previousState');
+    debugPrint('  To: $currentState');
   }
 
   // ─── Event Processing ────────────────────────────────────────────────────
@@ -138,40 +140,35 @@ class PusherService {
   /// معالجة الأحداث الواردة من Pusher
   /// يتم استخدام Pusher فقط للإشعارات المخصصة من الإدارة
   /// جميع إشعارات الصلوات ورمضان تتم محلياً
-  static void _handleEvent(PusherEvent event) {
+  static Future<void> _handleEvent(PusherEvent event) async {
     switch (event.eventName) {
       case 'admin-notification':
-        _handleAdminNotification(event.data);
+        await _handleAdminNotification(event.data);
         break;
 
       default:
-        print('⚠️ Unknown event type: ${event.eventName}');
+        debugPrint('⚠️ Unknown event type: ${event.eventName}');
     }
   }
 
   /// معالجة الإشعارات المخصصة من الإدارة
   /// هذا النوع الوحيد من الإشعارات الذي يتم إرساله عبر Pusher
-  static void _handleAdminNotification(String data) {
+  static Future<void> _handleAdminNotification(String data) async {
     try {
-      print('🔔 Admin notification received: $data');
+      debugPrint('🔔 Admin notification received: $data');
 
-      final json = jsonDecode(data);
-      final title = json['title'] ?? 'إشعار';
-      final body = json['body'] ?? '';
-      final type = json['type'] ?? 'general';
+      final json = jsonDecode(data) as Map<String, dynamic>;
+      final title = (json['title'] as String?) ?? 'إشعار';
+      final body = (json['body'] as String?) ?? '';
+      final type = (json['type'] as String?) ?? 'general';
 
-      // TODO: عرض إشعار محلي
-      // NotificationsService.showNotification(
-      //   title: title,
-      //   body: body,
-      //   payload: type,
-      // );
-
-      print('  Title: $title');
-      print('  Body: $body');
-      print('  Type: $type');
+      await NotificationsService.showImmediate(
+        title: title,
+        body: body,
+        payload: type,
+      );
     } catch (e) {
-      print('❌ Error handling admin notification: $e');
+      debugPrint('❌ Error handling admin notification: $e');
     }
   }
 }

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hadith/hadith.dart';
 
+import '../../../../core/l10n/l10n.dart';
+import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_semantic_colors.dart';
 import '../../data/hadith_repository.dart';
@@ -39,7 +41,7 @@ class HadithScreen extends ConsumerWidget {
                   if (collections.isEmpty) {
                     return Center(
                       child: Text(
-                        'لا توجد مجموعات حديث متاحة الآن',
+                        context.l10n.noHadithCollections,
                         style: GoogleFonts.tajawal(color: Colors.white54),
                       ),
                     );
@@ -58,27 +60,27 @@ class HadithScreen extends ConsumerWidget {
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _header(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => context.pop(),
+            tooltip: context.l10n.back,
             icon: Icon(
               Icons.arrow_back_ios,
-              color: isDark ? Colors.white : colors.textPrimary,
+              color: colors.textPrimary,
             ),
             style: IconButton.styleFrom(
-              backgroundColor: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+              backgroundColor: colors.surfaceCard,
               padding: const EdgeInsets.all(8),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'مكتبة الحديث الشريف',
+              context.l10n.hadithLibraryTitle,
               style: GoogleFonts.tajawal(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -86,22 +88,29 @@ class HadithScreen extends ConsumerWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: () => context.push('/hadith/search'),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+          Tooltip(
+            message: context.l10n.search,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => context.push(Routes.hadithSearch),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                child: Ink(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.search,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.search,
-                color: AppColors.primary,
-                size: 20,
               ),
             ),
           ),
@@ -137,13 +146,12 @@ class _CollectionsTabs extends StatelessWidget {
 
   Widget _tabBar(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+        color: colors.surfaceCard,
         borderRadius: BorderRadius.circular(14),
       ),
       child: TabBar(
@@ -153,7 +161,7 @@ class _CollectionsTabs extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: isDark ? Colors.black : AppColors.surfaceDarker,
+        labelColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : AppColors.surfaceDarker,
         unselectedLabelColor: colors.textSecondary,
         dividerColor: Colors.transparent,
         tabAlignment: collections.length > 3 ? TabAlignment.start : null,
@@ -182,14 +190,14 @@ class _CollectionsError extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'تعذر تحميل مجموعات الحديث',
+            context.l10n.hadithCollectionsError,
             style: GoogleFonts.tajawal(color: colors.textSecondary),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: onRetry,
             child: Text(
-              'إعادة المحاولة',
+              context.l10n.retry,
               style: GoogleFonts.tajawal(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
@@ -220,7 +228,7 @@ class _BooksList extends ConsumerWidget {
       ),
       error: (e, _) => Center(
         child: Text(
-          'حدث خطأ في تحميل البيانات',
+          context.l10n.hadithDataError,
           style: GoogleFonts.tajawal(color: Colors.white54),
         ),
       ),
@@ -259,11 +267,10 @@ class _BookTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () => context.push(
-        '/hadith/book',
+        Routes.hadithBook,
         extra: HadithBookArgs(
           collectionSlug: collection.slug,
           bookNumber: book.bookNumber,
@@ -275,10 +282,10 @@ class _BookTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+          color: colors.surfaceCard,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDark ? const Color(0xFF2D5E57) : colors.borderDefault,
+            color: colors.borderDefault,
             width: 1,
           ),
         ),
@@ -322,7 +329,7 @@ class _BookTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${book.numberOfHadith} حديث',
+                    context.l10n.hadithCount(book.numberOfHadith),
                     style: GoogleFonts.tajawal(
                       fontSize: 12,
                       color: colors.textSecondary,

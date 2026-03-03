@@ -1,0 +1,437 @@
+{
+  "@@locale": "en",
+
+  "navHome": "Home",
+  "@navHome": { "description": "Bottom navigation: Home tab" },
+
+  "navQuran": "Quran",
+  "@navQuran": { "description": "Bottom navigation: Quran tab" },
+
+  "navQibla": "Qibla",
+  "@navQibla": { "description": "Bottom navigation: Qibla tab" },
+
+  "navHadith": "Hadith",
+  "@navHadith": { "description": "Bottom navigation: Hadith tab" },
+
+  "navSettings": "Settings",
+  "@navSettings": { "description": "Bottom navigation: Settings tab" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel action button label" },
+
+  "done": "Done",
+  "@done": { "description": "Done/OK action button label" },
+
+  "reset": "Reset",
+  "@reset": { "description": "Reset action button label" },
+
+  "back": "Back",
+  "@back": { "description": "Back navigation tooltip" },
+
+  "search": "Search",
+  "@search": { "description": "Search action tooltip" },
+
+  "retry": "Retry",
+  "@retry": { "description": "Retry action button label" },
+
+  "loading": "Loading",
+  "@loading": { "description": "Generic loading state text" },
+
+  "notSet": "Not set",
+  "@notSet": { "description": "Value not set / unspecified" },
+
+  "errorSavingSetting": "Failed to save setting",
+  "@errorSavingSetting": { "description": "Snackbar shown when saving a setting fails" },
+
+  "settingsTitle": "App Settings",
+  "@settingsTitle": { "description": "Settings screen AppBar title" },
+
+  "sectionAppearance": "Appearance",
+  "@sectionAppearance": { "description": "Settings section header: Appearance" },
+
+  "sectionPrayer": "Prayer",
+  "@sectionPrayer": { "description": "Settings section header: Prayer" },
+
+  "sectionCalendar": "Calendar",
+  "@sectionCalendar": { "description": "Settings section header: Calendar" },
+
+  "sectionQuran": "Holy Quran",
+  "@sectionQuran": { "description": "Settings section header: Holy Quran" },
+
+  "sectionSebha": "Sebha",
+  "@sectionSebha": { "description": "Settings section header: Sebha" },
+
+  "sectionOther": "Other",
+  "@sectionOther": { "description": "Settings section header: Other" },
+
+  "settingTheme": "Theme",
+  "@settingTheme": { "description": "Setting tile title: Theme" },
+
+  "settingFontSize": "Font Size",
+  "@settingFontSize": { "description": "Setting tile title: Font Size" },
+
+  "settingLanguage": "Language",
+  "@settingLanguage": { "description": "Setting tile title: Language" },
+
+  "settingHijriCalendar": "Hijri Calendar",
+  "@settingHijriCalendar": { "description": "Setting tile title: Hijri Calendar" },
+
+  "settingHijriCalendarSubtitle": "Hijri date display and picker",
+  "@settingHijriCalendarSubtitle": { "description": "Subtitle for Hijri Calendar tile" },
+
+  "settingCalcMethod": "Calculation Method",
+  "@settingCalcMethod": { "description": "Setting tile title: Prayer Calculation Method" },
+
+  "settingPrayerAdjustment": "Prayer Time Adjustment",
+  "@settingPrayerAdjustment": { "description": "Setting tile title: Prayer Time Adjustment" },
+
+  "settingPrayerAdjustmentSubtitle": "Shift each prayer time by minutes",
+  "@settingPrayerAdjustmentSubtitle": { "description": "Subtitle for Prayer Time Adjustment tile" },
+
+  "settingPrayerAlerts": "Prayer Alerts",
+  "@settingPrayerAlerts": { "description": "Setting tile title: Prayer Alerts" },
+
+  "settingEnabled": "Enabled",
+  "@settingEnabled": { "description": "State label: Enabled" },
+
+  "settingDisabled": "Disabled",
+  "@settingDisabled": { "description": "State label: Disabled" },
+
+  "settingQiblaTone": "Qibla Success Tone",
+  "@settingQiblaTone": { "description": "Setting tile title: Qibla success tone" },
+
+  "settingQiblaToneType": "Qibla Tone Type",
+  "@settingQiblaToneType": { "description": "Setting tile title: Qibla tone type" },
+
+  "settingQiblaPreview": "Preview Qibla Tone",
+  "@settingQiblaPreview": { "description": "Setting tile title: Preview Qibla Tone" },
+
+  "settingQiblaPreviewSubtitle": "Play the selected tone to verify the sound",
+  "@settingQiblaPreviewSubtitle": { "description": "Subtitle for Qibla preview tile" },
+
+  "settingCurrentLocation": "Current Location",
+  "@settingCurrentLocation": { "description": "Setting tile title: Current Location" },
+
+  "locationAuto": "Auto",
+  "@locationAuto": { "description": "Location trailing text when auto-detected" },
+
+  "locationUpdated": "Location updated successfully",
+  "@locationUpdated": { "description": "Snackbar: location updated successfully" },
+
+  "locationUpdateFailed": "Failed to update location",
+  "@locationUpdateFailed": { "description": "Snackbar: failed to update location" },
+
+  "qiblaToneEnableFirst": "Enable the Qibla success tone in Settings first",
+  "@qiblaToneEnableFirst": { "description": "Message shown when trying to preview while tone is disabled" },
+
+  "qiblaTonePlayFailed": "Failed to play the tone",
+  "@qiblaTonePlayFailed": { "description": "Error snackbar when tone playback fails" },
+
+  "settingTafsir": "Tafsir Source",
+  "@settingTafsir": { "description": "Setting tile title: Tafsir source" },
+
+  "settingDefaultReciter": "Default Reciter",
+  "@settingDefaultReciter": { "description": "Setting tile title: Default Reciter" },
+
+  "settingPrivacy": "Privacy",
+  "@settingPrivacy": { "description": "Setting tile title: Privacy" },
+
+  "privacyMessage": "Your personal data is not sent to external servers. Settings are saved locally on your device only.",
+  "@privacyMessage": { "description": "Privacy policy dialog message" },
+
+  "settingContactUs": "Contact Us",
+  "@settingContactUs": { "description": "Setting tile title: Contact Us" },
+
+  "settingContactSubtitle": "Visit our website",
+  "@settingContactSubtitle": { "description": "Contact Us tile subtitle" },
+
+  "whatsappError": "Could not open the contact page",
+  "@whatsappError": { "description": "Error snackbar when contact page cannot be opened" },
+
+  "settingAbout": "About",
+  "@settingAbout": { "description": "Setting tile title: About App" },
+
+  "aboutMessage": "I'm Muslim App: Quran, Adhkar, Qibla, and Prayer Times in a complete Islamic experience.\n\nSadaqah Jariyah for me, my parents, and all Muslims.",
+  "@aboutMessage": { "description": "About app dialog message" },
+
+  "footerTitle": "I'm Muslim App © {year}",
+  "@footerTitle": {
+    "description": "Footer copyright line",
+    "placeholders": {
+      "year": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "footerSubtitle": "Designed to serve the Muslim Ummah",
+  "@footerSubtitle": { "description": "Footer subtitle line" },
+
+  "sebhaDefaultGoalTitle": "Default Dhikr Goal",
+  "@sebhaDefaultGoalTitle": { "description": "Sebha settings: default daily goal tile title" },
+
+  "sebhaDefaultGoalSubtitle": "Automatically applied to all dhikr phrases",
+  "@sebhaDefaultGoalSubtitle": { "description": "Sebha settings: default goal tile subtitle" },
+
+  "sebhaPhraseListTitle": "Dhikr Phrases",
+  "@sebhaPhraseListTitle": { "description": "Sebha settings: phrases list tile title" },
+
+  "sebhaPhraseListSubtitle": "Current: {phrase}",
+  "@sebhaPhraseListSubtitle": {
+    "description": "Sebha settings: current phrase subtitle",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "todayDateLabel": "Today's Date",
+  "@todayDateLabel": { "description": "Prayer times card: today's date label" },
+
+  "nextPrayerLabel": "Next Prayer",
+  "@nextPrayerLabel": { "description": "Prayer times card: next prayer label" },
+
+  "remainingLabel": "Remaining",
+  "@remainingLabel": { "description": "Prayer times card: remaining time label" },
+
+  "locating": "Locating",
+  "@locating": { "description": "Prayer times card: locating state" },
+
+  "unknownLocation": "Unknown location",
+  "@unknownLocation": { "description": "Prayer times card: unknown location" },
+
+  "locationError": "Location error",
+  "@locationError": { "description": "Prayer times card: location error state" },
+
+  "sebhaTitle": "Sebha",
+  "@sebhaTitle": { "description": "Sebha screen AppBar title" },
+
+  "resetTodayCounters": "Reset today's counters",
+  "@resetTodayCounters": { "description": "Sebha: reset today's counters tooltip/title" },
+
+  "resetCurrentPhraseTitle": "Reset Current Phrase",
+  "@resetCurrentPhraseTitle": { "description": "Sebha: reset current phrase dialog title" },
+
+  "resetCurrentPhraseMsg": "Only the selected phrase counter will be reset.",
+  "@resetCurrentPhraseMsg": { "description": "Sebha: reset current phrase confirmation message" },
+
+  "resetTodayTitle": "Reset Today's Counter",
+  "@resetTodayTitle": { "description": "Sebha: reset today dialog title" },
+
+  "resetTodayMsg": "All today's counters for every phrase will be reset.",
+  "@resetTodayMsg": { "description": "Sebha: reset today confirmation message" },
+
+  "resetTodayBtn": "Reset Today",
+  "@resetTodayBtn": { "description": "Sebha: reset today confirm button label" },
+
+  "phraseResetSuccess": "Current phrase has been reset",
+  "@phraseResetSuccess": { "description": "Sebha: snackbar after current phrase reset" },
+
+  "todayResetSuccess": "Today's counter has been reset",
+  "@todayResetSuccess": { "description": "Sebha: snackbar after today's counter reset" },
+
+  "goalReachedSwitched": "Completed goal for \"{phrase}\" and moved to the next phrase",
+  "@goalReachedSwitched": {
+    "description": "Sebha: snackbar when goal reached and auto-switched",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "goalReached": "Completed goal for \"{phrase}\"",
+  "@goalReached": {
+    "description": "Sebha: snackbar when daily goal reached",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "dailyGoalLabel": "Daily goal: {goal}",
+  "@dailyGoalLabel": {
+    "description": "Sebha: daily goal label with count",
+    "placeholders": {
+      "goal": { "type": "String" }
+    }
+  },
+
+  "dailyGoalUnset": "Daily goal: not set",
+  "@dailyGoalUnset": { "description": "Sebha: daily goal not set label" },
+
+  "goalUnsetText": "Goal not set",
+  "@goalUnsetText": { "description": "Sebha: goal unset inside counter card" },
+
+  "prevPhrase": "Previous",
+  "@prevPhrase": { "description": "Sebha: previous phrase button label" },
+
+  "nextPhraseLabel": "Next",
+  "@nextPhraseLabel": { "description": "Sebha: next phrase button label" },
+
+  "tapToCount": "Tap to count",
+  "@tapToCount": { "description": "Sebha: tap to count label inside circular button" },
+
+  "totalCountLabel": "Total Count",
+  "@totalCountLabel": { "description": "Sebha stats: total count label" },
+
+  "todayTotalLabel": "Today's Total",
+  "@todayTotalLabel": { "description": "Sebha stats: today's total label" },
+
+  "completedGoalsLabel": "Goals Completed",
+  "@completedGoalsLabel": { "description": "Sebha stats: completed goals label" },
+
+  "resetCurrentBtn": "Reset Current",
+  "@resetCurrentBtn": { "description": "Sebha: reset current phrase outlined button" },
+
+  "manageSebhaTitle": "Manage Phrases & Goals",
+  "@manageSebhaTitle": { "description": "Sebha: manage card title" },
+
+  "manageSebhaDesc": "Adding and removing phrases and setting the default goal is now done from the Settings screen.",
+  "@manageSebhaDesc": { "description": "Sebha: manage card description" },
+
+  "openSettings": "Open Settings",
+  "@openSettings": { "description": "Sebha: open settings button label" },
+
+  "hadithLibraryTitle": "Hadith Library",
+  "@hadithLibraryTitle": { "description": "Hadith screen title" },
+
+  "noHadithCollections": "No hadith collections available",
+  "@noHadithCollections": { "description": "Hadith screen: empty state message" },
+
+  "hadithCollectionsError": "Failed to load hadith collections",
+  "@hadithCollectionsError": { "description": "Hadith screen: collections load error" },
+
+  "hadithDataError": "An error occurred loading data",
+  "@hadithDataError": { "description": "Hadith books: data load error message" },
+
+  "hadithCount": "{count} hadiths",
+  "@hadithCount": {
+    "description": "Number of hadiths shown on a book tile",
+    "placeholders": {
+      "count": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "prayerSilenceTitle": "Prayer Time Silence",
+  "@prayerSilenceTitle": { "description": "Prayer silence feature screen title" },
+
+  "prayerSilenceSubtitle": "Auto-silence phone during prayer times",
+  "@prayerSilenceSubtitle": { "description": "Prayer silence settings tile subtitle" },
+
+  "psSectionPrayers": "Included Prayers",
+  "@psSectionPrayers": { "description": "Prayer silence: section header for prayer selection" },
+
+  "psSectionTiming": "Activation Window",
+  "@psSectionTiming": { "description": "Prayer silence: section header for timing" },
+
+  "psSectionMode": "Silence Mode",
+  "@psSectionMode": { "description": "Prayer silence: section header for silence mode" },
+
+  "psSectionOptions": "Options",
+  "@psSectionOptions": { "description": "Prayer silence: section header for extra options" },
+
+  "psModeDnd": "Do Not Disturb (DND)",
+  "@psModeDnd": { "description": "Prayer silence mode: Do Not Disturb" },
+
+  "psModeSilent": "Silent",
+  "@psModeSilent": { "description": "Prayer silence mode: Silent" },
+
+  "psModeVibrate": "Vibrate",
+  "@psModeVibrate": { "description": "Prayer silence mode: Vibrate" },
+
+  "psMinutesBeforeLabel": "Before adhan",
+  "@psMinutesBeforeLabel": { "description": "Prayer silence: minutes before adhan label" },
+
+  "psMinutesAfterLabel": "After adhan",
+  "@psMinutesAfterLabel": { "description": "Prayer silence: minutes after adhan label" },
+
+  "psMinutesValue": "{count} min",
+  "@psMinutesValue": {
+    "description": "Prayer silence: minutes count label",
+    "placeholders": {
+      "count": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "psAutoRestore": "Restore previous mode automatically",
+  "@psAutoRestore": { "description": "Prayer silence: auto-restore toggle label" },
+
+  "psAutoRestoreSubtitle": "Return to normal mode after prayer window ends",
+  "@psAutoRestoreSubtitle": { "description": "Prayer silence: auto-restore toggle subtitle" },
+
+  "psPermissionBannerTitle": "Permission Required",
+  "@psPermissionBannerTitle": { "description": "Prayer silence: permission banner title" },
+
+  "psPermissionBannerBody": "Grant the app Do Not Disturb access to enable this feature on Android.",
+  "@psPermissionBannerBody": { "description": "Prayer silence: permission banner body" },
+
+  "psPermissionButton": "Open System Settings",
+  "@psPermissionButton": { "description": "Prayer silence: open system settings button" },
+
+  "psIosTitle": "Not Supported on iOS",
+  "@psIosTitle": { "description": "Prayer silence: iOS unsupported title" },
+
+  "psIosBody": "iOS does not allow apps to control the ringer mode programmatically. You can use the Focus feature in device Settings to set up a custom silence schedule.",
+  "@psIosBody": { "description": "Prayer silence: iOS unsupported explanation" },
+
+  "psRescheduleSuccess": "Prayer silence schedule updated",
+  "@psRescheduleSuccess": { "description": "Prayer silence: reschedule success snackbar" },
+
+  "psRescheduleFailed": "Failed to schedule prayer silence",
+  "@psRescheduleFailed": { "description": "Prayer silence: reschedule failed snackbar" },
+
+  "sectionWidgets": "Home Screen Widgets",
+  "@sectionWidgets": { "description": "Settings section header: Widgets" },
+
+  "widgetSettingsTitle": "Widget Settings",
+  "@widgetSettingsTitle": { "description": "Widget settings screen title" },
+
+  "widgetSettingsSubtitle": "Customize home screen widget appearance",
+  "@widgetSettingsSubtitle": { "description": "Widget settings tile subtitle / widgets section title" },
+
+  "widgetGeneral": "General",
+  "@widgetGeneral": { "description": "Widget settings: general section header" },
+
+  "widgetNumberFormat": "Number Format",
+  "@widgetNumberFormat": { "description": "Widget settings: number format tile" },
+
+  "widgetTimeFormat": "Time Format",
+  "@widgetTimeFormat": { "description": "Widget settings: time format tile" },
+
+  "widgetTextColor": "Text Color",
+  "@widgetTextColor": { "description": "Widget detail: text color label" },
+
+  "widgetBgColor": "Background Color",
+  "@widgetBgColor": { "description": "Widget detail: background color label" },
+
+  "widgetBgOpacity": "Background Opacity",
+  "@widgetBgOpacity": { "description": "Widget detail: background opacity label" },
+
+  "widgetCornerRadius": "Corner Radius",
+  "@widgetCornerRadius": { "description": "Widget detail: corner radius label" },
+
+  "widgetFontSize": "Font Size",
+  "@widgetFontSize": { "description": "Widget detail: font size label" },
+
+  "widgetDecorImage": "Decor Image",
+  "@widgetDecorImage": { "description": "Widget detail: decor image label" },
+
+  "widgetDecorOpacity": "Decor Opacity",
+  "@widgetDecorOpacity": { "description": "Widget detail: decor opacity label" },
+
+  "widgetDecorColor": "Decor Color",
+  "@widgetDecorColor": { "description": "Widget detail: decor color label" },
+
+  "widgetNoDecor": "None",
+  "@widgetNoDecor": { "description": "Widget detail: no decor option" },
+
+  "widgetPreview": "Preview",
+  "@widgetPreview": { "description": "Widget detail: preview label" },
+
+  "updateAvailableTitle": "Update Available",
+  "@updateAvailableTitle": { "description": "App update dialog title when a soft update is available" },
+
+  "forceUpdateTitle": "Update Required",
+  "@forceUpdateTitle": { "description": "App update dialog title when a force update is required" },
+
+  "updateNow": "Update Now",
+  "@updateNow": { "description": "App update dialog: primary action button" },
+
+  "updateLater": "Later",
+  "@updateLater": { "description": "App update dialog: dismiss button for soft updates" }
+}

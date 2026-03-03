@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Vibration for prayer notifications -->
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Allow changing ringer mode for prayer time silence -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <!-- Internet for geocoding city names -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Audio service permissions -->
@@ -73,9 +75,17 @@
             android:exported="false"/>
 
         <!-- Audio Service -->
+        <!--
+          stopWithTask="false": tells the OS not to forcibly stop this service
+          when the user swipes the app from Recent Apps. Without this, aggressive
+          OEM ROMs (Samsung, Xiaomi, etc.) kill the service regardless of whether
+          it is a foreground service. onTaskRemoved() in QuranAudioHandler then
+          decides whether to actually stop based on the playback state.
+        -->
         <service android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true"
+            android:stopWithTask="false"
             tools:ignore="Instantiatable">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
@@ -121,13 +131,55 @@
                 android:resource="@xml/transparent_widget_info" />
         </receiver>
 
-        <!-- Widget event receiver (screen unlock, etc.) -->
+        <!-- Date + Day calligraphy widget -->
+        <receiver
+            android:name=".DateWidgetProvider"
+            android:label="ودجت التاريخ"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/date_widget_info" />
+        </receiver>
+
+        <!-- Hijri Month widget -->
+        <receiver
+            android:name=".HijriMonthWidgetProvider"
+            android:label="ودجت الشهر الهجري"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_month_widgetinfo" />
+        </receiver>
+
+        <!-- Widget event receiver (screen unlock, boot recovery, etc.) -->
         <receiver
             android:name=".QuranWidgetEventsReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />
                 <action android:name="android.intent.action.SCREEN_ON" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Prayer time silence: START / END alarms + BOOT rescheduling -->
+        <receiver
+            android:name=".PrayerSilenceReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.anaalmuslim.app.PRAYER_SILENCE_START" />
+                <action android:name="com.anaalmuslim.app.PRAYER_SILENCE_END" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 

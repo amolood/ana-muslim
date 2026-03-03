@@ -21,7 +21,7 @@ class QuickRangesList extends ConsumerWidget {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.cardDark : Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,7 +33,7 @@ class QuickRangesList extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -106,13 +106,13 @@ class _QuickRangeCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primary.withOpacity(0.15),
-                AppColors.primary.withOpacity(0.05),
+                AppColors.primary.withValues(alpha:0.15),
+                AppColors.primary.withValues(alpha:0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha:0.3),
               width: 1,
             ),
           ),
@@ -130,7 +130,7 @@ class _QuickRangeCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

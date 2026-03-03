@@ -69,6 +69,14 @@ class QuranWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_verse, verseText)
             views.setTextViewText(R.id.widget_ref, verseRef)
 
+            // Apply the dark background programmatically so the XML layout can safely
+            // declare android:background="@android:color/transparent". This avoids the
+            // HnCurvatureRoundUtils NumberFormatException crash on Huawei/Honor launchers
+            // which only fires during layout inflation, not during onUpdate().
+            try {
+                views.setInt(R.id.widget_root, "setBackgroundResource", R.drawable.quran_widget_bg)
+            } catch (e: Exception) { /* fallback: transparent background is still readable */ }
+
             // Open app when any part of the widget is tapped
             val launchIntent = context.packageManager
                 .getLaunchIntentForPackage(context.packageName)

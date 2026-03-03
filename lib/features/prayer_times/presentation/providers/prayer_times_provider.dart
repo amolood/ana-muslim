@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:adhan/adhan.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/providers/preferences_provider.dart';
+import '../../../settings/presentation/notification_reschedule.dart';
 
 /// Prayer times with manual offsets applied.
 class AdjustedPrayerTimes {
@@ -29,6 +31,21 @@ class AdjustedPrayerTimes {
     Prayer.isha => isha,
     _ => null,
   };
+
+  /// Value equality — prevents unnecessary rebuilds when [adjustedPrayerTimesProvider]
+  /// resolves with identical times (e.g. on hot-reload or settings round-trip).
+  @override
+  bool operator ==(Object other) =>
+      other is AdjustedPrayerTimes &&
+      other.fajr == fajr &&
+      other.sunrise == sunrise &&
+      other.dhuhr == dhuhr &&
+      other.asr == asr &&
+      other.maghrib == maghrib &&
+      other.isha == isha;
+
+  @override
+  int get hashCode => Object.hash(fajr, sunrise, dhuhr, asr, maghrib, isha);
 }
 
 final locationProvider = FutureProvider<Position>((ref) async {
@@ -107,7 +124,9 @@ final locationNameProvider = FutureProvider<String>((ref) async {
       if (city.isNotEmpty) return city;
       if (country.isNotEmpty) return country;
     }
-  } catch (_) {}
+  } catch (e) {
+    if (kDebugMode) debugPrint('[locationNameProvider] geocoding failed: $e');
+  }
   return 'موقع غير معروف';
 });
 
@@ -115,23 +134,11 @@ final prayerTimesProvider = FutureProvider<PrayerTimes>((ref) async {
   final position = await ref.watch(locationProvider.future);
   final calcMethodStr = ref.watch(calculationMethodProvider);
 
-  CalculationMethod method = CalculationMethod.umm_al_qura;
-  switch (calcMethodStr) {
-    case 'رابطة العالم الإسلامي':
-      method = CalculationMethod.muslim_world_league;
-    case 'الهيئة العامة للمساحة المصرية':
-      method = CalculationMethod.egyptian;
-    case 'جامعة العلوم الإسلامية بكراتشي':
-      method = CalculationMethod.karachi;
-    case 'الجمعية الإسلامية لأمريكا الشمالية':
-      method = CalculationMethod.north_america;
-    default:
-      method = CalculationMethod.umm_al_qura;
-  }
-
+  // Uses the shared buildCalculationParams() so that display, notification
+  // scheduling, and manual-reschedule all use identical CalculationParameters
+  // (including madhab). This guarantees the adhan fires at the exact time shown.
   final coordinates = Coordinates(position.latitude, position.longitude);
-  final params = method.getParameters();
-  params.madhab = Madhab.shafi;
+  final params = buildCalculationParams(calcMethodStr);
   final date = DateComponents.from(DateTime.now());
   return PrayerTimes(coordinates, date, params);
 });

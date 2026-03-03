@@ -48,6 +48,7 @@
                     ['route' => 'admin.items.*', 'href' => route('admin.items.index'), 'icon' => 'fa-layer-group', 'label' => 'المواد'],
                     ['route' => 'admin.hadith.*', 'href' => route('admin.hadith.index'), 'icon' => 'fa-book-quran', 'label' => 'الحديث الشريف'],
                     ['route' => 'admin.reciters.*', 'href' => route('admin.reciters.index'), 'icon' => 'fa-microphone-lines', 'label' => 'القراء'],
+                    ['route' => 'admin.ramadan.*', 'href' => route('admin.ramadan.index'), 'icon' => 'fa-moon', 'label' => 'جداول رمضان'],
                 ];
             @endphp
 

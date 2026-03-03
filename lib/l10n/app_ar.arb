@@ -1,0 +1,437 @@
+{
+  "@@locale": "ar",
+
+  "navHome": "الرئيسية",
+  "@navHome": { "description": "Bottom navigation: Home tab" },
+
+  "navQuran": "القرآن",
+  "@navQuran": { "description": "Bottom navigation: Quran tab" },
+
+  "navQibla": "القبلة",
+  "@navQibla": { "description": "Bottom navigation: Qibla tab" },
+
+  "navHadith": "الحديث",
+  "@navHadith": { "description": "Bottom navigation: Hadith tab" },
+
+  "navSettings": "الإعدادات",
+  "@navSettings": { "description": "Bottom navigation: Settings tab" },
+
+  "cancel": "إلغاء",
+  "@cancel": { "description": "Cancel action button label" },
+
+  "done": "تم",
+  "@done": { "description": "Done/OK action button label" },
+
+  "reset": "تصفير",
+  "@reset": { "description": "Reset action button label" },
+
+  "back": "رجوع",
+  "@back": { "description": "Back navigation tooltip" },
+
+  "search": "بحث",
+  "@search": { "description": "Search action tooltip" },
+
+  "retry": "إعادة المحاولة",
+  "@retry": { "description": "Retry action button label" },
+
+  "loading": "جاري التحميل",
+  "@loading": { "description": "Generic loading state text" },
+
+  "notSet": "غير محدد",
+  "@notSet": { "description": "Value not set / unspecified" },
+
+  "errorSavingSetting": "تعذّر حفظ الإعداد",
+  "@errorSavingSetting": { "description": "Snackbar shown when saving a setting fails" },
+
+  "settingsTitle": "إعدادات التطبيق",
+  "@settingsTitle": { "description": "Settings screen AppBar title" },
+
+  "sectionAppearance": "المظهر",
+  "@sectionAppearance": { "description": "Settings section header: Appearance" },
+
+  "sectionPrayer": "الصلاة",
+  "@sectionPrayer": { "description": "Settings section header: Prayer" },
+
+  "sectionCalendar": "التقويم",
+  "@sectionCalendar": { "description": "Settings section header: Calendar" },
+
+  "sectionQuran": "القرآن الكريم",
+  "@sectionQuran": { "description": "Settings section header: Holy Quran" },
+
+  "sectionSebha": "السبحة",
+  "@sectionSebha": { "description": "Settings section header: Sebha" },
+
+  "sectionOther": "أخرى",
+  "@sectionOther": { "description": "Settings section header: Other" },
+
+  "settingTheme": "الثيم",
+  "@settingTheme": { "description": "Setting tile title: Theme" },
+
+  "settingFontSize": "حجم الخط",
+  "@settingFontSize": { "description": "Setting tile title: Font Size" },
+
+  "settingLanguage": "اللغة",
+  "@settingLanguage": { "description": "Setting tile title: Language" },
+
+  "settingHijriCalendar": "التقويم الهجري",
+  "@settingHijriCalendar": { "description": "Setting tile title: Hijri Calendar" },
+
+  "settingHijriCalendarSubtitle": "عرض ومنتقي التاريخ الهجري",
+  "@settingHijriCalendarSubtitle": { "description": "Subtitle for Hijri Calendar tile" },
+
+  "settingCalcMethod": "طريقة الحساب",
+  "@settingCalcMethod": { "description": "Setting tile title: Prayer Calculation Method" },
+
+  "settingPrayerAdjustment": "ضبط مواقيت الصلاة",
+  "@settingPrayerAdjustment": { "description": "Setting tile title: Prayer Time Adjustment" },
+
+  "settingPrayerAdjustmentSubtitle": "تقديم أو تأخير كل صلاة بدقائق",
+  "@settingPrayerAdjustmentSubtitle": { "description": "Subtitle for Prayer Time Adjustment tile" },
+
+  "settingPrayerAlerts": "تنبيهات الصلاة",
+  "@settingPrayerAlerts": { "description": "Setting tile title: Prayer Alerts" },
+
+  "settingEnabled": "مفعلة",
+  "@settingEnabled": { "description": "State label: Enabled" },
+
+  "settingDisabled": "موقفة",
+  "@settingDisabled": { "description": "State label: Disabled" },
+
+  "settingQiblaTone": "نغمة نجاح القبلة",
+  "@settingQiblaTone": { "description": "Setting tile title: Qibla success tone" },
+
+  "settingQiblaToneType": "نوع نغمة القبلة",
+  "@settingQiblaToneType": { "description": "Setting tile title: Qibla tone type" },
+
+  "settingQiblaPreview": "معاينة نغمة القبلة",
+  "@settingQiblaPreview": { "description": "Setting tile title: Preview Qibla Tone" },
+
+  "settingQiblaPreviewSubtitle": "تشغيل النغمة المختارة للتأكد من الصوت",
+  "@settingQiblaPreviewSubtitle": { "description": "Subtitle for Qibla preview tile" },
+
+  "settingCurrentLocation": "الموقع الحالي",
+  "@settingCurrentLocation": { "description": "Setting tile title: Current Location" },
+
+  "locationAuto": "تلقائي",
+  "@locationAuto": { "description": "Location trailing text when auto-detected" },
+
+  "locationUpdated": "تم تحديث الموقع بنجاح",
+  "@locationUpdated": { "description": "Snackbar: location updated successfully" },
+
+  "locationUpdateFailed": "تعذّر تحديث الموقع",
+  "@locationUpdateFailed": { "description": "Snackbar: failed to update location" },
+
+  "qiblaToneEnableFirst": "فعّل نغمة نجاح القبلة أولًا من الإعدادات",
+  "@qiblaToneEnableFirst": { "description": "Message shown when trying to preview while tone is disabled" },
+
+  "qiblaTonePlayFailed": "تعذّر تشغيل النغمة",
+  "@qiblaTonePlayFailed": { "description": "Error snackbar when tone playback fails" },
+
+  "settingTafsir": "مصدر التفسير",
+  "@settingTafsir": { "description": "Setting tile title: Tafsir source" },
+
+  "settingDefaultReciter": "القارئ الافتراضي",
+  "@settingDefaultReciter": { "description": "Setting tile title: Default Reciter" },
+
+  "settingPrivacy": "الخصوصية",
+  "@settingPrivacy": { "description": "Setting tile title: Privacy" },
+
+  "privacyMessage": "لا يتم إرسال بياناتك الشخصية إلى خوادم خارجية. يتم حفظ الإعدادات محليًا على جهازك فقط.",
+  "@privacyMessage": { "description": "Privacy policy dialog message" },
+
+  "settingContactUs": "تواصل معنا",
+  "@settingContactUs": { "description": "Setting tile title: Contact Us" },
+
+  "settingContactSubtitle": "زيارة الموقع الرسمي",
+  "@settingContactSubtitle": { "description": "Contact Us tile subtitle" },
+
+  "whatsappError": "تعذّر فتح صفحة التواصل",
+  "@whatsappError": { "description": "Error snackbar when contact page cannot be opened" },
+
+  "settingAbout": "عن التطبيق",
+  "@settingAbout": { "description": "Setting tile title: About App" },
+
+  "aboutMessage": "تطبيق المسلم: قرآن، أذكار، قبلة، ومواقيت الصلاة في تجربة عربية متكاملة.\n\nصدقة جارية عني وعن والديَّ وعن كل المسلمين.",
+  "@aboutMessage": { "description": "About app dialog message" },
+
+  "footerTitle": "تطبيق المسلم © {year}",
+  "@footerTitle": {
+    "description": "Footer copyright line",
+    "placeholders": {
+      "year": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "footerSubtitle": "صمم لخدمة الأمة الإسلامية",
+  "@footerSubtitle": { "description": "Footer subtitle line" },
+
+  "sebhaDefaultGoalTitle": "الهدف الافتراضي للتسبيح",
+  "@sebhaDefaultGoalTitle": { "description": "Sebha settings: default daily goal tile title" },
+
+  "sebhaDefaultGoalSubtitle": "يُطبّق تلقائيًا على جميع التسبيحات",
+  "@sebhaDefaultGoalSubtitle": { "description": "Sebha settings: default goal tile subtitle" },
+
+  "sebhaPhraseListTitle": "قائمة التسبيحات",
+  "@sebhaPhraseListTitle": { "description": "Sebha settings: phrases list tile title" },
+
+  "sebhaPhraseListSubtitle": "الحالية: {phrase}",
+  "@sebhaPhraseListSubtitle": {
+    "description": "Sebha settings: current phrase subtitle",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "todayDateLabel": "التاريخ اليوم",
+  "@todayDateLabel": { "description": "Prayer times card: today's date label" },
+
+  "nextPrayerLabel": "الصلاة القادمة",
+  "@nextPrayerLabel": { "description": "Prayer times card: next prayer label" },
+
+  "remainingLabel": "متبقي",
+  "@remainingLabel": { "description": "Prayer times card: remaining time label" },
+
+  "locating": "جاري تحديد الموقع",
+  "@locating": { "description": "Prayer times card: locating state" },
+
+  "unknownLocation": "موقع غير معروف",
+  "@unknownLocation": { "description": "Prayer times card: unknown location" },
+
+  "locationError": "خطأ في الموقع",
+  "@locationError": { "description": "Prayer times card: location error state" },
+
+  "sebhaTitle": "السبحة",
+  "@sebhaTitle": { "description": "Sebha screen AppBar title" },
+
+  "resetTodayCounters": "تصفير عدادات اليوم",
+  "@resetTodayCounters": { "description": "Sebha: reset today's counters tooltip/title" },
+
+  "resetCurrentPhraseTitle": "تصفير التسبيحة الحالية",
+  "@resetCurrentPhraseTitle": { "description": "Sebha: reset current phrase dialog title" },
+
+  "resetCurrentPhraseMsg": "سيتم تصفير عداد التسبيحة المختارة فقط.",
+  "@resetCurrentPhraseMsg": { "description": "Sebha: reset current phrase confirmation message" },
+
+  "resetTodayTitle": "تصفير عداد اليوم",
+  "@resetTodayTitle": { "description": "Sebha: reset today dialog title" },
+
+  "resetTodayMsg": "سيتم تصفير جميع عدادات اليوم لكل التسبيحات.",
+  "@resetTodayMsg": { "description": "Sebha: reset today confirmation message" },
+
+  "resetTodayBtn": "تصفير اليوم",
+  "@resetTodayBtn": { "description": "Sebha: reset today confirm button label" },
+
+  "phraseResetSuccess": "تم تصفير التسبيحة الحالية",
+  "@phraseResetSuccess": { "description": "Sebha: snackbar after current phrase reset" },
+
+  "todayResetSuccess": "تم تصفير عداد اليوم",
+  "@todayResetSuccess": { "description": "Sebha: snackbar after today's counter reset" },
+
+  "goalReachedSwitched": "أكملت هدف \"{phrase}\" وتم الانتقال للتسبيحة التالية",
+  "@goalReachedSwitched": {
+    "description": "Sebha: snackbar when goal reached and auto-switched",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "goalReached": "أكملت هدف \"{phrase}\"",
+  "@goalReached": {
+    "description": "Sebha: snackbar when daily goal reached",
+    "placeholders": {
+      "phrase": { "type": "String" }
+    }
+  },
+
+  "dailyGoalLabel": "هدف يومي: {goal}",
+  "@dailyGoalLabel": {
+    "description": "Sebha: daily goal label with count",
+    "placeholders": {
+      "goal": { "type": "String" }
+    }
+  },
+
+  "dailyGoalUnset": "هدف يومي: غير محدد",
+  "@dailyGoalUnset": { "description": "Sebha: daily goal not set label" },
+
+  "goalUnsetText": "هدف غير محدد",
+  "@goalUnsetText": { "description": "Sebha: goal unset inside counter card" },
+
+  "prevPhrase": "السابق",
+  "@prevPhrase": { "description": "Sebha: previous phrase button label" },
+
+  "nextPhraseLabel": "التالي",
+  "@nextPhraseLabel": { "description": "Sebha: next phrase button label" },
+
+  "tapToCount": "اضغط للتسبيح",
+  "@tapToCount": { "description": "Sebha: tap to count label inside circular button" },
+
+  "totalCountLabel": "إجمالي التسبيح",
+  "@totalCountLabel": { "description": "Sebha stats: total count label" },
+
+  "todayTotalLabel": "مجموع اليوم",
+  "@todayTotalLabel": { "description": "Sebha stats: today's total label" },
+
+  "completedGoalsLabel": "أهداف مكتملة",
+  "@completedGoalsLabel": { "description": "Sebha stats: completed goals label" },
+
+  "resetCurrentBtn": "تصفير الحالية",
+  "@resetCurrentBtn": { "description": "Sebha: reset current phrase outlined button" },
+
+  "manageSebhaTitle": "إدارة التسبيحات والأهداف",
+  "@manageSebhaTitle": { "description": "Sebha: manage card title" },
+
+  "manageSebhaDesc": "إضافة وحذف التسبيحات وتحديد الهدف الافتراضي أصبحت من شاشة الإعدادات.",
+  "@manageSebhaDesc": { "description": "Sebha: manage card description" },
+
+  "openSettings": "فتح الإعدادات",
+  "@openSettings": { "description": "Sebha: open settings button label" },
+
+  "hadithLibraryTitle": "مكتبة الحديث الشريف",
+  "@hadithLibraryTitle": { "description": "Hadith screen title" },
+
+  "noHadithCollections": "لا توجد مجموعات حديث متاحة الآن",
+  "@noHadithCollections": { "description": "Hadith screen: empty state message" },
+
+  "hadithCollectionsError": "تعذر تحميل مجموعات الحديث",
+  "@hadithCollectionsError": { "description": "Hadith screen: collections load error" },
+
+  "hadithDataError": "حدث خطأ في تحميل البيانات",
+  "@hadithDataError": { "description": "Hadith books: data load error message" },
+
+  "hadithCount": "{count} حديث",
+  "@hadithCount": {
+    "description": "Number of hadiths shown on a book tile",
+    "placeholders": {
+      "count": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "prayerSilenceTitle": "صامت وقت الصلاة",
+  "@prayerSilenceTitle": { "description": "Prayer silence feature screen title" },
+
+  "prayerSilenceSubtitle": "إسكات الهاتف تلقائياً خلال أوقات الصلاة",
+  "@prayerSilenceSubtitle": { "description": "Prayer silence settings tile subtitle" },
+
+  "psSectionPrayers": "الصلوات المشمولة",
+  "@psSectionPrayers": { "description": "Prayer silence: section header for prayer selection" },
+
+  "psSectionTiming": "نافذة التفعيل",
+  "@psSectionTiming": { "description": "Prayer silence: section header for timing" },
+
+  "psSectionMode": "وضع الإسكات",
+  "@psSectionMode": { "description": "Prayer silence: section header for silence mode" },
+
+  "psSectionOptions": "خيارات إضافية",
+  "@psSectionOptions": { "description": "Prayer silence: section header for extra options" },
+
+  "psModeDnd": "عدم الإزعاج (DND)",
+  "@psModeDnd": { "description": "Prayer silence mode: Do Not Disturb" },
+
+  "psModeSilent": "صامت",
+  "@psModeSilent": { "description": "Prayer silence mode: Silent" },
+
+  "psModeVibrate": "اهتزاز",
+  "@psModeVibrate": { "description": "Prayer silence mode: Vibrate" },
+
+  "psMinutesBeforeLabel": "قبل الأذان",
+  "@psMinutesBeforeLabel": { "description": "Prayer silence: minutes before adhan label" },
+
+  "psMinutesAfterLabel": "بعد الأذان",
+  "@psMinutesAfterLabel": { "description": "Prayer silence: minutes after adhan label" },
+
+  "psMinutesValue": "{count} دقيقة",
+  "@psMinutesValue": {
+    "description": "Prayer silence: minutes count label",
+    "placeholders": {
+      "count": { "type": "int", "format": "decimalPattern" }
+    }
+  },
+
+  "psAutoRestore": "إرجاع الوضع السابق تلقائياً",
+  "@psAutoRestore": { "description": "Prayer silence: auto-restore toggle label" },
+
+  "psAutoRestoreSubtitle": "الرجوع للوضع الطبيعي بعد انتهاء وقت الصلاة",
+  "@psAutoRestoreSubtitle": { "description": "Prayer silence: auto-restore toggle subtitle" },
+
+  "psPermissionBannerTitle": "صلاحية مطلوبة",
+  "@psPermissionBannerTitle": { "description": "Prayer silence: permission banner title" },
+
+  "psPermissionBannerBody": "يجب منح التطبيق صلاحية التحكم في وضع \"عدم الإزعاج\" لتفعيل هذه الميزة.",
+  "@psPermissionBannerBody": { "description": "Prayer silence: permission banner body" },
+
+  "psPermissionButton": "فتح إعدادات النظام",
+  "@psPermissionButton": { "description": "Prayer silence: open system settings button" },
+
+  "psIosTitle": "غير مدعومة على iOS",
+  "@psIosTitle": { "description": "Prayer silence: iOS unsupported title" },
+
+  "psIosBody": "لا يسمح نظام iOS بالتحكم في وضع الصوت برمجياً. يمكنك استخدام ميزة التركيز في إعدادات الجهاز لإعداد جدول صمت مخصص.",
+  "@psIosBody": { "description": "Prayer silence: iOS unsupported explanation" },
+
+  "psRescheduleSuccess": "تمت إعادة جدولة الصمت التلقائي",
+  "@psRescheduleSuccess": { "description": "Prayer silence: reschedule success snackbar" },
+
+  "psRescheduleFailed": "تعذّرت جدولة الصمت التلقائي",
+  "@psRescheduleFailed": { "description": "Prayer silence: reschedule failed snackbar" },
+
+  "sectionWidgets": "ودجات الشاشة",
+  "@sectionWidgets": { "description": "Settings section header: Widgets" },
+
+  "widgetSettingsTitle": "إعدادات الودجات",
+  "@widgetSettingsTitle": { "description": "Widget settings screen title" },
+
+  "widgetSettingsSubtitle": "تخصيص مظهر ودجات الشاشة الرئيسية",
+  "@widgetSettingsSubtitle": { "description": "Widget settings tile subtitle / widgets section title" },
+
+  "widgetGeneral": "إعدادات عامة",
+  "@widgetGeneral": { "description": "Widget settings: general section header" },
+
+  "widgetNumberFormat": "تنسيق الأرقام",
+  "@widgetNumberFormat": { "description": "Widget settings: number format tile" },
+
+  "widgetTimeFormat": "تنسيق الوقت",
+  "@widgetTimeFormat": { "description": "Widget settings: time format tile" },
+
+  "widgetTextColor": "لون النص",
+  "@widgetTextColor": { "description": "Widget detail: text color label" },
+
+  "widgetBgColor": "لون الخلفية",
+  "@widgetBgColor": { "description": "Widget detail: background color label" },
+
+  "widgetBgOpacity": "شفافية الخلفية",
+  "@widgetBgOpacity": { "description": "Widget detail: background opacity label" },
+
+  "widgetCornerRadius": "استدارة الزوايا",
+  "@widgetCornerRadius": { "description": "Widget detail: corner radius label" },
+
+  "widgetFontSize": "حجم الخط",
+  "@widgetFontSize": { "description": "Widget detail: font size label" },
+
+  "widgetDecorImage": "صورة الزخرفة",
+  "@widgetDecorImage": { "description": "Widget detail: decor image label" },
+
+  "widgetDecorOpacity": "شفافية الزخرفة",
+  "@widgetDecorOpacity": { "description": "Widget detail: decor opacity label" },
+
+  "widgetDecorColor": "لون الزخرفة",
+  "@widgetDecorColor": { "description": "Widget detail: decor color label" },
+
+  "widgetNoDecor": "بدون",
+  "@widgetNoDecor": { "description": "Widget detail: no decor option" },
+
+  "widgetPreview": "معاينة",
+  "@widgetPreview": { "description": "Widget detail: preview label" },
+
+  "updateAvailableTitle": "تحديث متاح",
+  "@updateAvailableTitle": { "description": "App update dialog title when a soft update is available" },
+
+  "forceUpdateTitle": "تحديث إلزامي",
+  "@forceUpdateTitle": { "description": "App update dialog title when a force update is required" },
+
+  "updateNow": "تحديث الآن",
+  "@updateNow": { "description": "App update dialog: primary action button" },
+
+  "updateLater": "لاحقاً",
+  "@updateLater": { "description": "App update dialog: dismiss button for soft updates" }
+}

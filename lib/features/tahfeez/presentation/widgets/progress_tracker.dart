@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/arabic_utils.dart';
 
 /// متتبع تقدم جلسة الحفظ
 class ProgressTracker extends StatelessWidget {
@@ -25,7 +26,7 @@ class ProgressTracker extends StatelessWidget {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.cardDark : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -37,7 +38,7 @@ class ProgressTracker extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -108,7 +109,7 @@ class ProgressTracker extends StatelessWidget {
                 _StatCard(
                   icon: Icons.timer_outlined,
                   label: 'الوقت',
-                  value: _formatDuration(sessionTime),
+                  value: ArabicUtils.formatDuration(sessionTime),
                   isDark: isDark,
                 ),
                 _StatCard(
@@ -131,20 +132,6 @@ class ProgressTracker extends StatelessWidget {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:'
-          '${minutes.toString().padLeft(2, '0')}:'
-          '${seconds.toString().padLeft(2, '0')}';
-    } else {
-      return '${minutes.toString().padLeft(2, '0')}:'
-          '${seconds.toString().padLeft(2, '0')}';
-    }
-  }
 }
 
 class _StatCard extends StatelessWidget {
@@ -165,7 +152,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: AppColors.primary.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

@@ -1,9 +1,37 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find . -name \"*.tar.gz\" -type f -delete)"
+      "Bash(git commit -m \"chore: cleanup repository - remove builds and temp files\n\n## Deleted Files\n- All .tar.gz archive files (12 files)\n- Complete out/ directory with API dumps\n- islamhouse_api_dump directories with all responses\n\n## Updated .gitignore\nAdded comprehensive ignore rules for:\n- .claude/ - Claude Code configuration\n- .dart_tool/ and **/,dart_tool/ - Dart tooling\n- build/ and **/build/ - Build outputs\n- ui_screen/ - UI screens directory\n- **/.env.server - Server environment files\n- **/*.sh - Shell scripts\n- out/ - Output directory\n\nThis keeps the repository clean and focused on source code only.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(git commit -m \"chore: update .gitignore with comprehensive ignore rules\n\nAdd ignore rules for:\n- .claude/ directory\n- **/.env.server files\n- **/.dart_tool/ directories  \n- **/build/ directories\n- ui_screen/ directory\n- **/*.sh files\n- out/ directory\n\nThis prevents development and build artifacts from being committed.\")",
+      "WebFetch(domain:www.mp3quran.net)",
+      "Bash(brew upgrade:*)",
+      "Bash(sshpass:*)",
+      "WebFetch(domain:api.alquran.cloud)",
+      "WebFetch(domain:mp3quran.net)",
+      "WebFetch(domain:api.quran.com)",
+      "WebSearch",
+      "WebFetch(domain:pub.dev)",
+      "Bash(find:*)",
+      "Bash(grep -l \"FutureProvider\" /Users/molood/I''mMuslim/lib/features/*/presentation/screens/*.dart)",
+      "Bash(done)",
+      "Bash(wc:*)",
+      "Bash(xargs:*)",
+      "Bash(grep:*)",
+      "Bash(/tmp/route_search.txt:*)",
+      "Bash(ls:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb shell:*)",
+      "Bash(flutter build:*)",
+      "WebFetch(domain:docs.page)",
+      "Bash(python3:*)",
+      "Bash(file:*)",
+      "Bash(ssh fatora-server:*)",
+      "Bash(head:*)",
+      "Bash(while read f)",
+      "Bash(do echo \"$f\")"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Explanatory"
 }

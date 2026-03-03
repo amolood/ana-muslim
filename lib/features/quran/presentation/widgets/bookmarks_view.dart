@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quran_library/quran_library.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../../../core/services/quran_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_semantic_colors.dart';
@@ -23,7 +24,6 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bookmarks = ref.watch(coloredBookmarksProvider);
     final allBookmarks = bookmarks.values.expand((list) => list).toList()
       ..sort((a, b) => b.id.compareTo(a.id)); // Sort by newest first
@@ -31,7 +31,7 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+        backgroundColor: colors.surfaceCard,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -56,7 +56,7 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+              color: colors.surfaceCard,
               border: Border(
                 bottom: BorderSide(color: colors.borderSubtle),
               ),
@@ -102,7 +102,6 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
               allBookmarks: allBookmarks,
               bookmarks: bookmarks,
               colors: colors,
-              isDark: isDark,
             ),
           ),
         ],
@@ -177,7 +176,6 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
     required List<BookmarkModel> allBookmarks,
     required Map<int, List<BookmarkModel>> bookmarks,
     required AppSemanticColors colors,
-    required bool isDark,
   }) {
     // Filter bookmarks by selected color
     final filteredBookmarks = selectedColor == null
@@ -226,7 +224,6 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
         return _buildBookmarkCard(
           bookmark: bookmark,
           colors: colors,
-          isDark: isDark,
         );
       },
     );
@@ -235,7 +232,6 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
   Widget _buildBookmarkCard({
     required BookmarkModel bookmark,
     required AppSemanticColors colors,
-    required bool isDark,
   }) {
     final bookmarkColor = BookmarkColor.values
         .firstWhere((c) => c.colorCode == bookmark.colorCode, orElse: () => BookmarkColor.green);
@@ -243,7 +239,7 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+        color: colors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.borderSubtle),
       ),
@@ -254,7 +250,7 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
           onTap: () {
             // Navigate to the bookmarked ayah
             final surahNumber = QuranService.getSurahNumberFromPage(bookmark.page);
-            context.push('/quran/reader/$surahNumber?ayah=${bookmark.ayahNumber}&page=${bookmark.page}');
+            context.push(Routes.quranReader(surahNumber, ayah: bookmark.ayahNumber, page: bookmark.page));
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -337,9 +333,7 @@ class _BookmarksViewState extends ConsumerState<BookmarksView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.surfaceDark
-            : colors.surfaceCard,
+        backgroundColor: colors.surfaceCard,
         title: Text(
           'حذف العلامة المرجعية',
           style: GoogleFonts.tajawal(

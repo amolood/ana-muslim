@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,15 +10,6 @@ import 'azkar_category_screen.dart';
 
 class AzkarScreen extends ConsumerWidget {
   const AzkarScreen({super.key});
-
-  static const List<String> _sectionOrder = <String>[
-    'أذكار يومية',
-    'أذكار العبادات',
-    'أذكار النوم والاستيقاظ',
-    'أذكار السفر والتنقل',
-    'أذكار الطعام والشراب',
-    'أدعية وأذكار متنوعة',
-  ];
 
   IconData _getIconForCategory(String title) {
     if (title.contains('الصباح')) return Icons.wb_sunny_outlined;
@@ -37,48 +29,9 @@ class AzkarScreen extends ConsumerWidget {
     return Icons.book_outlined;
   }
 
-  String _normalize(String input) {
-    return input
-        .toLowerCase()
-        .replaceAll('أ', 'ا')
-        .replaceAll('إ', 'ا')
-        .replaceAll('آ', 'ا')
-        .replaceAll('ة', 'ه')
-        .replaceAll('ى', 'ي')
-        .trim();
-  }
-
-  String _sectionForCategory(String title) {
-    final normalized = _normalize(title);
-
-    if (normalized.contains('الصباح') ||
-        normalized.contains('المساء') ||
-        normalized.contains('اليومي')) {
-      return 'أذكار يومية';
-    }
-    if (normalized.contains('الصلاه') ||
-        normalized.contains('الاذان') ||
-        normalized.contains('المسجد') ||
-        normalized.contains('الوضوء')) {
-      return 'أذكار العبادات';
-    }
-    if (normalized.contains('النوم') || normalized.contains('الاستيقاظ')) {
-      return 'أذكار النوم والاستيقاظ';
-    }
-    if (normalized.contains('سفر') || normalized.contains('تنقل')) {
-      return 'أذكار السفر والتنقل';
-    }
-    if (normalized.contains('طعام') ||
-        normalized.contains('اكل') ||
-        normalized.contains('شراب')) {
-      return 'أذكار الطعام والشراب';
-    }
-    return 'أدعية وأذكار متنوعة';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(azkarCategoriesProvider);
+    final groupedAsync = ref.watch(azkarGroupedProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -88,25 +41,15 @@ class AzkarScreen extends ConsumerWidget {
           children: [
             _buildHeader(),
             Expanded(
-              child: categoriesAsync.when(
-                data: (categories) {
-                  if (categories.isEmpty) {
+              child: groupedAsync.when(
+                data: (grouped) {
+                  if (grouped.values.every((list) => list.isEmpty)) {
                     return Center(
                       child: Text(
                         'لا توجد بيانات',
                         style: GoogleFonts.tajawal(color: Colors.white),
                       ),
                     );
-                  }
-                  final categoryList = categories.entries.toList()
-                    ..sort((a, b) => a.key.compareTo(b.key));
-                  final grouped = <String, List<MapEntry<String, int>>>{
-                    for (final section in _sectionOrder)
-                      section: <MapEntry<String, int>>[],
-                  };
-                  for (final entry in categoryList) {
-                    final section = _sectionForCategory(entry.key);
-                    grouped[section]!.add(entry);
                   }
 
                   return ListView(
@@ -115,23 +58,20 @@ class AzkarScreen extends ConsumerWidget {
                       vertical: 16,
                     ).copyWith(bottom: 100),
                     children: [
-                      for (final section in _sectionOrder)
-                        if ((grouped[section] ??
-                                const <MapEntry<String, int>>[])
-                            .isNotEmpty) ...[
+                      for (final section in azkarSectionOrder)
+                        if ((grouped[section] ?? const []).isNotEmpty) ...[
                           _AzkarSectionHeader(
                             title: section,
                             count: grouped[section]!.length,
                           ),
                           const SizedBox(height: 8),
-                          for (final entry in grouped[section]!) ...[
+                          for (final entry in grouped[section]!)
                             _buildAzkarCard(
                               context: context,
                               title: entry.key,
                               chapterId: entry.value,
                               icon: _getIconForCategory(entry.key),
                             ),
-                          ],
                         ],
                     ],
                   );
@@ -140,10 +80,23 @@ class AzkarScreen extends ConsumerWidget {
                 error: (error, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'تعذر تحميل الأذكار\n$error',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.tajawal(color: Colors.white70),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_rounded, color: Colors.white38, size: 48),
+                        const SizedBox(height: 12),
+                        Text(
+                          'تعذر تحميل الأذكار',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.tajawal(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton.icon(
+                          onPressed: () => ref.invalidate(azkarGroupedProvider),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: Text('إعادة المحاولة', style: GoogleFonts.tajawal()),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -164,7 +117,7 @@ class AzkarScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
                 icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.surfaceDark.withValues(alpha: 0.5),
@@ -273,7 +226,7 @@ class _AzkarSectionHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2D5E57)),
+        border: Border.all(color: AppColors.borderTeal),
       ),
       child: Row(
         children: [

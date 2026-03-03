@@ -3,6 +3,7 @@ import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_colors.dart';
 
 class MainScaffold extends StatelessWidget {
@@ -37,31 +38,31 @@ class MainScaffold extends StatelessWidget {
               _buildNavItem(
                 context,
                 icon: Icons.home,
-                label: 'الرئيسية',
+                label: context.l10n.navHome,
                 index: 0,
               ),
               _buildNavItem(
                 context,
                 icon: FlutterIslamicIcons.quran,
-                label: 'القرآن',
+                label: context.l10n.navQuran,
                 index: 1,
               ),
               _buildNavItem(
                 context,
                 icon: FlutterIslamicIcons.qibla,
-                label: 'القبلة',
+                label: context.l10n.navQibla,
                 index: 2,
               ),
               _buildNavItem(
                 context,
                 icon: FlutterIslamicIcons.mohammad,
-                label: 'الحديث',
+                label: context.l10n.navHadith,
                 index: 3,
               ),
               _buildNavItem(
                 context,
                 icon: Icons.settings,
-                label: 'الإعدادات',
+                label: context.l10n.navSettings,
                 index: 4,
               ),
             ],

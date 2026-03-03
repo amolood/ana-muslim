@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SurahTitleText extends StatelessWidget {
   const SurahTitleText(
@@ -7,7 +8,7 @@ class SurahTitleText extends StatelessWidget {
     this.fontSize = 22,
     this.maxLines = 1,
     this.textAlign = TextAlign.center,
-    this.color = const Color(0xFFD6B06B),
+    this.color = AppColors.surahGold,
     this.height = 1.25,
     this.overflow = TextOverflow.ellipsis,
   });

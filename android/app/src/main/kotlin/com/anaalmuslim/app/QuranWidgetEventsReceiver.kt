@@ -18,12 +18,26 @@ import androidx.core.app.NotificationManagerCompat
  */
 class QuranWidgetEventsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_USER_PRESENT) {
-            QuranWidgetProvider.advanceVerseIndex(context)
-            QuranWidgetProvider.updateAllWidgets(context)
-        }
-        if (intent.action == Intent.ACTION_USER_PRESENT || intent.action == Intent.ACTION_SCREEN_ON) {
-            maybeShowSalaOnProphetReminder(context)
+        when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_LOCKED_BOOT_COMPLETED -> {
+                // After reboot / app update: refresh all widget providers so they
+                // don't show stale or default data.
+                QuranWidgetProvider.updateAllWidgets(context)
+                PrayerWidgetProvider.updateAllWidgets(context)
+                TransparentWidgetProvider.updateAllWidgets(context)
+                DateWidgetProvider.updateAllWidgets(context)
+                HijriMonthWidgetProvider.updateAllWidgets(context)
+            }
+            Intent.ACTION_USER_PRESENT -> {
+                QuranWidgetProvider.advanceVerseIndex(context)
+                QuranWidgetProvider.updateAllWidgets(context)
+                maybeShowSalaOnProphetReminder(context)
+            }
+            Intent.ACTION_SCREEN_ON -> {
+                maybeShowSalaOnProphetReminder(context)
+            }
         }
     }
 

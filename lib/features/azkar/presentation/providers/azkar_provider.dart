@@ -3,6 +3,55 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/azkar_model.dart';
 import '../../data/repositories/azkar_repository.dart';
 
+// ─── Section ordering & grouping helpers ────────────────────────────────────
+
+const azkarSectionOrder = <String>[
+  'أذكار يومية',
+  'أذكار العبادات',
+  'أذكار النوم والاستيقاظ',
+  'أذكار السفر والتنقل',
+  'أذكار الطعام والشراب',
+  'أدعية وأذكار متنوعة',
+];
+
+String _normalizeAr(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll('أ', 'ا')
+      .replaceAll('إ', 'ا')
+      .replaceAll('آ', 'ا')
+      .replaceAll('ة', 'ه')
+      .replaceAll('ى', 'ي')
+      .trim();
+}
+
+String azkarSectionForCategory(String title) {
+  final normalized = _normalizeAr(title);
+  if (normalized.contains('الصباح') ||
+      normalized.contains('المساء') ||
+      normalized.contains('اليومي')) {
+    return 'أذكار يومية';
+  }
+  if (normalized.contains('الصلاه') ||
+      normalized.contains('الاذان') ||
+      normalized.contains('المسجد') ||
+      normalized.contains('الوضوء')) {
+    return 'أذكار العبادات';
+  }
+  if (normalized.contains('النوم') || normalized.contains('الاستيقاظ')) {
+    return 'أذكار النوم والاستيقاظ';
+  }
+  if (normalized.contains('سفر') || normalized.contains('تنقل')) {
+    return 'أذكار السفر والتنقل';
+  }
+  if (normalized.contains('طعام') ||
+      normalized.contains('اكل') ||
+      normalized.contains('شراب')) {
+    return 'أذكار الطعام والشراب';
+  }
+  return 'أدعية وأذكار متنوعة';
+}
+
 // ─── Categories ────────────────────────────────────────────────────────────
 
 /// Provides all azkar chapter categories (id + name) from remote API data.
@@ -47,6 +96,26 @@ final azkarByCategoryProvider =
         error: (e, st) => AsyncValue.error(e, st),
       );
     });
+
+// ─── Grouped categories by section ──────────────────────────────────────────
+// Derived from azkarCategoriesProvider — computed once, cached by Riverpod.
+// Each value is a sorted list of (categoryName, chapterId) entries.
+
+final azkarGroupedProvider =
+    Provider<AsyncValue<Map<String, List<MapEntry<String, int>>>>>((ref) {
+  final categoriesAsync = ref.watch(azkarCategoriesProvider);
+  return categoriesAsync.whenData((categories) {
+    final sorted = categories.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final grouped = <String, List<MapEntry<String, int>>>{
+      for (final section in azkarSectionOrder) section: [],
+    };
+    for (final entry in sorted) {
+      grouped[azkarSectionForCategory(entry.key)]!.add(entry);
+    }
+    return grouped;
+  });
+});
 
 // ─── Asma Allah ────────────────────────────────────────────────────────────
 

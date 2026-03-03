@@ -29,7 +29,7 @@ class _IslamicPdfViewerScreenState extends State<IslamicPdfViewerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadPdf();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPdf());
   }
 
   Future<void> _loadPdf() async {

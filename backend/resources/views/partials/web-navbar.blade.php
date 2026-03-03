@@ -1,10 +1,10 @@
 {{-- Floating Navbar --}}
+<div x-data="{ mobileMenuOpen: false }">
 <nav class="fixed top-4 left-4 right-4 max-w-7xl mx-auto z-50 glass-panel rounded-full px-4 sm:px-6 h-16 flex items-center justify-between transition-all duration-300 shadow-lg">
     {{-- Logo & Main Menu --}}
     <div class="flex items-center gap-8">
-        <a href="{{ url('/') }}" class="flex items-center gap-2.5">
-            <img src="{{ asset('assets/logo.svg') }}" alt="I'm Muslim Logo" class="h-10 w-auto">
-            <span class="text-lg font-semibold tracking-tight text-slate-900 dark:text-white hidden sm:inline" x-text="t('brand.name')"></span>
+        <a href="{{ url('/') }}" class="flex items-center">
+            <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/logo.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
         </a>
 
         {{-- Desktop Navigation --}}
@@ -47,8 +47,7 @@
 </nav>
 
 {{-- Mobile Menu --}}
-<div x-data="{ mobileMenuOpen: false }"
-     x-show="mobileMenuOpen"
+<div x-show="mobileMenuOpen"
      x-transition:enter="transition ease-out duration-300"
      x-transition:enter-start="opacity-0"
      x-transition:enter-end="opacity-100"
@@ -106,4 +105,5 @@
             </a>
         </div>
     </div>
+</div>
 </div>

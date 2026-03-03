@@ -1,4 +1,5 @@
 import '../../../../core/network/fast_api_client.dart';
+import '../../../../core/utils/arabic_utils.dart';
 
 import '../models/reciter.dart';
 
@@ -55,11 +56,11 @@ class AudioRepository {
 
     final result = List<Reciter>.from(source);
     for (final custom in customReciters) {
-      final normalizedTarget = _normalizeArabicName(custom.name);
+      final normalizedTarget = ArabicUtils.normalizeArabic(custom.name);
       final exists = result.any(
         (reciter) =>
             reciter.id == custom.id ||
-            _normalizeArabicName(reciter.name) == normalizedTarget,
+            ArabicUtils.normalizeArabic(reciter.name) == normalizedTarget,
       );
       if (!exists) {
         result.add(custom);
@@ -137,15 +138,4 @@ class AudioRepository {
     return const <dynamic>[];
   }
 
-  static String _normalizeArabicName(String input) {
-    return input
-        .trim()
-        .toLowerCase()
-        .replaceAll('أ', 'ا')
-        .replaceAll('إ', 'ا')
-        .replaceAll('آ', 'ا')
-        .replaceAll('ة', 'ه')
-        .replaceAll('ى', 'ي')
-        .replaceAll(RegExp(r'\s+'), ' ');
-  }
 }

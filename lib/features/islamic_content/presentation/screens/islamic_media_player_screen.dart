@@ -40,7 +40,7 @@ class _IslamicMediaPlayerScreenState extends State<IslamicMediaPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   @override
@@ -87,7 +87,7 @@ class _IslamicMediaPlayerScreenState extends State<IslamicMediaPlayerScreen> {
       });
       _videoController = controller;
     } catch (e) {
-      _error = 'تعذر تشغيل الفيديو: $e';
+      _error = 'تعذر تشغيل الفيديو';
     }
   }
 
@@ -119,7 +119,7 @@ class _IslamicMediaPlayerScreenState extends State<IslamicMediaPlayerScreen> {
         setState(() {});
       });
     } catch (e) {
-      _error = 'تعذر تشغيل الملف الصوتي: $e';
+      _error = 'تعذر تشغيل الملف الصوتي';
     }
   }
 
@@ -293,14 +293,14 @@ class _IslamicMediaPlayerScreenState extends State<IslamicMediaPlayerScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      _formatDuration(_audioPosition),
+                      ArabicUtils.formatDuration(_audioPosition),
                       style: GoogleFonts.manrope(
                         fontSize: 12,
                         color: AppColors.textSecondary(context),
                       ),
                     ),
                     Text(
-                      _formatDuration(_audioDuration),
+                      ArabicUtils.formatDuration(_audioDuration),
                       style: GoogleFonts.manrope(
                         fontSize: 12,
                         color: AppColors.textSecondary(context),
@@ -352,9 +352,6 @@ class _IslamicMediaPlayerScreenState extends State<IslamicMediaPlayerScreen> {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    return ArabicUtils.formatDuration(duration);
-  }
 }
 
 class _ErrorView extends StatelessWidget {

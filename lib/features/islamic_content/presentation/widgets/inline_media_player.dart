@@ -10,6 +10,8 @@ import '../../../../core/services/pip_mode_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../data/models/islamhouse_attachment.dart';
+import 'round_control_button.dart';
+import 'video_fullscreen_page.dart';
 
 class InlineMediaPlayer extends StatefulWidget {
   const InlineMediaPlayer({
@@ -332,7 +334,7 @@ class _InlineMediaPlayerState extends State<InlineMediaPlayer> {
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _VideoFullscreenPage(
+        builder: (_) => VideoFullscreenPage(
           controller: controller,
           supportsPip: _supportsPip,
           onEnterPip: _enterPip,
@@ -611,12 +613,12 @@ class _InlineMediaPlayerState extends State<InlineMediaPlayer> {
       runSpacing: 10,
       alignment: WrapAlignment.center,
       children: [
-        _RoundControlButton(
+        RoundControlButton(
           icon: Icons.replay_10_rounded,
           label: '-١٠',
           onTap: () => _seekBy(const Duration(seconds: -10)),
         ),
-        _RoundControlButton(
+        RoundControlButton(
           icon: isPlaying
               ? Icons.pause_circle_filled_rounded
               : Icons.play_circle_fill_rounded,
@@ -626,30 +628,30 @@ class _InlineMediaPlayerState extends State<InlineMediaPlayer> {
           highlighted: true,
           onTap: _togglePlayPause,
         ),
-        _RoundControlButton(
+        RoundControlButton(
           icon: Icons.forward_10_rounded,
           label: '+١٠',
           onTap: () => _seekBy(const Duration(seconds: 10)),
         ),
-        _RoundControlButton(
+        RoundControlButton(
           icon: Icons.stop_circle_rounded,
           label: 'إيقاف',
           onTap: _stopPlayback,
         ),
         if (_isVideo)
-          _RoundControlButton(
+          RoundControlButton(
             icon: _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
             label: _isMuted ? 'إلغاء الكتم' : 'كتم',
             onTap: _toggleMute,
           ),
         if (_isVideo)
-          _RoundControlButton(
+          RoundControlButton(
             icon: Icons.fullscreen_rounded,
             label: 'ملء الشاشة',
             onTap: _openFullscreen,
           ),
         if (_isVideo && _supportsPip)
-          _RoundControlButton(
+          RoundControlButton(
             icon: Icons.picture_in_picture_alt_rounded,
             label: 'نافذة',
             onTap: _openPipFromInline,
@@ -668,266 +670,5 @@ class _InlineMediaPlayerState extends State<InlineMediaPlayer> {
     if (buffered.isEmpty) return 0;
     final endMs = buffered.last.end.inMilliseconds;
     return (endMs / durationMs).clamp(0.0, 1.0);
-  }
-}
-
-class _RoundControlButton extends StatelessWidget {
-  const _RoundControlButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.size = 52,
-    this.iconSize = 26,
-    this.highlighted = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final double size;
-  final double iconSize;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = highlighted
-        ? AppColors.primary
-        : AppColors.primary.withValues(alpha: 0.12);
-    final iconColor = highlighted ? Colors.black : AppColors.primary;
-    final textColor = highlighted
-        ? AppColors.textPrimary(context)
-        : AppColors.textSecondary(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(size / 2),
-          onTap: onTap,
-          child: Ink(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
-            child: Icon(icon, size: iconSize, color: iconColor),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.tajawal(
-            fontSize: highlighted ? 11 : 10,
-            fontWeight: FontWeight.w700,
-            color: textColor,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VideoFullscreenPage extends StatefulWidget {
-  const _VideoFullscreenPage({
-    required this.controller,
-    required this.supportsPip,
-    required this.onEnterPip,
-    required this.autoEnterPip,
-  });
-
-  final VideoPlayerController controller;
-  final bool supportsPip;
-  final Future<void> Function() onEnterPip;
-  final bool autoEnterPip;
-
-  @override
-  State<_VideoFullscreenPage> createState() => _VideoFullscreenPageState();
-}
-
-class _VideoFullscreenPageState extends State<_VideoFullscreenPage> {
-  bool _showChrome = true;
-  DateTime _lastTickUi = DateTime.fromMillisecondsSinceEpoch(0);
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onTick);
-    if (widget.autoEnterPip) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_enterPipFromFullscreen());
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onTick);
-    super.dispose();
-  }
-
-  void _onTick() {
-    if (!mounted) return;
-    final now = DateTime.now();
-    if (!_showChrome &&
-        now.difference(_lastTickUi) < const Duration(milliseconds: 220)) {
-      return;
-    }
-    if (now.difference(_lastTickUi) < const Duration(milliseconds: 110)) {
-      return;
-    }
-    _lastTickUi = now;
-    setState(() {});
-  }
-
-  Future<void> _enterPipFromFullscreen() async {
-    if (widget.autoEnterPip || _showChrome) {
-      setState(() {
-        _showChrome = false;
-      });
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 40));
-    await widget.onEnterPip();
-    if (!mounted) return;
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    if (!mounted) return;
-    setState(() {
-      _showChrome = true;
-    });
-  }
-
-  Future<void> _seekBy(Duration offset) async {
-    final value = widget.controller.value;
-    final duration = value.duration;
-    if (duration <= Duration.zero) return;
-    final target = value.position + offset;
-    final safeTarget = target < Duration.zero
-        ? Duration.zero
-        : (target > duration ? duration : target);
-    await widget.controller.seekTo(safeTarget);
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: AspectRatio(
-                aspectRatio: widget.controller.value.isInitialized
-                    ? widget.controller.value.aspectRatio
-                    : 16 / 9,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _showChrome = !_showChrome;
-                    });
-                  },
-                  child: VideoPlayer(widget.controller),
-                ),
-              ),
-            ),
-            if (_showChrome)
-              Positioned(
-                top: 14,
-                right: 14,
-                child: Row(
-                  children: [
-                    if (widget.supportsPip)
-                      IconButton(
-                        tooltip: 'نافذة عائمة',
-                        onPressed: _enterPipFromFullscreen,
-                        icon: const Icon(
-                          Icons.picture_in_picture_alt_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                    IconButton(
-                      tooltip: 'إغلاق',
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (_showChrome)
-              Positioned(
-                right: 16,
-                left: 16,
-                bottom: 18,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: 'رجوع ١٠ ثواني',
-                        onPressed: () => _seekBy(const Duration(seconds: -10)),
-                        icon: const Icon(
-                          Icons.replay_10_rounded,
-                          color: Colors.white70,
-                          size: 24,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          if (widget.controller.value.isPlaying) {
-                            await widget.controller.pause();
-                          } else {
-                            await widget.controller.play();
-                          }
-                          if (!mounted) return;
-                          setState(() {});
-                        },
-                        icon: Icon(
-                          widget.controller.value.isPlaying
-                              ? Icons.pause_circle_filled_rounded
-                              : Icons.play_circle_fill_rounded,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Directionality(
-                          textDirection: TextDirection.ltr,
-                          child: VideoProgressIndicator(
-                            widget.controller,
-                            allowScrubbing: true,
-                            colors: VideoProgressColors(
-                              playedColor: AppColors.primary,
-                              bufferedColor: AppColors.primary.withValues(
-                                alpha: 0.4,
-                              ),
-                              backgroundColor: Colors.white24,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      IconButton(
-                        tooltip: 'تقديم ١٠ ثواني',
-                        onPressed: () => _seekBy(const Duration(seconds: 10)),
-                        icon: const Icon(
-                          Icons.forward_10_rounded,
-                          color: Colors.white70,
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }

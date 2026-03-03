@@ -55,7 +55,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.cardDark : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -67,7 +67,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -107,7 +107,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                   color: isDark ? Colors.white24 : Colors.black12,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
               ),
               child: DropdownButton<int>(
                 value: _selectedSurah,
@@ -175,7 +175,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                         color: isDark ? Colors.white24 : Colors.black12,
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                      color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
                     ),
                     child: TextField(
                       controller: _startController,
@@ -220,7 +220,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                         color: isDark ? Colors.white24 : Colors.black12,
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                      color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
                     ),
                     child: TextField(
                       controller: _endController,
@@ -256,7 +256,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

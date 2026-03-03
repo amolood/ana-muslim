@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/providers/preferences_provider.dart';
@@ -21,8 +22,6 @@ class HadithSearchScreen extends ConsumerStatefulWidget {
 class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  String? _selectedCollectionSlug; // null = all
-  String _query = '';
   Timer? _debounce;
 
   @override
@@ -45,7 +44,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
       if (mounted) {
-        setState(() => _query = value.trim());
+        ref.read(hadithSearchQueryProvider.notifier).update(value.trim());
       }
     });
   }
@@ -62,7 +61,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
             _buildHeader(),
             _buildCollectionFilter(collectionsAsync),
             const SizedBox(height: 4),
-            Expanded(child: _buildResults(collectionsAsync)),
+            Expanded(child: _buildResults()),
           ],
         ),
       ),
@@ -80,7 +79,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         Expanded(
           child: Container(
@@ -109,11 +108,11 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
                   color: AppColors.textSecondaryDark,
                   size: 20,
                 ),
-                suffixIcon: _query.isNotEmpty
+                suffixIcon: ref.watch(hadithSearchQueryProvider).isNotEmpty
                     ? GestureDetector(
                         onTap: () {
                           _controller.clear();
-                          setState(() => _query = '');
+                          ref.read(hadithSearchQueryProvider.notifier).update('');
                         },
                         child: const Icon(
                           Icons.close,
@@ -267,12 +266,12 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
           return const SizedBox.shrink();
         }
 
-        final selectedSlug = _selectedCollectionSlug;
+        final selectedSlug = ref.watch(hadithSearchSlugProvider);
         if (selectedSlug != null &&
             !collections.any((c) => c.slug == selectedSlug)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              setState(() => _selectedCollectionSlug = null);
+              ref.read(hadithSearchSlugProvider.notifier).update(null);
             }
           });
         }
@@ -301,9 +300,9 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
   }
 
   Widget _chip({required String? value, required String label}) {
-    final isSelected = _selectedCollectionSlug == value;
+    final isSelected = ref.watch(hadithSearchSlugProvider) == value;
     return GestureDetector(
-      onTap: () => setState(() => _selectedCollectionSlug = value),
+      onTap: () => ref.read(hadithSearchSlugProvider.notifier).update(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -311,7 +310,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
           color: isSelected ? AppColors.primary : AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFF2D5E57),
+            color: isSelected ? AppColors.primary : AppColors.borderTeal,
           ),
         ),
         child: Text(
@@ -327,10 +326,10 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
   }
 
   // ── Search results ─────────────────────────────────────────────────────────
-  Widget _buildResults(
-    AsyncValue<List<HadithCollectionInfo>> collectionsAsync,
-  ) {
-    if (_query.length < 2) {
+  Widget _buildResults() {
+    final query = ref.watch(hadithSearchQueryProvider);
+
+    if (query.length < 2) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -361,10 +360,11 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
       );
     }
 
-    final key = (query: _query, collectionSlug: _selectedCollectionSlug);
-    final resultsAsync = ref.watch(hadithSearchProvider(key));
+    final slug = ref.watch(hadithSearchSlugProvider);
+    final key = (query: query, collectionSlug: slug);
+    final rowsAsync = ref.watch(hadithGroupedResultsProvider(key));
 
-    return resultsAsync.when(
+    return rowsAsync.when(
       loading: () => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -382,13 +382,31 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
         ),
       ),
       error: (e, _) => Center(
-        child: Text(
-          'حدث خطأ أثناء البحث',
-          style: GoogleFonts.tajawal(color: Colors.white54),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'حدث خطأ أثناء البحث',
+              style: GoogleFonts.tajawal(color: Colors.white54),
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(hadithSearchProvider(key)),
+              child: Text(
+                'إعادة المحاولة',
+                style: GoogleFonts.tajawal(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      data: (results) {
-        if (results.isEmpty) {
+      data: (rows) {
+        final resultCount =
+            rows.whereType<HadithResultItem>().length;
+
+        if (resultCount == 0) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -400,7 +418,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'لا توجد نتائج لـ "$_query"',
+                  'لا توجد نتائج لـ "$query"',
                   style: GoogleFonts.tajawal(
                     fontSize: 15,
                     color: Colors.white54,
@@ -412,11 +430,6 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
           );
         }
 
-        final collections =
-            collectionsAsync is AsyncData<List<HadithCollectionInfo>>
-            ? collectionsAsync.value
-            : const <HadithCollectionInfo>[];
-
         return Column(
           children: [
             Padding(
@@ -424,7 +437,7 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
               child: Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: Text(
-                  '${ArabicUtils.toArabicDigits(results.length)} نتيجة',
+                  '${ArabicUtils.toArabicDigits(resultCount)} نتيجة',
                   style: GoogleFonts.tajawal(
                     fontSize: 12,
                     color: AppColors.textSecondaryDark,
@@ -433,127 +446,31 @@ class _HadithSearchScreenState extends ConsumerState<HadithSearchScreen> {
               ),
             ),
             Expanded(
-              child: _selectedCollectionSlug == null
-                  ? _buildGroupedResults(results, collections)
-                  : _buildFlatResults(results),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+                itemCount: rows.length,
+                itemBuilder: (ctx, i) {
+                  final row = rows[i];
+                  return switch (row) {
+                    HadithResultSection s => Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+                      child: _ResultSectionHeader(
+                        title: s.title,
+                        count: s.count,
+                      ),
+                    ),
+                    HadithResultItem item => _SearchResultTile(
+                      result: item.result,
+                    ),
+                  };
+                },
+              ),
             ),
           ],
         );
       },
     );
   }
-
-  Widget _buildFlatResults(List<HadithSearchResult> results) {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
-      itemCount: results.length,
-      itemBuilder: (ctx, i) => _SearchResultTile(result: results[i]),
-    );
-  }
-
-  Widget _buildGroupedResults(
-    List<HadithSearchResult> results,
-    List<HadithCollectionInfo> collections,
-  ) {
-    final rows = _buildResultRows(results, collections);
-    if (rows.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
-      itemCount: rows.length,
-      itemBuilder: (ctx, i) {
-        final row = rows[i];
-        if (row is _ResultSectionRow) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
-            child: _ResultSectionHeader(title: row.title, count: row.count),
-          );
-        }
-
-        final itemRow = row as _ResultItemRow;
-        return _SearchResultTile(result: itemRow.result);
-      },
-    );
-  }
-
-  List<_ResultRow> _buildResultRows(
-    List<HadithSearchResult> results,
-    List<HadithCollectionInfo> collections,
-  ) {
-    final grouped = <String, List<HadithSearchResult>>{};
-    for (final result in results) {
-      grouped.putIfAbsent(result.collectionSlug, () => <HadithSearchResult>[]);
-      grouped[result.collectionSlug]!.add(result);
-    }
-
-    final nameBySlug = <String, String>{
-      for (final c in collections) c.slug: c.displayName,
-    };
-    final orderedSlugs = collections.map((c) => c.slug).toList();
-    final rows = <_ResultRow>[];
-
-    for (final slug in orderedSlugs) {
-      final bucket = grouped[slug];
-      if (bucket == null || bucket.isEmpty) {
-        continue;
-      }
-
-      rows.add(
-        _ResultSectionRow(
-          collectionSlug: slug,
-          title: nameBySlug[slug] ?? bucket.first.collectionTitle,
-          count: bucket.length,
-        ),
-      );
-      for (final item in bucket) {
-        rows.add(_ResultItemRow(result: item));
-      }
-      grouped.remove(slug);
-    }
-
-    // Keep any unknown/slugs returned by API even if not present in metadata.
-    for (final entry in grouped.entries) {
-      if (entry.value.isEmpty) {
-        continue;
-      }
-      rows.add(
-        _ResultSectionRow(
-          collectionSlug: entry.key,
-          title: entry.value.first.collectionTitle,
-          count: entry.value.length,
-        ),
-      );
-      for (final item in entry.value) {
-        rows.add(_ResultItemRow(result: item));
-      }
-    }
-
-    return rows;
-  }
-}
-
-sealed class _ResultRow {
-  const _ResultRow();
-}
-
-class _ResultSectionRow extends _ResultRow {
-  const _ResultSectionRow({
-    required this.collectionSlug,
-    required this.title,
-    required this.count,
-  });
-
-  final String collectionSlug;
-  final String title;
-  final int count;
-}
-
-class _ResultItemRow extends _ResultRow {
-  const _ResultItemRow({required this.result});
-
-  final HadithSearchResult result;
 }
 
 class _ResultSectionHeader extends StatelessWidget {
@@ -569,7 +486,7 @@ class _ResultSectionHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2D5E57)),
+        border: Border.all(color: AppColors.borderTeal),
       ),
       child: Row(
         children: [
@@ -625,7 +542,7 @@ class _SearchResultTileState extends ConsumerState<_SearchResultTile> {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2D5E57)),
+        border: Border.all(color: AppColors.borderTeal),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -634,7 +551,7 @@ class _SearchResultTileState extends ConsumerState<_SearchResultTile> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
-              color: Color(0xFF142C28),
+              color: AppColors.surfaceTealDark,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
@@ -695,7 +612,7 @@ class _SearchResultTileState extends ConsumerState<_SearchResultTile> {
                 height: 2.0,
               ),
               textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
+              textAlign: TextAlign.end,
             ),
           ),
 

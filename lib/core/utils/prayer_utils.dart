@@ -1,5 +1,29 @@
 import 'package:adhan/adhan.dart';
 
+extension PrayerAr on Prayer {
+  /// Short Arabic name: الفجر, الشروق, ...
+  String get ar => switch (this) {
+    Prayer.fajr => 'الفجر',
+    Prayer.sunrise => 'الشروق',
+    Prayer.dhuhr => 'الظهر',
+    Prayer.asr => 'العصر',
+    Prayer.maghrib => 'المغرب',
+    Prayer.isha => 'العشاء',
+    Prayer.none => 'لا يوجد',
+  };
+
+  /// Full Arabic name: صلاة الفجر, وقت الشروق, ...
+  String get arLong => switch (this) {
+    Prayer.fajr => 'صلاة الفجر',
+    Prayer.sunrise => 'وقت الشروق',
+    Prayer.dhuhr => 'صلاة الظهر',
+    Prayer.asr => 'صلاة العصر',
+    Prayer.maghrib => 'صلاة المغرب',
+    Prayer.isha => 'صلاة العشاء',
+    Prayer.none => '--:--',
+  };
+}
+
 class UpcomingPrayerInfo {
   const UpcomingPrayerInfo({required this.prayer, required this.time});
 

@@ -1,4 +1,4 @@
-/// Constants for Qibla feature
+// Constants for Qibla feature
 
 // Alignment thresholds
 const double kSuccessThreshold = 1.0; // degrees - user is perfectly aligned (same as Pray Watch APK)

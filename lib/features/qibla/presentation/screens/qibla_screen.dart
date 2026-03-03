@@ -7,9 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import '../../data/models/qibla_state.dart';
 import '../providers/qibla_provider.dart';
 import '../widgets/simple_compass_view.dart';
-import '../widgets/qibla_instructions.dart';
 import '../widgets/calibration_overlay.dart';
 import '../../../../core/providers/preferences_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Main Qibla screen with Fixed-Target / Rotating-Compass design
 ///
@@ -24,7 +24,8 @@ class QiblaScreen extends ConsumerStatefulWidget {
   ConsumerState<QiblaScreen> createState() => _QiblaScreenState();
 }
 
-class _QiblaScreenState extends ConsumerState<QiblaScreen> {
+class _QiblaScreenState extends ConsumerState<QiblaScreen>
+    with WidgetsBindingObserver {
   bool _permissionsChecked = false;
   bool _hasLocationPermission = false;
   String? _errorMessage;
@@ -32,14 +33,27 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermissionsAndStart();
   }
 
   @override
   void dispose() {
-    // Stop listening when leaving screen
+    WidgetsBinding.instance.removeObserver(this);
+    // Stop sensor when leaving screen
     ref.read(qiblaProvider.notifier).stopListening();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!_hasLocationPermission) return;
+    if (state == AppLifecycleState.paused) {
+      ref.read(qiblaProvider.notifier).stopListening();
+    } else if (state == AppLifecycleState.resumed) {
+      ref.read(qiblaProvider.notifier).startListening();
+    }
   }
 
   /// Check location permissions and start Qibla stream
@@ -47,6 +61,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
     try {
       // Check if device supports Qibla
       final deviceSupport = await FlutterQiblah.androidDeviceSensorSupport();
+      if (!mounted) return;
       if (deviceSupport != null && !deviceSupport) {
         setState(() {
           _errorMessage = "جهازك لا يدعم حساسات البوصلة";
@@ -57,9 +72,11 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
 
       // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
+      if (!mounted) return;
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+        if (!mounted) return;
       }
 
       if (permission == LocationPermission.denied ||
@@ -74,6 +91,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
 
       // Check if location services are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
       if (!serviceEnabled) {
         setState(() {
           _errorMessage = "يرجى تفعيل خدمات الموقع (GPS)";
@@ -92,6 +110,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
       // Start Qibla stream
       ref.read(qiblaProvider.notifier).startListening();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = "حدث خطأ: ${e.toString()}";
         _permissionsChecked = true;
@@ -111,7 +130,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppColors.qiblaDark,
       body: SafeArea(
         child: Stack(
           children: [
@@ -142,7 +161,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4AFFA3)),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.qiblaGreen),
           ),
           SizedBox(height: 24),
           Text(
@@ -186,7 +205,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text("إعادة المحاولة"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4AFFA3),
+                backgroundColor: AppColors.qiblaGreen,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
@@ -194,9 +213,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
             if (!_hasLocationPermission) ...[
               const SizedBox(height: 16),
               TextButton.icon(
-                onPressed: () async {
-                  await Geolocator.openLocationSettings();
-                },
+                onPressed: () => Geolocator.openLocationSettings(),
                 icon: const Icon(Icons.settings),
                 label: const Text("فتح الإعدادات"),
                 style: TextButton.styleFrom(
@@ -211,60 +228,41 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
   }
 
   Widget _buildCompassView(QiblaUiState state) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  const Spacer(flex: 1),
+    return Column(
+      children: [
+        const Spacer(),
 
-                  // البوصلة في المنتصف تماماً
-                  SimpleCompassView(state: state),
+        // Compass centered
+        Center(
+          child: SimpleCompassView(state: state),
+        ),
 
-                  const Spacer(flex: 1),
+        const Spacer(),
 
-                  // التعليمات في الأسفل
-                  QiblaInstructions(state: state),
-
-                  const SizedBox(height: 16),
-
-                  // زر المعايرة وكتم الصوت في الأسفل
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // زر المعايرة (إذا لزم)
-                      if (state.confidence < 70)
-                        TextButton.icon(
-                          onPressed: () {
-                            ref.read(qiblaProvider.notifier).showCalibration();
-                          },
-                          icon: const Icon(Icons.refresh, color: Colors.white70),
-                          label: const Text(
-                            'تحتاج إلى معايرة البوصلة',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ),
-
-                      if (state.confidence < 70)
-                        const SizedBox(width: 16),
-
-                      // زر كتم/تشغيل صوت النجاح
-                      _buildVolumeButton(),
-                    ],
+        // Bottom bar: calibration + volume
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (state.confidence < 70)
+                IconButton(
+                  onPressed: () {
+                    ref.read(qiblaProvider.notifier).showCalibration();
+                  },
+                  icon: const Icon(Icons.explore, color: Colors.white70),
+                  tooltip: 'معايرة البوصلة',
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    padding: const EdgeInsets.all(12),
                   ),
-
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
+                ),
+              if (state.confidence < 70) const SizedBox(width: 12),
+              _buildVolumeButton(),
+            ],
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -280,7 +278,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> {
       },
       icon: Icon(
         isMuted ? Icons.volume_off : Icons.volume_up,
-        color: isMuted ? Colors.white38 : const Color(0xFF4AFFA3),
+        color: isMuted ? Colors.white38 : AppColors.qiblaGreen,
       ),
       tooltip: isMuted ? 'تشغيل الصوت' : 'كتم الصوت',
       style: IconButton.styleFrom(

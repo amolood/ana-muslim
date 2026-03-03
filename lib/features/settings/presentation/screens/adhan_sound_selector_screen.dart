@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,7 +12,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_semantic_colors.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/notifications/notifications_service.dart';
-import 'notification_settings_screen.dart' show reschedulePrayerNotifications;
+import '../notification_reschedule.dart' show reschedulePrayerNotifications;
 
 class AdhanSoundSelectorScreen extends ConsumerStatefulWidget {
   const AdhanSoundSelectorScreen({super.key});
@@ -72,18 +73,17 @@ class _AdhanSoundSelectorScreenState
           await _audioPlayer.play();
         } else {
           // لا يوجد ملف مخصص بعد
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'لم يتم اختيار ملف مخصص بعد',
-                  style: GoogleFonts.tajawal(),
-                ),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 2),
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'لم يتم اختيار ملف مخصص بعد',
+                style: GoogleFonts.tajawal(),
               ),
-            );
-          }
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
           setState(() {
             _playingOption = null;
             _isLoading = false;
@@ -93,41 +93,39 @@ class _AdhanSoundSelectorScreenState
       } else {
         // تحميل وتشغيل الصوت من assets باستخدام just_audio
         if (kDebugMode) {
-          print('محاولة تحميل: ${option.assetPath}');
+          debugPrint('محاولة تحميل: ${option.assetPath}');
         }
 
         await _audioPlayer.setAsset(option.assetPath);
         await _audioPlayer.play();
 
         if (kDebugMode) {
-          print('تم تحميل وتشغيل الصوت بنجاح');
+          debugPrint('تم تحميل وتشغيل الصوت بنجاح');
         }
       }
 
       // إخفاء مؤشر التحميل بعد بدء التشغيل
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     } catch (e) {
       if (kDebugMode) {
-        print('خطأ في تشغيل الصوت: $e');
+        debugPrint('خطأ في تشغيل الصوت: $e');
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'فشل تشغيل المعاينة: ${e.toString()}',
-              style: GoogleFonts.tajawal(),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'فشل تشغيل المعاينة',
+            style: GoogleFonts.tajawal(),
           ),
-        );
-        setState(() {
-          _playingOption = null;
-          _isLoading = false;
-        });
-      }
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      setState(() {
+        _playingOption = null;
+        _isLoading = false;
+      });
     }
   }
 
@@ -157,17 +155,16 @@ class _AdhanSoundSelectorScreenState
         // Auto-reschedule notifications with new sound
         await reschedulePrayerNotifications(ref);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم اختيار الملف المخصص بنجاح',
-                style: GoogleFonts.tajawal(),
-              ),
-              backgroundColor: Colors.green,
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم اختيار الملف المخصص بنجاح',
+              style: GoogleFonts.tajawal(),
             ),
-          );
-        }
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } else {
       // حفظ الخيار العادي
@@ -179,18 +176,17 @@ class _AdhanSoundSelectorScreenState
       // Auto-reschedule notifications with new sound
       await reschedulePrayerNotifications(ref);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'تم اختيار: ${option.label}',
-              style: GoogleFonts.tajawal(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم اختيار: ${option.label}',
+            style: GoogleFonts.tajawal(),
           ),
-        );
-      }
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 1),
+        ),
+      );
     }
 
     setState(() => _playingOption = null);
@@ -199,7 +195,6 @@ class _AdhanSoundSelectorScreenState
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentOption = ref.watch(adhanSoundOptionProvider);
 
     return Scaffold(
@@ -209,7 +204,7 @@ class _AdhanSoundSelectorScreenState
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           icon: Icon(
             Icons.arrow_back_ios,
             color: colors.textPrimary,
@@ -224,7 +219,9 @@ class _AdhanSoundSelectorScreenState
           ),
         ),
       ),
-      body: ListView.builder(
+      body: SafeArea(
+        top: false, // AppBar handles the top
+        child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: AdhanSoundOption.values.length,
         itemBuilder: (context, index) {
@@ -245,18 +242,12 @@ class _AdhanSoundSelectorScreenState
                       end: Alignment.bottomRight,
                     )
                   : null,
-              color: isSelected
-                  ? null
-                  : isDark
-                      ? AppColors.surfaceDark
-                      : colors.surfaceCard,
+              color: isSelected ? null : colors.surfaceCard,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
                     ? AppColors.primary
-                    : isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.grey.withValues(alpha: 0.2),
+                    : colors.borderSubtle,
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
@@ -366,6 +357,7 @@ class _AdhanSoundSelectorScreenState
             ),
           );
         },
+      ),
       ),
     );
   }

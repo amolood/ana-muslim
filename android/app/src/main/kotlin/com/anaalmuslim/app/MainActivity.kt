@@ -25,6 +25,8 @@ class MainActivity : AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        PrayerSilenceChannel.register(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun isPipSupported(): Boolean {

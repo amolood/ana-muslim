@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_semantic_colors.dart';
 import '../providers/suggestions_provider.dart';
 import '../widgets/suggestion_card.dart';
 
@@ -12,7 +13,7 @@ class SuggestionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suggestions = ref.watch(suggestionsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -21,14 +22,14 @@ class SuggestionsScreen extends ConsumerWidget {
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(
-          color: isDark ? Colors.white : Colors.black,
+          color: colors.textPrimary,
         ),
         title: Text(
           'الاقتراحات الذكية',
           style: GoogleFonts.tajawal(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black,
+            color: colors.textPrimary,
           ),
         ),
         actions: [
@@ -53,7 +54,7 @@ class SuggestionsScreen extends ConsumerWidget {
         ],
       ),
       body: suggestions.isEmpty
-          ? _buildEmptyState(isDark)
+          ? _buildEmptyState(colors)
           : RefreshIndicator(
               onRefresh: () =>
                   ref.read(suggestionsProvider.notifier).refresh(),
@@ -96,7 +97,7 @@ class SuggestionsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(AppSemanticColors colors) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -122,7 +123,7 @@ class SuggestionsScreen extends ConsumerWidget {
               style: GoogleFonts.tajawal(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
+                color: colors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -130,9 +131,7 @@ class SuggestionsScreen extends ConsumerWidget {
               'سنقترح عليك الأذكار والعبادات\nفي الأوقات المناسبة',
               style: GoogleFonts.tajawal(
                 fontSize: 15,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.6)
-                    : Colors.black.withValues(alpha: 0.5),
+                color: colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -141,21 +140,21 @@ class SuggestionsScreen extends ConsumerWidget {
               icon: Icons.access_time,
               title: 'مرتبطة بالوقت',
               subtitle: 'اقتراحات الأذكار حسب وقت اليوم',
-              isDark: isDark,
+              colors: colors,
             ),
             const SizedBox(height: 16),
             _buildFeatureInfo(
               icon: Icons.psychology,
               title: 'ذكية وشخصية',
               subtitle: 'تتكيف مع سلوكك وعاداتك',
-              isDark: isDark,
+              colors: colors,
             ),
             const SizedBox(height: 16),
             _buildFeatureInfo(
               icon: Icons.notifications_off,
               title: 'غير مزعجة',
               subtitle: 'يمكنك إخفاء أي اقتراح',
-              isDark: isDark,
+              colors: colors,
             ),
           ],
         ),
@@ -167,7 +166,7 @@ class SuggestionsScreen extends ConsumerWidget {
     required IconData icon,
     required String title,
     required String subtitle,
-    required bool isDark,
+    required AppSemanticColors colors,
   }) {
     return Row(
       children: [
@@ -186,16 +185,14 @@ class SuggestionsScreen extends ConsumerWidget {
                 style: GoogleFonts.tajawal(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: colors.textPrimary,
                 ),
               ),
               Text(
                 subtitle,
                 style: GoogleFonts.tajawal(
                   fontSize: 13,
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.6)
-                      : Colors.black.withValues(alpha: 0.5),
+                  color: colors.textSecondary,
                 ),
               ),
             ],

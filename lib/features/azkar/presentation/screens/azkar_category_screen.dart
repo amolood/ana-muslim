@@ -61,10 +61,23 @@ class AzkarCategoryScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
-          child: Text(
-            'تعذر التحميل: $error',
-            style: GoogleFonts.tajawal(color: Colors.white70),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, color: Colors.white38, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'تعذر تحميل الأذكار',
+                style: GoogleFonts.tajawal(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(azkarByChapterIdProvider(chapterId)),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text('إعادة المحاولة', style: GoogleFonts.tajawal()),
+              ),
+            ],
           ),
         ),
       ),

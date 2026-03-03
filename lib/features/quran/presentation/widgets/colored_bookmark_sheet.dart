@@ -21,7 +21,6 @@ class ColoredBookmarkSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bookmarks = ref.watch(coloredBookmarksProvider);
     final ayahId = QuranService.getAyahUniqueNumber(surahNumber, ayahNumber);
     final page = QuranService.getPageNumber(surahNumber, ayahNumber);
@@ -36,7 +35,7 @@ class ColoredBookmarkSheet extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : colors.surfaceCard,
+        color: colors.surfaceCard,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -131,9 +130,7 @@ class ColoredBookmarkSheet extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Color(bookmarkColor.colorCode).withValues(alpha: 0.2)
-                        : (isDark
-                            ? AppColors.surfaceDarker
-                            : colors.surfaceVariant),
+                        : colors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected

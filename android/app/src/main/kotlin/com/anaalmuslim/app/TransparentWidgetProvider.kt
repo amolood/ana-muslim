@@ -44,12 +44,17 @@ class TransparentWidgetProvider : AppWidgetProvider() {
             val textColorStr = prefs.getString("widget_text_color", "#FFFFFF") ?: "#FFFFFF"
             val effectiveColor = try { Color.parseColor(textColorStr) } catch (e: Exception) { Color.WHITE }
 
-            // Map day name to calligraphic manuscript digit and render as Bitmap
+            // Map day name to calligraphic manuscript digit and render as Bitmap.
+            // If bitmap rendering fails (memory pressure, missing font), hide the
+            // ImageView entirely to prevent launcher crashes with an empty ImageView.
             val calligraphicDigit = mapDayToCalligraphy(dayName)
             val dayBitmap = renderCalligraphyAsBitmap(context, calligraphicDigit, effectiveColor)
-            
+
             if (dayBitmap != null) {
                 views.setImageViewBitmap(R.id.widget_day_image, dayBitmap)
+                views.setViewVisibility(R.id.widget_day_image, android.view.View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_day_image, android.view.View.GONE)
             }
             
             views.setTextViewText(R.id.widget_date_text, dateText)

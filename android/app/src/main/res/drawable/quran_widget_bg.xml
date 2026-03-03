@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shape drawable used as the quran widget background.
+     Using a GradientDrawable (shape) instead of a plain hex color so that
+     Huawei/Honor's HnCurvatureRoundUtils can parse the cornerRadius attribute
+     without throwing NumberFormatException on MagicUI launchers. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#0D1F1B" />
+    <corners android:radius="16dp" />
+</shape>

@@ -14,7 +14,7 @@
     @endif
 
     <div class="max-w-4xl admin-card p-6">
-        <form action="{{ route('admin.settings.update') }}" method="POST">
+        <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data">
             @csrf
             
             <div class="space-y-8">
@@ -26,13 +26,39 @@
                         </div>
                         <div class="w-full md:w-2/3">
                             @if($setting->type === 'image')
-                                <div class="flex items-center gap-4">
-                                    <div class="h-16 w-16 bg-gray-100 dark:bg-white/5 rounded-xl border border-dashed border-gray-300 dark:border-white/10 flex items-center justify-center text-gray-400">
-                                        <i class="fa-solid fa-image text-xl"></i>
+                                {{-- Hidden fallback preserves current URL when no new file is chosen --}}
+                                <input type="hidden" name="{{ $setting->key }}" value="{{ $setting->value }}">
+                                <div x-data="{ preview: '{{ $setting->value }}' }" class="flex items-center gap-4">
+                                    {{-- Live preview thumbnail --}}
+                                    <div class="h-16 w-16 shrink-0 rounded-xl border border-dashed border-gray-300 dark:border-white/10 overflow-hidden bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+                                        <template x-if="preview">
+                                            <img :src="preview" class="h-full w-full object-cover">
+                                        </template>
+                                        <template x-if="!preview">
+                                            <i class="fa-solid fa-image text-xl text-gray-400"></i>
+                                        </template>
                                     </div>
-                                    <input type="text" name="{{ $setting->key }}" value="{{ $setting->value }}" placeholder="رابط الصورة الحالية"
-                                        class="block w-full rounded-xl border-gray-200 bg-gray-50 py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">
+                                    {{-- File picker --}}
+                                    <div class="flex-1 min-w-0">
+                                        <input type="file" name="image_files[{{ $setting->key }}]" accept="image/*"
+                                            @change="preview = URL.createObjectURL($event.target.files[0])"
+                                            class="block w-full text-sm text-gray-500 dark:text-gray-400
+                                                file:ml-0 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                                file:text-sm file:font-medium file:bg-blue-600 file:text-white
+                                                hover:file:bg-blue-700 file:cursor-pointer cursor-pointer">
+                                        <p x-show="preview" x-text="preview" class="mt-1 text-[11px] text-gray-400 truncate"></p>
+                                    </div>
                                 </div>
+                            @elseif($setting->type === 'boolean')
+                                {{-- Hidden input ensures "0" is sent when checkbox is unchecked --}}
+                                <input type="hidden" name="{{ $setting->key }}" value="0">
+                                <label class="flex items-center gap-3 cursor-pointer w-fit">
+                                    <input type="checkbox" name="{{ $setting->key }}" value="1" {{ $setting->value == '1' ? 'checked' : '' }}
+                                        class="w-5 h-5 rounded accent-blue-600 cursor-pointer">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        {{ $setting->value == '1' ? 'مفعّل' : 'معطّل' }}
+                                    </span>
+                                </label>
                             @else
                                 <input type="text" name="{{ $setting->key }}" value="{{ $setting->value }}"
                                     class="block w-full rounded-xl border-gray-200 bg-gray-50 py-3 px-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-white/5 dark:border-transparent dark:text-white transition-all">

@@ -28,7 +28,7 @@ class PlaybackControls extends StatelessWidget {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.cardDark : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -51,6 +51,7 @@ class PlaybackControls extends StatelessWidget {
                       onPressed: repeatCount > 1
                           ? () => onRepeatChange(repeatCount - 1)
                           : null,
+                      tooltip: 'تقليل عدد التكرار',
                       icon: const Icon(Icons.remove_circle_outline),
                       color: AppColors.primary,
                     ),
@@ -60,7 +61,7 @@ class PlaybackControls extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -76,6 +77,7 @@ class PlaybackControls extends StatelessWidget {
                       onPressed: repeatCount < 20
                           ? () => onRepeatChange(repeatCount + 1)
                           : null,
+                      tooltip: 'زيادة عدد التكرار',
                       icon: const Icon(Icons.add_circle_outline),
                       color: AppColors.primary,
                     ),

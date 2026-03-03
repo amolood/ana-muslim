@@ -3,12 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
+import '../widgets/sebha_manage_card.dart';
+import '../widgets/sebha_phrase_switcher.dart';
+import '../widgets/sebha_stats_card.dart';
 
 class SebhaScreen extends ConsumerStatefulWidget {
   const SebhaScreen({super.key});
@@ -17,8 +20,16 @@ class SebhaScreen extends ConsumerStatefulWidget {
   ConsumerState<SebhaScreen> createState() => _SebhaScreenState();
 }
 
+// ── Islamic palette constants ────────────────────────────────────────────────
+const _deepGreen = Color(0xFF0B3D23);
+const _midGreen = Color(0xFF1A6B42);
+const _lightGreen = Color(0xFF34C27A);
+const _goldAccent = Color(0xFFD4A537);
+
 class _SebhaScreenState extends ConsumerState<SebhaScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
   @override
   void initState() {
     super.initState();
@@ -26,10 +37,19 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(sebhaStateProvider.notifier).ensureToday();
     });
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 120),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
+    _scaleController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -43,14 +63,16 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
 
   Future<void> _increment() async {
     HapticFeedback.selectionClick();
+    // Quick scale-down then bounce back
+    _scaleController.forward().then((_) => _scaleController.reverse());
     final result = await ref.read(sebhaStateProvider.notifier).increment();
     if (!mounted) return;
 
     if (result.reachedGoal) {
       HapticFeedback.heavyImpact();
       final doneMessage = result.switchedToNext
-          ? 'أكملت هدف "${result.completedPhrase.text}" وتم الانتقال للتسبيحة التالية'
-          : 'أكملت هدف "${result.completedPhrase.text}"';
+          ? context.l10n.goalReachedSwitched(result.completedPhrase.text)
+          : context.l10n.goalReached(result.completedPhrase.text);
       _showInfo(doneMessage);
     }
   }
@@ -69,41 +91,44 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface(context),
-          title: Text(
-            'تصفير التسبيحة الحالية',
-            style: GoogleFonts.tajawal(
-              color: AppColors.textPrimary(context),
-              fontWeight: FontWeight.w700,
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: AppColors.surface(context),
+            title: Text(
+              context.l10n.resetCurrentPhraseTitle,
+              style: GoogleFonts.tajawal(
+                color: AppColors.textPrimary(context),
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          content: Text(
-            'سيتم تصفير عداد التسبيحة المختارة فقط.',
-            style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'إلغاء',
-                style: GoogleFonts.tajawal(
-                  color: AppColors.textSecondary(context),
+            content: Text(
+              context.l10n.resetCurrentPhraseMsg,
+              style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  context.l10n.cancel,
+                  style: GoogleFonts.tajawal(
+                    color: AppColors.textSecondary(context),
+                  ),
                 ),
               ),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.backgroundDark,
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.backgroundDark,
+                ),
+                child: Text(
+                  context.l10n.reset,
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+                ),
               ),
-              child: Text(
-                'تصفير',
-                style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -111,7 +136,7 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     if (confirmed == true) {
       await ref.read(sebhaStateProvider.notifier).resetSelectedCounter();
       if (!mounted) return;
-      _showInfo('تم تصفير التسبيحة الحالية');
+      _showInfo(context.l10n.phraseResetSuccess);
     }
   }
 
@@ -119,41 +144,44 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface(context),
-          title: Text(
-            'تصفير عداد اليوم',
-            style: GoogleFonts.tajawal(
-              color: AppColors.textPrimary(context),
-              fontWeight: FontWeight.w700,
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: AppColors.surface(context),
+            title: Text(
+              context.l10n.resetTodayTitle,
+              style: GoogleFonts.tajawal(
+                color: AppColors.textPrimary(context),
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          content: Text(
-            'سيتم تصفير جميع عدادات اليوم لكل التسبيحات.',
-            style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'إلغاء',
-                style: GoogleFonts.tajawal(
-                  color: AppColors.textSecondary(context),
+            content: Text(
+              context.l10n.resetTodayMsg,
+              style: GoogleFonts.tajawal(color: AppColors.textSecondary(context)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  context.l10n.cancel,
+                  style: GoogleFonts.tajawal(
+                    color: AppColors.textSecondary(context),
+                  ),
                 ),
               ),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.backgroundDark,
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.backgroundDark,
+                ),
+                child: Text(
+                  context.l10n.resetTodayBtn,
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+                ),
               ),
-              child: Text(
-                'تصفير اليوم',
-                style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -161,7 +189,7 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     if (confirmed == true) {
       await ref.read(sebhaStateProvider.notifier).resetTodayCounters();
       if (!mounted) return;
-      _showInfo('تم تصفير عداد اليوم');
+      _showInfo(context.l10n.todayResetSuccess);
     }
   }
 
@@ -176,13 +204,13 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'السبحة',
+          context.l10n.sebhaTitle,
           style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
             onPressed: _confirmResetToday,
-            tooltip: 'تصفير عدادات اليوم',
+            tooltip: context.l10n.resetTodayCounters,
             icon: const Icon(Icons.restart_alt_rounded),
           ),
         ],
@@ -191,108 +219,13 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            _buildPhraseSwitcher(selected),
+            SebhaPhraseSwitcher(selected: selected),
             const SizedBox(height: 14),
             _buildCounterCard(current: current, goal: goal, progress: progress),
             const SizedBox(height: 14),
-            _buildStatsCard(sebhaState),
+            SebhaStatsCard(state: sebhaState),
             const SizedBox(height: 14),
-            _buildManageFromSettingsCard(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPhraseSwitcher(SebhaPhrase selected) {
-    final textColor = AppColors.textPrimary(context);
-    final goalText = selected.dailyGoal == 0
-        ? 'هدف يومي: غير محدد'
-        : 'هدف يومي: ${ArabicUtils.toArabicDigits(selected.dailyGoal)}';
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Row(
-        children: [
-          _buildSwitcherButton(
-            icon: Icons.arrow_forward_ios_rounded,
-            label: 'السابق',
-            onPressed: () =>
-                ref.read(sebhaStateProvider.notifier).moveToPreviousPhrase(),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                children: [
-                  Text(
-                    selected.text,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.tajawal(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    goalText,
-                    style: GoogleFonts.tajawal(
-                      fontSize: 13,
-                      color: AppColors.textSecondary(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _buildSwitcherButton(
-            icon: Icons.arrow_back_ios_new_rounded,
-            label: 'التالي',
-            onPressed: () =>
-                ref.read(sebhaStateProvider.notifier).moveToNextPhrase(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSwitcherButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onPressed,
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceElevated(context),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border(context)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: AppColors.primary),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: GoogleFonts.tajawal(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary(context),
-              ),
-            ),
+            const SebhaManageCard(),
           ],
         ),
       ),
@@ -304,48 +237,106 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     required int goal,
     required double progress,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentText = ArabicUtils.toArabicDigits(current);
     final goalStatus = goal == 0
-        ? 'هدف غير محدد'
+        ? context.l10n.goalUnsetText
         : '${ArabicUtils.toArabicDigits(current)} / ${ArabicUtils.toArabicDigits(goal)}';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
       decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border(context)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [const Color(0xFF0E2A1A), const Color(0xFF091A10)]
+              : [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? _goldAccent.withValues(alpha: 0.2)
+              : _midGreen.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
       ),
       child: Column(
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final size = math.min(constraints.maxWidth - 24, 280.0);
-              return SizedBox(
-                width: size,
-                height: size,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: size,
-                      height: size,
-                      child: CircularProgressIndicator(
-                        value: goal > 0 ? progress : 0,
-                        strokeWidth: 8,
-                        backgroundColor: AppColors.surfaceElevated(context),
-                        color: AppColors.primary,
+              final size = math.min(constraints.maxWidth - 24, 290.0);
+              return ScaleTransition(
+                scale: _scaleAnimation,
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Glow halo behind the circle
+                      Container(
+                        width: size,
+                        height: size,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isDark ? _goldAccent : _midGreen)
+                                  .withValues(alpha: 0.18),
+                              blurRadius: 32,
+                              spreadRadius: 4,
+                            ),
+                            BoxShadow(
+                              color: (isDark ? _lightGreen : _midGreen)
+                                  .withValues(alpha: 0.08),
+                              blurRadius: 60,
+                              spreadRadius: 12,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Material(
-                      color: AppColors.surfaceElevated(context),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
+                      // Progress ring (thicker)
+                      SizedBox(
+                        width: size,
+                        height: size,
+                        child: CircularProgressIndicator(
+                          value: goal > 0 ? progress : 0,
+                          strokeWidth: 13,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : _midGreen.withValues(alpha: 0.1),
+                          color: isDark ? _goldAccent : _midGreen,
+                        ),
+                      ),
+                      // Inner tap circle
+                      GestureDetector(
                         onTap: _increment,
-                        child: SizedBox(
-                          width: size - 36,
-                          height: size - 36,
+                        child: Container(
+                          width: size - 44,
+                          height: size - 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: isDark
+                                  ? [
+                                      _midGreen.withValues(alpha: 0.6),
+                                      _deepGreen.withValues(alpha: 0.9),
+                                    ]
+                                  : [
+                                      const Color(0xFFECFDF5),
+                                      const Color(0xFFA7F3D0),
+                                    ],
+                              radius: 0.9,
+                            ),
+                            border: Border.all(
+                              color: isDark
+                                  ? _goldAccent.withValues(alpha: 0.3)
+                                  : _midGreen.withValues(alpha: 0.35),
+                              width: 2,
+                            ),
+                          ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -354,38 +345,41 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.manrope(
-                                  fontSize: 58,
+                                  fontSize: 62,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary(context),
+                                  color: isDark ? Colors.white : _deepGreen,
                                   height: 1,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 goalStatus,
                                 style: GoogleFonts.tajawal(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary(context),
+                                  color: isDark
+                                      ? _goldAccent.withValues(alpha: 0.85)
+                                      : _midGreen,
                                 ),
                               ),
                               const SizedBox(height: 10),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                                  horizontal: 14,
+                                  vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.14,
-                                  ),
+                                  color: isDark
+                                      ? _goldAccent.withValues(alpha: 0.15)
+                                      : _midGreen.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  'اضغط للتسبيح',
+                                  context.l10n.tapToCount,
                                   style: GoogleFonts.tajawal(
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.primary,
+                                    fontSize: 13,
+                                    color: isDark ? _goldAccent : _midGreen,
                                   ),
                                 ),
                               ),
@@ -393,18 +387,26 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: _confirmResetSelected,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: isDark ? _goldAccent : _midGreen,
+              side: BorderSide(
+                color: isDark
+                    ? _goldAccent.withValues(alpha: 0.4)
+                    : _midGreen.withValues(alpha: 0.5),
+              ),
+            ),
             icon: const Icon(Icons.refresh_rounded),
             label: Text(
-              'تصفير الحالية',
+              context.l10n.resetCurrentBtn,
               style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
             ),
           ),
@@ -413,100 +415,4 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     );
   }
 
-  Widget _buildStatsCard(SebhaState state) {
-    final items = [
-      ('إجمالي التسبيح', ArabicUtils.toArabicDigits(state.totalCount)),
-      ('مجموع اليوم', ArabicUtils.toArabicDigits(state.todayTotalCount)),
-      ('أهداف مكتملة', ArabicUtils.toArabicDigits(state.completedGoalsCount)),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Row(
-        children: items
-            .map((item) {
-              return Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      item.$2,
-                      style: GoogleFonts.tajawal(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary(context),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.$1,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.tajawal(
-                        fontSize: 12,
-                        color: AppColors.textSecondary(context),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            })
-            .toList(growable: false),
-      ),
-    );
-  }
-
-  Widget _buildManageFromSettingsCard() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'إدارة التسبيحات والأهداف',
-            style: GoogleFonts.tajawal(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary(context),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'إضافة وحذف التسبيحات وتحديد الهدف الافتراضي أصبحت من شاشة الإعدادات.',
-            style: GoogleFonts.tajawal(
-              fontSize: 12,
-              color: AppColors.textSecondary(context),
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => context.push('/settings'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.backgroundDark,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              icon: const Icon(Icons.settings_rounded),
-              label: Text(
-                'فتح الإعدادات',
-                style: GoogleFonts.tajawal(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

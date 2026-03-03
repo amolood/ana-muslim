@@ -4,6 +4,7 @@ import 'package:adhan/adhan.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:im_muslim/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,13 +12,19 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:quran_library/quran_library.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'audio/audio_service_bootstrap.dart';
 import 'core/notifications/notifications_service.dart';
+import 'core/theme/app_colors.dart';
 import 'core/providers/preferences_provider.dart';
 import 'core/routing/app_router.dart';
+import 'core/routing/routes.dart';
 import 'core/services/pusher_service.dart';
 import 'core/services/widget_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/prayer_utils.dart';
 import 'features/prayer_times/presentation/providers/prayer_times_provider.dart';
+import 'features/settings/presentation/notification_reschedule.dart';
+import 'features/quran/presentation/providers/audio_providers.dart';
 
 // Provider to handle all asynchronous app initializations.
 final appStartupProvider = FutureProvider<void>((ref) async {
@@ -38,6 +45,11 @@ void main() async {
   // تحميل متغيرات البيئة من ملف .env
   await dotenv.load(fileName: '.env');
 
+  // Initialise AudioService *before* runApp so that the MediaSession and
+  // foreground service are registered at the OS level before any UI builds.
+  // The returned handler is injected into the Riverpod tree below.
+  final audioHandler = await initAudioService();
+
   final sharedPreferences = await SharedPreferences.getInstance();
 
   // تهيئة صوت الأذان من الإعدادات المحفوظة
@@ -54,6 +66,9 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        // Provide the singleton handler so every provider can reach it via
+        // ref.read(quranAudioHandlerProvider) without re-initialising AudioService.
+        quranAudioHandlerProvider.overrideWithValue(audioHandler),
       ],
       child: const MyApp(),
     ),
@@ -69,7 +84,7 @@ class MyApp extends ConsumerWidget {
 
     return startupAsync.when(
       loading: () => _buildSimpleSplash(),
-      error: (e, st) => _buildErrorScreen(e),
+      error: (e, st) => _buildErrorScreen(e, ref),
       data: (_) {
         final appTheme = ref.watch(appThemeProvider);
         final appLanguage = ref.watch(appLanguageProvider);
@@ -98,6 +113,7 @@ class MyApp extends ConsumerWidget {
           themeMode: themeMode,
           locale: locale,
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
@@ -127,17 +143,55 @@ class MyApp extends ConsumerWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: Color(0xFF0F172A),
+        backgroundColor: AppColors.backgroundDeepDark,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF11D4B4)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       ),
     );
   }
 
-  Widget _buildErrorScreen(Object e) {
+  Widget _buildErrorScreen(Object e, WidgetRef ref) {
     return MaterialApp(
-      home: Scaffold(body: Center(child: Text('Error initializing app: $e'))),
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: AppColors.backgroundDeepDark,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.red, size: 56),
+                const SizedBox(height: 16),
+                const Text(
+                  'تعذّر تشغيل التطبيق',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$e',
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => ref.invalidate(appStartupProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -169,6 +223,11 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
   bool _hasPendingPrayerReschedule = false;
   String? _lastPrayerScheduleSignature;
 
+  // ── Adhan screen wiring ──────────────────────────────────────────────────
+  StreamSubscription<String>? _notifTapSub;
+  Timer? _foregroundPrayerTimer;
+  final Set<String> _shownAdhanKeys = {};
+
   @override
   void initState() {
     super.initState();
@@ -176,6 +235,8 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
     Future.microtask(() {
       _bindListeners();
       _startLocationRefreshTimer();
+      _startNotifTapListener();
+      _startForegroundPrayerTimer();
       _requestPrayerReschedule(delay: Duration.zero);
       _rescheduleMotivationReminders(ref.read(motivationReminderProvider));
     });
@@ -186,6 +247,8 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
     WidgetsBinding.instance.removeObserver(this);
     _prayerRescheduleDebounce?.cancel();
     _locationRefreshTimer?.cancel();
+    _notifTapSub?.cancel();
+    _foregroundPrayerTimer?.cancel();
     _prayerTimesSub?.close();
     _adhanToggleSub?.close();
     _prayerSettingsSub?.close();
@@ -201,6 +264,8 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
     if (state != AppLifecycleState.resumed) return;
     _refreshLocationAndPrayerTimes();
     _requestPrayerReschedule(delay: Duration.zero);
+    // Clear stale adhan keys from yesterday
+    _pruneAdhanKeys();
   }
 
   void _bindListeners() {
@@ -395,13 +460,14 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
           scheduleSignature: scheduleSignature,
         );
       } else {
-        final currentPosition = position!;
+        if (position == null) return null;
+        final currentPosition = position;
         final calcMethodStr = ref.read(calculationMethodProvider);
         final coords = Coordinates(
           currentPosition.latitude,
           currentPosition.longitude,
         );
-        final params = _buildParams(calcMethodStr);
+        final params = buildCalculationParams(calcMethodStr);
         final prayerAdjust = ref.read(prayerManualOffsetsProvider);
 
         await NotificationsService.rescheduleAll(
@@ -427,6 +493,96 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
       }
       return null;
     }
+  }
+
+  // ── Adhan screen: notification tap ─────────────────────────────────────────
+
+  void _startNotifTapListener() {
+    _notifTapSub = NotificationsService.tapStream.listen((payload) {
+      if (!mounted || payload.isEmpty) return;
+      _navigateToAdhan(payload);
+    });
+  }
+
+  // ── Adhan screen: foreground prayer arrival ───────────────────────────────
+
+  void _startForegroundPrayerTimer() {
+    _foregroundPrayerTimer?.cancel();
+    _foregroundPrayerTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _checkForegroundPrayerArrival(),
+    );
+  }
+
+  void _checkForegroundPrayerArrival() {
+    if (!mounted) return;
+
+    final adhanEnabled = ref.read(adhanAlertsProvider);
+    if (!adhanEnabled) return;
+
+    final adjustedAsync = ref.read(adjustedPrayerTimesProvider);
+    final adjusted = adjustedAsync.asData?.value;
+    if (adjusted == null) return;
+
+    final now = DateTime.now();
+    final dayKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final notifSettings = ref.read(prayerNotifSettingsProvider);
+
+    for (final prayer in const [
+      Prayer.fajr,
+      Prayer.dhuhr,
+      Prayer.asr,
+      Prayer.maghrib,
+      Prayer.isha,
+    ]) {
+      // Skip disabled prayers
+      final isEnabled = switch (prayer) {
+        Prayer.fajr => notifSettings.fajrEnabled,
+        Prayer.dhuhr => notifSettings.dhuhrEnabled,
+        Prayer.asr => notifSettings.asrEnabled,
+        Prayer.maghrib => notifSettings.maghribEnabled,
+        Prayer.isha => notifSettings.ishaEnabled,
+        _ => false,
+      };
+      if (!isEnabled) continue;
+
+      final prayerTime = adjusted.timeForPrayer(prayer);
+      if (prayerTime == null) continue;
+
+      final diff = now.difference(prayerTime).inSeconds;
+      // Fire if within a ±30-second window around prayer time
+      if (diff.abs() > 30) continue;
+
+      final adhanKey = '$dayKey:${prayer.name}';
+      if (_shownAdhanKeys.contains(adhanKey)) continue;
+      _shownAdhanKeys.add(adhanKey);
+
+      _navigateToAdhan(prayer.ar);
+      break; // Only show one adhan at a time
+    }
+  }
+
+  void _pruneAdhanKeys() {
+    final now = DateTime.now();
+    final todayPrefix =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    _shownAdhanKeys.removeWhere((key) => !key.startsWith(todayPrefix));
+  }
+
+  void _navigateToAdhan(String prayerName) {
+    if (!mounted) return;
+
+    final router = AppRouter.router;
+    // Don't navigate if already on the adhan player screen
+    final currentUri =
+        router.routerDelegate.currentConfiguration.uri.toString();
+    if (currentUri.startsWith('/adhan-player')) return;
+
+    router.push(
+      '${Routes.adhanPlayer}?prayer=${Uri.encodeComponent(prayerName)}',
+    );
   }
 
   Future<void> _rescheduleMotivationReminders(
@@ -455,15 +611,4 @@ class _NotificationSchedulerState extends ConsumerState<_NotificationScheduler>
     }
   }
 
-  static CalculationParameters _buildParams(String method) => switch (method) {
-    'رابطة العالم الإسلامي' =>
-      CalculationMethod.muslim_world_league.getParameters(),
-    'الهيئة العامة للمساحة المصرية' =>
-      CalculationMethod.egyptian.getParameters(),
-    'جامعة العلوم الإسلامية بكراتشي' =>
-      CalculationMethod.karachi.getParameters(),
-    'الجمعية الإسلامية لأمريكا الشمالية' =>
-      CalculationMethod.north_america.getParameters(),
-    _ => CalculationMethod.umm_al_qura.getParameters(),
-  };
 }

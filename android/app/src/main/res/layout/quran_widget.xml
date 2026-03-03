@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Base layout used on Android < 12 (API < 31).
+     No custom @font/ reference here — android:fontFamily="@font/..." is not
+     supported in RemoteViews before API 31 and causes InflateException.
+     The API 31+ version in layout-v31/quran_widget.xml adds the Uthmanic font. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0D1F1B">
+    android:background="@android:color/transparent">
 
     <!-- Teal top accent bar -->
     <View
@@ -59,7 +63,7 @@
             android:layout_marginTop="6dp"
             android:layout_marginBottom="10dp" />
 
-        <!-- Verse text -->
+        <!-- Verse text — system Arabic font (no custom font on pre-API 31) -->
         <TextView
             android:id="@+id/widget_verse"
             android:layout_width="match_parent"
@@ -68,12 +72,9 @@
             android:gravity="center"
             android:textColor="#F0FFFFFF"
             android:textSize="22sp"
-            android:fontFamily="@font/kfgqpc_uthmanic_script"
-            android:includeFontPadding="false"
             android:lineSpacingMultiplier="1.2"
             android:maxLines="3"
             android:ellipsize="end"
-            android:textDirection="rtl"
             android:text="بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ" />
 
         <!-- Reference -->
@@ -85,11 +86,8 @@
             android:layout_marginTop="8dp"
             android:textColor="#9AE8E3"
             android:textSize="11sp"
-            android:fontFamily="@font/kfgqpc_uthmanic_script"
-            android:includeFontPadding="false"
             android:maxLines="1"
             android:ellipsize="end"
-            android:textDirection="rtl"
             android:text="سورة الفاتحة ﴿١﴾" />
 
     </LinearLayout>

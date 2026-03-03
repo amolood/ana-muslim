@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../data/models/islamhouse_content_type.dart';
@@ -43,10 +44,15 @@ class IslamicContentHubScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(islamhouseTypesProvider);
             ref.invalidate(islamhouseLatestProvider);
-            await Future.wait([
-              ref.read(islamhouseTypesProvider.future),
-              ref.read(islamhouseLatestProvider.future),
-            ]);
+            try {
+              await Future.wait([
+                ref.read(islamhouseTypesProvider.future),
+                ref.read(islamhouseLatestProvider.future),
+              ]);
+            } catch (_) {
+              // Providers expose their own error states in the UI;
+              // swallow here so the refresh indicator dismisses cleanly.
+            }
           },
           child: CustomScrollView(
             slivers: [
@@ -152,7 +158,7 @@ class IslamicContentHubScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (error, _) => _ErrorCard(message: '$error'),
+            error: (error, _) => _ErrorCard(message: 'تعذر تحميل البيانات'),
             data: (types) {
               if (types.isEmpty) {
                 return _EmptyCard(message: 'لا توجد أنواع متاحة حاليًا');
@@ -232,7 +238,7 @@ class IslamicContentHubScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            error: (error, _) => _ErrorCard(message: '$error'),
+            error: (error, _) => _ErrorCard(message: 'تعذر تحميل البيانات'),
             data: (items) {
               final grouped = _groupItemsByPinnedType(
                 items.take(16).toList(growable: false),
@@ -262,7 +268,7 @@ class IslamicContentHubScreen extends ConsumerWidget {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => context.push(
-                        '/hadith/islamic-content/type/showall?title=كل المحتوى',
+                        Routes.islamicContentType('showall', title: 'كل المحتوى'),
                       ),
                       icon: const Icon(Icons.travel_explore_rounded),
                       label: Text(
@@ -374,7 +380,7 @@ class _TypeCard extends StatelessWidget {
       onTap: () {
         final encodedTitle = Uri.encodeComponent(label);
         context.push(
-          '/hadith/islamic-content/type/$blockName?title=$encodedTitle',
+          Routes.islamicContentType(blockName, title: encodedTitle),
         );
       },
       child: Ink(
@@ -544,7 +550,7 @@ class _LatestTile extends StatelessWidget {
     final date = _formatUnixDate(item.addDate);
 
     return InkWell(
-      onTap: () => context.push('/hadith/islamic-content/item/${item.id}'),
+      onTap: () => context.push(Routes.islamicContentItem(item.id)),
       borderRadius: BorderRadius.circular(14),
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

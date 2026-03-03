@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/arabic_utils.dart';
 import '../../../quran/data/models/reciter.dart';
 import '../../../quran/presentation/providers/audio_providers.dart';
 
@@ -17,7 +19,6 @@ class DefaultReciterScreen extends ConsumerStatefulWidget {
 
 class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  String _query = '';
 
   @override
   void dispose() {
@@ -47,7 +48,7 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
                       color: AppColors.textPrimary(context),
                       size: 20,
                     ),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                   ),
                   Expanded(
                     child: Column(
@@ -91,14 +92,16 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
                 ],
               ),
             ),
-            const Divider(color: Color(0xFF2D5E57), height: 1),
+            const Divider(color: AppColors.borderTeal, height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: TextField(
                 controller: _searchCtrl,
                 textDirection: TextDirection.rtl,
                 style: GoogleFonts.tajawal(color: Colors.white, fontSize: 14),
-                onChanged: (value) => setState(() => _query = value.trim()),
+                onChanged: (value) => ref
+                    .read(reciterSearchQueryProvider.notifier)
+                    .update(value.trim()),
                 decoration: InputDecoration(
                   hintText: 'ابحث عن القارئ أو الرواية',
                   hintStyle: GoogleFonts.tajawal(
@@ -109,21 +112,23 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
                     Icons.search_rounded,
                     color: AppColors.textSecondaryDark,
                   ),
-                  suffixIcon: _query.isEmpty
+                  suffixIcon: ref.watch(reciterSearchQueryProvider).isEmpty
                       ? null
                       : IconButton(
                           icon: const Icon(Icons.close_rounded, size: 18),
                           color: AppColors.textSecondaryDark,
                           onPressed: () {
                             _searchCtrl.clear();
-                            setState(() => _query = '');
+                            ref
+                                .read(reciterSearchQueryProvider.notifier)
+                                .update('');
                           },
                         ),
                   filled: true,
                   fillColor: AppColors.surfaceDark,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D5E57)),
+                    borderSide: const BorderSide(color: AppColors.borderTeal),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -141,16 +146,32 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
                   ),
                 ),
                 error: (e, _) => Center(
-                  child: Text(
-                    'تعذّر تحميل القراء',
-                    style: GoogleFonts.tajawal(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 14,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.cloud_off_rounded, color: Colors.white38, size: 48),
+                      const SizedBox(height: 12),
+                      Text(
+                        'تعذّر تحميل القراء',
+                        style: GoogleFonts.tajawal(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton.icon(
+                        onPressed: () => ref.invalidate(recitersProvider),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text('إعادة المحاولة', style: GoogleFonts.tajawal()),
+                      ),
+                    ],
                   ),
                 ),
                 data: (reciters) {
-                  final filtered = _filterReciters(reciters, _query);
+                  final filtered = _filterReciters(
+                    reciters,
+                    ref.watch(reciterSearchQueryProvider),
+                  );
                   if (filtered.isEmpty) {
                     return Center(
                       child: Text(
@@ -258,11 +279,11 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
   List<Reciter> _filterReciters(List<Reciter> reciters, String query) {
     if (query.isEmpty) return reciters;
 
-    final normalized = _normalizeArabic(query);
+    final normalized = ArabicUtils.normalizeArabic(query);
     return reciters.where((reciter) {
-      if (_normalizeArabic(reciter.name).contains(normalized)) return true;
+      if (ArabicUtils.normalizeArabic(reciter.name).contains(normalized)) return true;
       return reciter.moshaf.any(
-        (m) => _normalizeArabic(m.name).contains(normalized),
+        (m) => ArabicUtils.normalizeArabic(m.name).contains(normalized),
       );
     }).toList();
   }
@@ -326,7 +347,7 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
           border: Border.all(
             color: isSelected
                 ? AppColors.primary.withValues(alpha: 0.5)
-                : const Color(0xFF2D5E57),
+                : AppColors.borderTeal,
           ),
         ),
         child: Row(
@@ -604,14 +625,4 @@ class _DefaultReciterScreenState extends ConsumerState<DefaultReciterScreen> {
     );
   }
 
-  String _normalizeArabic(String input) {
-    return input
-        .toLowerCase()
-        .replaceAll('أ', 'ا')
-        .replaceAll('إ', 'ا')
-        .replaceAll('آ', 'ا')
-        .replaceAll('ة', 'ه')
-        .replaceAll('ى', 'ي')
-        .trim();
-  }
 }

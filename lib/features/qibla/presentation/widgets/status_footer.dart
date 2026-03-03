@@ -24,7 +24,7 @@ class StatusFooter extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha:0.15),
             ),
             child: Icon(
               icon,
@@ -55,7 +55,7 @@ class StatusFooter extends StatelessWidget {
             Text(
               "انحراف: ${state.delta.abs().toStringAsFixed(1)}°",
               style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha:0.4),
                 fontSize: 12,
                 fontFamily: 'Tajawal',
               ),
@@ -68,10 +68,10 @@ class StatusFooter extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha:0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.green.withOpacity(0.5),
+                    color: Colors.green.withValues(alpha:0.5),
                     width: 1,
                   ),
                 ),

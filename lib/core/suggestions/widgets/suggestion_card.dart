@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../models/suggestion.dart';
 
 /// بطاقة عرض الاقتراح
@@ -19,15 +20,15 @@ class SuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Container(
       margin: margin ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            suggestion.color.withValues(alpha: isDark ? 0.2 : 0.15),
-            suggestion.color.withValues(alpha: isDark ? 0.1 : 0.05),
+            suggestion.color.withValues(alpha: 0.15),
+            suggestion.color.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -88,7 +89,7 @@ class SuggestionCard extends StatelessWidget {
                               style: GoogleFonts.tajawal(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black,
+                                color: colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -96,9 +97,7 @@ class SuggestionCard extends StatelessWidget {
                               suggestion.subtitle,
                               style: GoogleFonts.tajawal(
                                 fontSize: 14,
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.7)
-                                    : Colors.black.withValues(alpha: 0.6),
+                                color: colors.textSecondary,
                               ),
                             ),
                           ],
@@ -144,9 +143,7 @@ class SuggestionCard extends StatelessWidget {
                           icon: Icon(
                             Icons.close,
                             size: 20,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.4)
-                                : Colors.black.withValues(alpha: 0.3),
+                            color: colors.iconSecondary,
                           ),
                           onPressed: onDismiss ?? suggestion.onDismiss,
                           padding: EdgeInsets.zero,
@@ -163,9 +160,7 @@ class SuggestionCard extends StatelessWidget {
                       suggestion.description!,
                       style: GoogleFonts.tajawal(
                         fontSize: 13,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : Colors.black.withValues(alpha: 0.5),
+                        color: colors.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -206,18 +201,14 @@ class SuggestionCard extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.4)
-                              : Colors.black.withValues(alpha: 0.3),
+                          color: colors.iconSecondary,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           _getTimeRemaining(suggestion.expiresAt!),
                           style: GoogleFonts.tajawal(
                             fontSize: 12,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.5)
-                                : Colors.black.withValues(alpha: 0.4),
+                            color: colors.textTertiary,
                           ),
                         ),
                       ],
@@ -282,7 +273,7 @@ class SuggestionsList extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Center(
       child: Padding(
@@ -293,9 +284,7 @@ class SuggestionsList extends StatelessWidget {
             Icon(
               Icons.check_circle_outline,
               size: 64,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.3)
-                  : Colors.black.withValues(alpha: 0.2),
+              color: colors.iconSecondary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -303,9 +292,7 @@ class SuggestionsList extends StatelessWidget {
               style: GoogleFonts.tajawal(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.6)
-                    : Colors.black.withValues(alpha: 0.5),
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -313,9 +300,7 @@ class SuggestionsList extends StatelessWidget {
               'سنقترح عليك الأذكار والعبادات في أوقاتها',
               style: GoogleFonts.tajawal(
                 fontSize: 14,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.4)
-                    : Colors.black.withValues(alpha: 0.3),
+                color: colors.textTertiary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -339,12 +324,12 @@ class CompactSuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       decoration: BoxDecoration(
-        color: suggestion.color.withValues(alpha: isDark ? 0.15 : 0.1),
+        color: suggestion.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: suggestion.color.withValues(alpha: 0.25),
@@ -386,7 +371,7 @@ class CompactSuggestionCard extends StatelessWidget {
                         style: GoogleFonts.tajawal(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
+                          color: colors.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -395,9 +380,7 @@ class CompactSuggestionCard extends StatelessWidget {
                         suggestion.subtitle,
                         style: GoogleFonts.tajawal(
                           fontSize: 12,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.6)
-                              : Colors.black.withValues(alpha: 0.5),
+                          color: colors.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hadith/hadith.dart';
 
+import '../../../../core/constants/ui_strings.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/hadith_repository.dart';
+import '../widgets/hadith_tile.dart';
 
 // ── Args passed from HadithScreen via GoRouter extra ──────────────────────
 class HadithBookArgs {
@@ -115,7 +117,7 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
       if (!mounted) return;
       setState(() {
         _isInitialLoading = false;
-        _initialError = 'حدث خطأ في تحميل الأحاديث';
+        _initialError = UiStrings.hadithError;
       });
     }
   }
@@ -181,7 +183,7 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         Expanded(
           child: Column(
@@ -281,7 +283,7 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
                         foregroundColor: AppColors.backgroundDark,
                       ),
                       child: Text(
-                        'حفظ',
+                        UiStrings.save,
                         style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -318,7 +320,7 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'جاري تحميل الأحاديث…',
+          UiStrings.hadithLoading,
           style: GoogleFonts.tajawal(
             color: AppColors.textSecondaryDark,
             fontSize: 14,
@@ -334,14 +336,14 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          _initialError ?? 'حدث خطأ في تحميل الأحاديث',
+          _initialError ?? UiStrings.hadithError,
           style: GoogleFonts.tajawal(color: Colors.white54, fontSize: 15),
         ),
         const SizedBox(height: 12),
         TextButton(
           onPressed: _loadInitial,
           child: Text(
-            'إعادة المحاولة',
+            UiStrings.retry,
             style: GoogleFonts.tajawal(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
@@ -377,12 +379,12 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
 
         final row = rows[i];
         if (row.isHeader) {
-          return _ChapterHeader(
+          return HadithChapterHeader(
             title: row.chapterTitle,
             count: row.chapterCount,
           );
         }
-        return _HadithTile(
+        return HadithTile(
           hadith: row.hadith!,
           index: row.hadithIndex,
           collectionName: widget.args.collectionName,
@@ -522,236 +524,3 @@ class _HadithRow {
   }
 }
 
-class _ChapterHeader extends StatelessWidget {
-  const _ChapterHeader({required this.title, required this.count});
-
-  final String title;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(0, 6, 0, 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.35),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.menu_book_rounded,
-            size: 16,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textDirection: TextDirection.rtl,
-              style: GoogleFonts.tajawal(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$count حديث',
-            style: GoogleFonts.tajawal(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Single hadith tile ─────────────────────────────────────────────────────
-class _HadithTile extends ConsumerStatefulWidget {
-  final Hadith hadith;
-  final int index;
-  final String collectionName;
-
-  const _HadithTile({
-    required this.hadith,
-    required this.index,
-    required this.collectionName,
-  });
-
-  @override
-  ConsumerState<_HadithTile> createState() => _HadithTileState();
-}
-
-class _HadithTileState extends ConsumerState<_HadithTile> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final arText = HadithRepository.arabicBody(widget.hadith);
-    final enText = HadithRepository.englishBody(widget.hadith);
-    final chapter = HadithRepository.chapterTitle(widget.hadith);
-
-    // Display at least one text
-    final displayText = arText ?? enText ?? '';
-
-    // Preview: first 120 chars
-    final isLong = displayText.length > 160;
-    final preview = isLong && !_expanded
-        ? '${displayText.substring(0, 160)}…'
-        : displayText;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2D5E57)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Top bar: hadith number + chapter ────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF142C28),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Text(
-                    'حديث ${widget.hadith.hadithNumber}',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    chapter,
-                    style: GoogleFonts.tajawal(
-                      fontSize: 12,
-                      color: AppColors.textSecondaryDark,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    textDirection: TextDirection.rtl,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Arabic body ──────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Text(
-              preview,
-              style: GoogleFonts.notoNaskhArabic(
-                fontSize: ref.watch(hadithFontSizeProvider),
-                color: Colors.white,
-                height: 2.0,
-              ),
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-            ),
-          ),
-
-          // ── Expand / collapse + copy ─────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (isLong)
-                  TextButton(
-                    onPressed: () => setState(() => _expanded = !_expanded),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      _expanded ? 'عرض أقل ▲' : 'اقرأ المزيد ▼',
-                      style: GoogleFonts.tajawal(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox.shrink(),
-                // Copy button
-                GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: displayText));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'تم نسخ الحديث',
-                          style: GoogleFonts.tajawal(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        backgroundColor: AppColors.primary,
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.copy_outlined,
-                        size: 14,
-                        color: AppColors.textSecondaryDark,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'نسخ',
-                        style: GoogleFonts.tajawal(
-                          fontSize: 12,
-                          color: AppColors.textSecondaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

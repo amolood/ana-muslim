@@ -12,6 +12,10 @@ import '../../features/settings/presentation/screens/notification_settings_scree
 import '../../features/settings/presentation/screens/hijri_settings_screen.dart';
 import '../../features/settings/presentation/screens/prayer_adjustment_screen.dart';
 import '../../features/settings/presentation/screens/default_reciter_screen.dart';
+import '../../features/settings/presentation/screens/prayer_silence_screen.dart';
+import '../../features/settings/presentation/screens/widget_settings_screen.dart';
+import '../../features/settings/presentation/screens/widget_detail_settings_screen.dart';
+import '../../core/providers/widget_settings_provider.dart';
 import '../../features/quran/presentation/screens/quran_index_screen.dart';
 import '../../features/quran/presentation/screens/quran_reader_screen.dart';
 import '../../features/quran/presentation/screens/quran_search_screen.dart';
@@ -25,6 +29,7 @@ import '../../features/islamic_content/presentation/screens/islamic_content_hub_
 import '../../features/islamic_content/presentation/screens/islamic_content_list_screen.dart';
 import '../../features/khatmah/presentation/screens/khatmah_screen.dart';
 import '../../features/tahfeez/presentation/screens/tahfeez_screen.dart';
+import '../../features/adhan_player/presentation/screens/adhan_player_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/ramadan/presentation/screens/ramadan_screen.dart';
 import 'main_scaffold.dart';
@@ -63,6 +68,17 @@ class AppRouter {
         name: 'onboarding',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      // ─── Adhan player (full-screen, above bottom nav) ──────
+      GoRoute(
+        path: '/adhan-player',
+        name: 'adhan_player',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final prayerName =
+              state.uri.queryParameters['prayer'] ?? '';
+          return AdhanPlayerScreen(prayerName: prayerName);
+        },
       ),
       // ─── Main shell ───────────────────────────────────────────
       StatefulShellRoute.indexedStack(
@@ -255,6 +271,28 @@ class AppRouter {
                     path: 'default-reciter',
                     name: 'default_reciter',
                     builder: (context, state) => const DefaultReciterScreen(),
+                  ),
+                  GoRoute(
+                    path: 'prayer-silence',
+                    name: 'prayer_silence',
+                    builder: (context, state) => const PrayerSilenceScreen(),
+                  ),
+                  GoRoute(
+                    path: 'widgets',
+                    name: 'widget_settings',
+                    builder: (context, state) => const WidgetSettingsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':type',
+                        name: 'widget_detail_settings',
+                        builder: (context, state) {
+                          final type = WidgetType.values.byName(
+                            state.pathParameters['type']!,
+                          );
+                          return WidgetDetailSettingsScreen(widgetType: type);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

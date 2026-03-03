@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'dart:math' as math;
 
 /// Overlay shown when magnetometer needs calibration
@@ -11,7 +12,7 @@ class CalibrationOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.85),
+      color: Colors.black.withValues(alpha:0.85),
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -37,7 +38,7 @@ class CalibrationOverlay extends StatelessWidget {
             "يرجى تحريك الهاتف بشكل رقم (8) في الهواء والابتعاد عن أي أجسام معدنية أو مغناطيسية.",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha:0.7),
               fontSize: 16,
               height: 1.5,
               fontFamily: 'Tajawal',
@@ -149,12 +150,12 @@ class Figure8Painter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF4AFFA3).withOpacity(0.3)
+      ..color = AppColors.qiblaGreen.withValues(alpha:0.3)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
     final activePaint = Paint()
-      ..color = const Color(0xFF4AFFA3)
+      ..color = AppColors.qiblaGreen
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -223,7 +224,7 @@ class Figure8Painter extends CustomPainter {
     canvas.drawRRect(phoneRect, phonePaint);
 
     final screenPaint = Paint()
-      ..color = const Color(0xFF4AFFA3)
+      ..color = AppColors.qiblaGreen
       ..style = PaintingStyle.fill;
 
     final screenRect = RRect.fromRectAndRadius(

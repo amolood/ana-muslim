@@ -25,6 +25,41 @@ final khatmahControllerProvider =
       KhatmahController.new,
     );
 
+// ─── Derived providers ────────────────────────────────────────────────────
+// Widgets that only care about one aspect of the khatmah state can watch
+// these instead of the full khatmahControllerProvider, so they only rebuild
+// when their specific field changes.
+
+/// Overall completion progress (0.0–1.0).
+final khatmahProgressProvider = Provider<double>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.progress ?? 0.0;
+});
+
+/// Today's progress (0.0–1.0).
+final khatmahTodayProgressProvider = Provider<double>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.todayProgress ?? 0.0;
+});
+
+/// Current streak in consecutive completed days.
+final khatmahStreakProvider = Provider<int>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.currentStreakDays ?? 0;
+});
+
+/// Number of missed tasks (days before today that weren't completed).
+final khatmahMissedCountProvider = Provider<int>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.missedTasksCount ?? 0;
+});
+
+/// Whether today's wird has been completed.
+final khatmahTodayCompletedProvider = Provider<bool>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.isTodayCompleted ?? false;
+});
+
+/// Whether an active plan exists.
+final khatmahHasPlanProvider = Provider<bool>((ref) {
+  return ref.watch(khatmahControllerProvider).asData?.value.hasActivePlan ?? false;
+});
+
 class KhatmahController extends AsyncNotifier<KhatmahViewState> {
   Timer? _dayRolloverTimer;
 
@@ -56,6 +91,7 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
   }
 
   Future<void> createPlan(KhatmahPlanDraft draft) async {
+    try {
     final now = DateTime.now();
     final startDate = _dateOnly(draft.startDate);
     final lastReadPage = ref.read(lastReadPageProvider).clamp(1, 604);
@@ -120,6 +156,9 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
     );
 
     state = AsyncData(_computeViewState(plan, tasks));
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   Future<void> clearPlan() async {
@@ -227,6 +266,7 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
   }
 
   Future<bool> syncFromReadingPage(int page) async {
+    try {
     final current = state.asData?.value;
     final plan = current?.plan;
     if (plan == null) return false;
@@ -282,9 +322,14 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
     }
 
     return reachedTodayTarget;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
   }
 
   Future<bool> markTodayCompletedManual() async {
+    try {
     final current = state.asData?.value;
     final plan = current?.plan;
     if (plan == null) return false;
@@ -327,9 +372,14 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
     await _repo.saveDailyTasks(updatedPlan.id, updatedTasks);
     state = AsyncData(_computeViewState(updatedPlan, updatedTasks));
     return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
   }
 
   Future<bool> markTaskCompletedById(String taskId) async {
+    try {
     final current = state.asData?.value;
     final plan = current?.plan;
     if (plan == null) return false;
@@ -368,6 +418,10 @@ class KhatmahController extends AsyncNotifier<KhatmahViewState> {
     await _repo.saveDailyTasks(updatedPlan.id, updatedTasks);
     state = AsyncData(_computeViewState(updatedPlan, updatedTasks));
     return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
   }
 
   Future<KhatmahViewState> _loadState() async {

@@ -12,6 +12,7 @@ class NotificationController extends Controller
     public function index()
     {
         $notifications = AnaMuslimNotification::latest()->paginate(20);
+
         return view('admin.notifications.index', compact('notifications'));
     }
 
@@ -45,19 +46,19 @@ class NotificationController extends Controller
 
             $data = [
                 'title' => $notification->title,
-                'message' => $notification->message,
+                'body' => $notification->message,
                 'type' => $notification->type,
                 'target_url' => $notification->target_url,
                 'sent_at' => now()->toDateTimeString(),
             ];
 
-            $pusher->trigger('ana-muslim-channel', 'new-notification', $data);
+            $pusher->trigger('ana-muslim-channel', 'admin-notification', $data);
 
             $notification->update(['sent_at' => now()]);
 
             return redirect()->route('admin.notifications.index')->with('success', 'تم إرسال التنبيه بنجاح');
         } catch (\Exception $e) {
-            return back()->with('error', 'فشل في إرسال التنبيه: ' . $e->getMessage());
+            return back()->with('error', 'فشل في إرسال التنبيه: '.$e->getMessage());
         }
     }
 }

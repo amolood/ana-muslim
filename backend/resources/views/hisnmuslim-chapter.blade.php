@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 ` : ''}
                             </div>
 
-                            <button onclick="copyDua('${dua.text_ar.replace(/'/g, "\\'")}', ${index})" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors" title="نسخ">
+                            <button onclick="copyDua(this, '${dua.text_ar.replace(/'/g, "\\'")}', ${index})" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors" title="نسخ">
                                 <iconify-icon icon="solar:copy-linear" width="20" height="20"></iconify-icon>
                             </button>
                         </div>
@@ -196,10 +196,10 @@ function playAudio(url) {
 }
 
 // Copy dua function
-function copyDua(text, index) {
+function copyDua(btn, text, index) {
     navigator.clipboard.writeText(text).then(() => {
         // Show success feedback
-        const button = event.target.closest('button');
+        const button = btn;
         const icon = button.querySelector('iconify-icon');
         icon.setAttribute('icon', 'solar:check-circle-bold');
         button.classList.add('text-green-500');

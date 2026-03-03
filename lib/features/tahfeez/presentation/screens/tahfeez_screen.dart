@@ -24,7 +24,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
     final tahfeezState = ref.watch(tahfeezProvider);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+      backgroundColor: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
       body: CustomScrollView(
         slivers: [
           // App Bar مخصص
@@ -49,7 +49,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
                     end: Alignment.bottomLeft,
                     colors: [
                       AppColors.primary,
-                      AppColors.primary.withOpacity(0.8),
+                      AppColors.primary.withValues(alpha:0.8),
                     ],
                   ),
                 ),
@@ -60,14 +60,14 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
                     Icon(
                       Icons.school_outlined,
                       size: 60,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'احفظ القرآن بسهولة ويسر',
                       style: GoogleFonts.tajawal(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha:0.9),
                       ),
                     ),
                   ],
@@ -151,7 +151,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.cardDark : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -229,7 +229,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
       // تتبع الآية الحالية
       _listenToCurrentAyah();
     } catch (e) {
-      _showMessage('خطأ في التشغيل: $e', isError: true);
+      _showMessage('تعذر تشغيل التلاوة', isError: true);
       ref.read(tahfeezProvider.notifier).setPlaying(false);
     }
   }
@@ -244,7 +244,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
       await AudioCtrl.instance.pausePlayer();
       ref.read(tahfeezProvider.notifier).setPlaying(false);
     } catch (e) {
-      _showMessage('خطأ في الإيقاف: $e', isError: true);
+      _showMessage('تعذر إيقاف التلاوة مؤقتاً', isError: true);
     }
   }
 
@@ -254,7 +254,7 @@ class _TahfeezScreenState extends ConsumerState<TahfeezScreen> {
       ref.read(tahfeezProvider.notifier).stopSession();
       _showMessage('تم إيقاف الجلسة');
     } catch (e) {
-      _showMessage('خطأ في الإيقاف: $e', isError: true);
+      _showMessage('تعذر إيقاف الجلسة', isError: true);
     }
   }
 

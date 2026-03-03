@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import '../../data/models/qibla_state.dart';
 
-/// Simple and clear compass view for Qibla direction
-/// Design: Fixed Kaaba at top, rotating arrow from center pointing to Qibla
+/// Immersive Qibla compass — large ring with Kaaba badge on the edge,
+/// rotating arrow, and integrated status text below.
 class SimpleCompassView extends StatelessWidget {
   final QiblaUiState state;
 
@@ -12,145 +13,99 @@ class SimpleCompassView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    // تقليل حجم البوصلة لتناسب جميع الشاشات
-    final compassSize = math.min(size.width * 0.65, 280.0);
+    final width = MediaQuery.sizeOf(context).width;
+    final compassSize = math.min(width * 0.80, 340.0);
+    final absDelta = state.delta.abs();
+    final Color accentColor = _getArrowColor(absDelta);
+    final bool isAligned = absDelta < 3.0;
 
-    // تحديد اللون بناءً على الدقة
-    final Color arrowColor = _getArrowColor(state.delta.abs());
-    final bool isAligned = state.delta.abs() < 5.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Compass with Kaaba on ring ──
+        SizedBox(
+          width: compassSize + 40, // extra room for Kaaba badge overhang
+          height: compassSize + 40,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // Ring + tick marks (CustomPainter)
+              CustomPaint(
+                size: Size(compassSize, compassSize),
+                painter: CompassRingPainter(accentColor: accentColor),
+              ),
+
+              // Cardinal labels (skip North — Kaaba sits there)
+              _buildCardinalLabels(compassSize),
+
+              // Rotating arrow
+              _buildRotatingArrow(compassSize, accentColor, isAligned),
+
+              // Center hub
+              _buildCenterHub(compassSize, accentColor, absDelta, isAligned),
+
+              // Kaaba badge sitting ON the ring at 12 o'clock
+              Positioned(
+                top: 20 - 22, // half of badge height above ring top
+                child: _buildKaabaBadge(isAligned, accentColor),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ── Status text ──
+        _buildStatusText(absDelta, state.delta, accentColor),
+      ],
+    );
+  }
+
+  /// Cardinal labels: ق (East), ج (South), غ (West) — skip North (Kaaba is there)
+  Widget _buildCardinalLabels(double size) {
+    final double radius = size / 2 - 28;
+    final center = size / 2;
+
+    // Angles: East=90°, South=180°, West=270° (measured clockwise from North)
+    const cardinals = [
+      (label: 'ق', angleDeg: 90.0),  // شرق (East) — right
+      (label: 'ج', angleDeg: 180.0), // جنوب (South) — bottom
+      (label: 'غ', angleDeg: 270.0), // غرب (West) — left
+    ];
 
     return SizedBox(
-      width: compassSize,
-      height: compassSize + 100, // مساحة إضافية للكعبة في الأعلى
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none, // للسماح للكعبة بالخروج من الحدود
-        children: [
-          // الكعبة الثابتة خارج الدائرة في الأعلى
-          Positioned(
-            top: 0,
-            child: _buildFixedKaaba(isAligned, arrowColor),
-          ),
-
-          // الدائرة الخارجية (البوصلة) في المنتصف
-          Positioned(
-            top: 80, // بعد الكعبة
-            child: _buildCompassCircle(compassSize, arrowColor),
-          ),
-
-          // السهم الدوار يشير للقبلة (فوق الدائرة)
-          Positioned(
-            top: 80,
-            child: _buildRotatingArrow(compassSize, arrowColor, isAligned),
-          ),
-
-          // المركز (معلومات الاتجاه)
-          Positioned(
-            top: 80,
-            child: _buildCenterInfo(arrowColor, compassSize),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// الدائرة الخارجية مع علامات الاتجاهات
-  Widget _buildCompassCircle(double size, Color accentColor) {
-    return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.3),
-          width: 3,
-        ),
-        gradient: RadialGradient(
-          colors: [
-            const Color(0xFF1A1A1A),
-            const Color(0xFF0A0A0A),
-          ],
-          stops: const [0.7, 1.0],
-        ),
-      ),
       child: Stack(
-        children: [
-          // علامات الاتجاهات الرئيسية (ش، ج، ق، غ)
-          _buildDirectionMarker('ش', 0, size),      // شمال
-          _buildDirectionMarker('ج', 90, size),     // جنوب
-          _buildDirectionMarker('غ', 180, size),    // غرب
-          _buildDirectionMarker('ق', 270, size),    // قبل
-
-          // علامات فرعية كل 45 درجة
-          ..._buildMinorTicks(size),
-        ],
+        children: cardinals.map((c) {
+          final rad = c.angleDeg * math.pi / 180;
+          final dx = center + radius * math.sin(rad) - 12;
+          final dy = center - radius * math.cos(rad) - 12;
+          return Positioned(
+            left: dx,
+            top: dy,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: Center(
+                child: Text(
+                  c.label,
+                  style: GoogleFonts.tajawal(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white54,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  /// علامات الاتجاهات الرئيسية
-  Widget _buildDirectionMarker(String label, double angle, double size) {
-    final double radians = angle * math.pi / 180;
-    final double radius = size / 2 - 25;
-
-    return Positioned(
-      left: size / 2 + radius * math.cos(radians - math.pi / 2) - 15,
-      top: size / 2 + radius * math.sin(radians - math.pi / 2) - 15,
-      child: Container(
-        width: 30,
-        height: 30,
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: GoogleFonts.tajawal(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.white60,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// علامات صغيرة كل 45 درجة
-  List<Widget> _buildMinorTicks(double size) {
-    final List<Widget> ticks = [];
-    for (int i = 0; i < 8; i++) {
-      final angle = i * 45.0;
-      if (angle % 90 != 0) { // تجاهل الاتجاهات الرئيسية
-        ticks.add(_buildTick(angle, size, isMinor: true));
-      } else {
-        ticks.add(_buildTick(angle, size, isMinor: false));
-      }
-    }
-    return ticks;
-  }
-
-  /// علامة واحدة على محيط الدائرة
-  Widget _buildTick(double angle, double size, {required bool isMinor}) {
-    final double radians = angle * math.pi / 180;
-    final double radius = size / 2;
-    final double tickLength = isMinor ? 8 : 15;
-
-    return Positioned(
-      left: size / 2,
-      top: size / 2,
-      child: Transform.rotate(
-        angle: radians,
-        child: Transform.translate(
-          offset: Offset(0, -radius + tickLength),
-          child: Container(
-            width: 2,
-            height: tickLength,
-            color: Colors.white30,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// السهم الدوار الذي يشير إلى القبلة
+  /// Rotating Qibla arrow (kept exactly as original)
   Widget _buildRotatingArrow(double size, Color color, bool isAligned) {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: state.delta),
@@ -158,7 +113,7 @@ class SimpleCompassView extends StatelessWidget {
       curve: Curves.easeOutCubic,
       builder: (context, angle, child) {
         return Transform.rotate(
-          angle: -angle * (math.pi / 180), // عكس الاتجاه لأن السهم يدور
+          angle: -angle * (math.pi / 180),
           child: child,
         );
       },
@@ -173,92 +128,127 @@ class SimpleCompassView extends StatelessWidget {
     );
   }
 
-  /// الكعبة الثابتة في الأعلى
-  Widget _buildFixedKaaba(bool isAligned, Color accentColor) {
-    return Positioned(
-      top: 0,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isAligned
-              ? accentColor.withValues(alpha: 0.2)
-              : const Color(0xFF1A1A1A),
-          border: Border.all(
-            color: accentColor,
-            width: isAligned ? 3 : 2,
-          ),
-          boxShadow: isAligned
-              ? [
-                  BoxShadow(
-                    color: accentColor.withValues(alpha: 0.6),
-                    blurRadius: 30,
-                    spreadRadius: 10,
-                  )
-                ]
-              : [],
-        ),
-        child: const Icon(
-          Icons.place,
-          color: Colors.white,
-          size: 32,
-        ),
-      ),
-    );
-  }
-
-  /// المركز مع معلومات الاتجاه
-  Widget _buildCenterInfo(Color accentColor, double compassSize) {
-    final absDelta = state.delta.abs();
-    final centerSize = compassSize * 0.35; // نسبة من حجم البوصلة
+  /// Center hub — small circle showing ✓ when aligned, degree otherwise
+  Widget _buildCenterHub(
+    double compassSize,
+    Color accentColor,
+    double absDelta,
+    bool isAligned,
+  ) {
+    final hubSize = compassSize * 0.28;
 
     return Container(
-      width: centerSize,
-      height: centerSize,
+      width: hubSize,
+      height: hubSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF0A0A0A),
+        color: AppColors.qiblaDark,
         border: Border.all(
           color: accentColor.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // درجة الانحراف
-          Text(
-            '${absDelta.toInt()}°',
-            style: GoogleFonts.tajawal(
-              fontSize: centerSize * 0.24, // نسبة من حجم الدائرة
-              fontWeight: FontWeight.bold,
-              color: accentColor,
-            ),
-          ),
-          SizedBox(height: centerSize * 0.04),
-          // اتجاه الدوران
-          if (absDelta > 3)
-            Icon(
-              state.delta > 0 ? Icons.arrow_forward : Icons.arrow_back,
-              size: centerSize * 0.20,
-              color: accentColor.withValues(alpha: 0.7),
-            ),
-        ],
+      child: Center(
+        child: isAligned
+            ? Icon(
+                Icons.check_rounded,
+                size: hubSize * 0.45,
+                color: accentColor,
+              )
+            : Text(
+                '${absDelta.toInt()}°',
+                style: GoogleFonts.tajawal(
+                  fontSize: hubSize * 0.28,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
       ),
     );
   }
 
-  /// تحديد لون السهم بناءً على الدقة
-  Color _getArrowColor(double absDelta) {
-    if (absDelta < 3) return const Color(0xFF00FF88); // أخضر فاتح - ممتاز
-    if (absDelta < 10) return const Color(0xFF4AFFA3); // أخضر - جيد جداً
-    if (absDelta < 30) return const Color(0xFFFFAA00); // برتقالي - جيد
-    if (absDelta < 60) return const Color(0xFFFF6B6B); // أحمر فاتح - مقبول
-    return Colors.white54; // أبيض باهت - بعيد
+  /// Kaaba badge — sits ON the ring at 12 o'clock, half in / half out
+  Widget _buildKaabaBadge(bool isAligned, Color accentColor) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isAligned
+            ? accentColor.withValues(alpha: 0.25)
+            : const Color(0xFF1A1A1A),
+        border: Border.all(
+          color: accentColor,
+          width: isAligned ? 2.5 : 1.5,
+        ),
+        boxShadow: isAligned
+            ? [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.5),
+                  blurRadius: 20,
+                  spreadRadius: 4,
+                ),
+              ]
+            : [],
+      ),
+      child: const Center(
+        child: Text('🕋', style: TextStyle(fontSize: 20)),
+      ),
+    );
   }
 
-  /// شدة التوهج بناءً على القرب من القبلة
+  /// Status text — single bold line + optional subtitle
+  Widget _buildStatusText(double absDelta, double delta, Color accentColor) {
+    final String mainText;
+    final String? subText;
+
+    if (absDelta < 3) {
+      mainText = 'اتجاه القبلة صحيح ✓';
+      subText = null;
+    } else if (absDelta < 45) {
+      mainText = delta > 0 ? 'استدر يميناً' : 'استدر يساراً';
+      subText = absDelta > 3 && absDelta < 45
+          ? 'ضمن النطاق المقبول للصلاة'
+          : null;
+    } else {
+      mainText = delta > 0 ? 'استدر يميناً' : 'استدر يساراً';
+      subText = null;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          mainText,
+          style: GoogleFonts.tajawal(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: accentColor,
+          ),
+        ),
+        if (subText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subText,
+            style: GoogleFonts.tajawal(
+              fontSize: 13,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Color _getArrowColor(double absDelta) {
+    if (absDelta < 3) return AppColors.qiblaBrightGreen;
+    if (absDelta < 10) return AppColors.qiblaGreen;
+    if (absDelta < 30) return const Color(0xFFFFAA00);
+    if (absDelta < 60) return const Color(0xFFFF6B6B);
+    return Colors.white54;
+  }
+
   double _getGlowIntensity(double absDelta) {
     if (absDelta < 3) return 1.0;
     if (absDelta < 10) return 0.7;
@@ -267,7 +257,77 @@ class SimpleCompassView extends StatelessWidget {
   }
 }
 
-/// رسام مخصص للسهم - تصميم حديث وأنيق
+/// Draws the compass ring + 36 tick marks efficiently in a single paint call.
+class CompassRingPainter extends CustomPainter {
+  final Color accentColor;
+
+  CompassRingPainter({required this.accentColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // ── Outer ring ──
+    final ringPaint = Paint()
+      ..color = accentColor.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(center, radius, ringPaint);
+
+    // ── Background fill ──
+    final bgGradient = RadialGradient(
+      colors: [
+        const Color(0xFF1A1A1A),
+        AppColors.qiblaDark,
+      ],
+      stops: const [0.7, 1.0],
+    );
+    final bgPaint = Paint()
+      ..shader = bgGradient.createShader(
+        Rect.fromCircle(center: center, radius: radius),
+      )
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius - 1.5, bgPaint);
+
+    // ── 36 tick marks (every 10°) ──
+    final majorTickPaint = Paint()
+      ..color = Colors.white54
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    final minorTickPaint = Paint()
+      ..color = Colors.white24
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 36; i++) {
+      final angleDeg = i * 10.0;
+      final rad = angleDeg * math.pi / 180;
+      final isMajor = angleDeg % 90 == 0; // N, E, S, W
+      final tickLength = isMajor ? 14.0 : 8.0;
+      final paint = isMajor ? majorTickPaint : minorTickPaint;
+
+      final outerX = center.dx + radius * math.sin(rad);
+      final outerY = center.dy - radius * math.cos(rad);
+      final innerX = center.dx + (radius - tickLength) * math.sin(rad);
+      final innerY = center.dy - (radius - tickLength) * math.cos(rad);
+
+      canvas.drawLine(
+        Offset(outerX, outerY),
+        Offset(innerX, innerY),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CompassRingPainter oldDelegate) {
+    return oldDelegate.accentColor != accentColor;
+  }
+}
+
+/// Arrow painter — kept exactly as original design
 class QiblaArrowPainter extends CustomPainter {
   final Color color;
   final bool isAligned;
@@ -285,9 +345,8 @@ class QiblaArrowPainter extends CustomPainter {
     final radius = size.width / 2;
     final arrowLength = radius - 20;
 
-    // توهج خارجي متعدد الطبقات للسهم
+    // Multi-layer outer glow
     if (glowIntensity > 0) {
-      // طبقة توهج خارجية
       final outerGlowPaint = Paint()
         ..color = color.withValues(alpha: glowIntensity * 0.15)
         ..strokeWidth = 20
@@ -301,7 +360,6 @@ class QiblaArrowPainter extends CustomPainter {
         outerGlowPaint,
       );
 
-      // طبقة توهج متوسطة
       final midGlowPaint = Paint()
         ..color = color.withValues(alpha: glowIntensity * 0.3)
         ..strokeWidth = 14
@@ -316,7 +374,7 @@ class QiblaArrowPainter extends CustomPainter {
       );
     }
 
-    // جسم السهم الرئيسي - تدرج في العرض
+    // Arrow body with gradient
     final gradient = LinearGradient(
       begin: Alignment.bottomCenter,
       end: Alignment.topCenter,
@@ -343,25 +401,23 @@ class QiblaArrowPainter extends CustomPainter {
       arrowBodyPaint,
     );
 
-    // رأس السهم - تصميم حديث وأنيق
+    // Arrow head
     final arrowTipY = center.dy - arrowLength;
 
-    // رأس السهم الخارجي (محدد)
     final arrowHeadPath = Path()
-      ..moveTo(center.dx, arrowTipY - 5) // نقطة السهم
+      ..moveTo(center.dx, arrowTipY - 5)
       ..quadraticBezierTo(
-        center.dx - 8, arrowTipY + 15, // نقطة التحكم اليسرى
-        center.dx - 16, arrowTipY + 22, // النقطة اليسرى
+        center.dx - 8, arrowTipY + 15,
+        center.dx - 16, arrowTipY + 22,
       )
-      ..lineTo(center.dx, arrowTipY + 12) // المركز السفلي
-      ..lineTo(center.dx + 16, arrowTipY + 22) // النقطة اليمنى
+      ..lineTo(center.dx, arrowTipY + 12)
+      ..lineTo(center.dx + 16, arrowTipY + 22)
       ..quadraticBezierTo(
-        center.dx + 8, arrowTipY + 15, // نقطة التحكم اليمنى
-        center.dx, arrowTipY - 5, // نقطة السهم
+        center.dx + 8, arrowTipY + 15,
+        center.dx, arrowTipY - 5,
       )
       ..close();
 
-    // توهج رأس السهم
     if (glowIntensity > 0) {
       canvas.drawPath(
         arrowHeadPath,
@@ -371,7 +427,6 @@ class QiblaArrowPainter extends CustomPainter {
       );
     }
 
-    // تعبئة رأس السهم بتدرج
     final arrowHeadGradient = RadialGradient(
       center: Alignment.topCenter,
       radius: 1.5,
@@ -394,7 +449,6 @@ class QiblaArrowPainter extends CustomPainter {
 
     canvas.drawPath(arrowHeadPath, arrowHeadPaint);
 
-    // حدود رأس السهم
     final arrowHeadBorderPaint = Paint()
       ..color = color
       ..strokeWidth = 1.5
@@ -402,8 +456,7 @@ class QiblaArrowPainter extends CustomPainter {
 
     canvas.drawPath(arrowHeadPath, arrowHeadBorderPaint);
 
-    // دائرة مركزية أنيقة
-    // دائرة خارجية (توهج)
+    // Center dot
     if (glowIntensity > 0) {
       canvas.drawCircle(
         center,
@@ -414,7 +467,6 @@ class QiblaArrowPainter extends CustomPainter {
       );
     }
 
-    // دائرة خارجية (حدود)
     canvas.drawCircle(
       center,
       10,
@@ -424,7 +476,6 @@ class QiblaArrowPainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // دائرة داخلية (تعبئة بتدرج)
     final centerGradient = RadialGradient(
       colors: [
         color,
@@ -442,7 +493,6 @@ class QiblaArrowPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // نقطة مركزية صغيرة
     canvas.drawCircle(
       center,
       3,

@@ -9,7 +9,7 @@
     <!-- خطوط جوجل: أميري للقرآن، وتجوال للواجهة العصرية -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <!-- مكتبة الأيقونات Iconify (مجموعة Solar الفاخرة) -->
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
@@ -46,125 +46,85 @@
     </script>
 
     <style>
-        body {
-            background-color: #F1F5F9;
-        }
+    /* Navbar Glass Effects */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+    }
+    .dark .glass-panel {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+    }
+    .glass-button {
+        background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.6) 100%);
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .dark .glass-button {
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
 
-        .dark body {
-            background-color: #0B1121;
-        }
+    /* Focus Mode Scrollbar */
+    .focus-scroll-area::-webkit-scrollbar { width: 5px; }
+    .focus-scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .focus-scroll-area::-webkit-scrollbar-thumb { background: rgba(180,140,60,.25); border-radius: 10px; }
+    .focus-scroll-area::-webkit-scrollbar-thumb:hover { background: rgba(180,140,60,.45); }
 
-        /* Glass Morphism for Navbar */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
+    /* Ayah hover in focus mode */
+    .ayah-focus-segment {
+        transition: background 0.2s;
+        padding: 2px 3px;
+        border-radius: 4px;
+    }
+    .ayah-focus-segment:hover {
+        background: rgba(251,191,36,.12);
+    }
+    .ayah-number-container {
+        transition: transform 0.2s;
+    }
+    .ayah-focus-segment:hover .ayah-number-container {
+        transform: scale(1.12);
+    }
 
-        .dark .glass-panel {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .glass-button {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .dark .glass-button {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* شريط تمرير عصري ومخفي جزئياً */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #15803d; }
-
-        /* إعدادات النص القرآني */
-        .quran-text {
-            line-height: 2.5;
-            word-spacing: 2px;
-        }
-
-        /* تأثير التحديد للآية النشطة */
-        .verse-hover {
-            transition: all 0.3s ease;
-        }
-        .verse-hover:hover {
-            background-color: rgba(22, 163, 74, 0.04);
-            border-radius: 0.5rem;
-        }
-
-        /* علامة الآية العصرية */
-        .ayah-marker {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            margin: 0 6px;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23D4AF37" stroke-width="2" stroke-dasharray="4 4"/><circle cx="50" cy="50" r="38" fill="none" stroke="%23D4AF37" stroke-width="1"/></svg>');
-            background-size: cover;
-            background-position: center;
-            font-family: 'Tajawal', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            color: #15803d;
-            vertical-align: middle;
-        }
-
-        /* دوران هادئ للأسطوانة */
-        @keyframes spin-slow {
-            100% { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-            animation: spin-slow 10s linear infinite;
-        }
-
-        .animate-spin-playing {
-            animation: spin-slow 3s linear infinite;
-        }
-
-        /* إخفاء شريط التمرير الأفقي للأزرار */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* تأثيرات الظهور */
-        @keyframes fade-in-up {
-            from {
-                opacity: 0;
-                transform: translate(-50%, 10px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
-        }
-        .animate-fade-in-up {
-            animation: fade-in-up 0.3s ease-out;
-        }
-
-        /* Modal backdrop */
-        .modal-backdrop {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-
-        /* Dark mode styles */
-        .dark .mushaf-page {
-            background: linear-gradient(135deg, #1a1f2e 0%, #151923 100%);
-            border-color: #2d3748;
-        }
-
-        .dark .ayah-marker {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23D4AF37" stroke-width="2" stroke-dasharray="4 4"/><circle cx="50" cy="50" r="38" fill="none" stroke="%23D4AF37" stroke-width="1"/></svg>');
-            color: #86efac;
-        }
+    /* Ayah marker circle in main view */
+    .ayah-marker {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #94a3b8;
+        font-size: 0.65rem;
+        font-weight: 800;
+        font-family: 'Readex Pro', sans-serif;
+        vertical-align: middle;
+        margin: 0 8px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
+        border: 1.5px solid rgba(255,255,255,.08);
+        transition: transform 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+        letter-spacing: 0;
+    }
+    .verse-hover:hover .ayah-marker {
+        background: linear-gradient(135deg, #0d9e87 0%, #11D4B4 100%);
+        color: #fff;
+        transform: scale(1.12);
+        box-shadow: 0 4px 12px rgba(17,212,180,.35);
+        border-color: rgba(255,255,255,.15);
+    }
+    .ayah-marker--active {
+        background: linear-gradient(135deg, #0d9e87 0%, #11D4B4 100%) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(17,212,180,.4) !important;
+    }
     </style>
 </head>
 <body class="text-slate-800 dark:text-slate-200 antialiased selection:bg-primary-100 selection:text-primary-900 dark:selection:bg-primary-800 dark:selection:text-white flex flex-col min-h-screen">
@@ -174,7 +134,7 @@
     <div class="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-primary-50/80 dark:from-slate-900/80 to-transparent z-[-1] pointer-events-none"></div>
 
     <!-- Navbar -->
-    <div x-show="!focusMode">
+    <div x-show="!focusMode" style="font-family: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;">
         @include('partials.web-navbar')
     </div>
 
@@ -354,8 +314,8 @@
                                       @click="selectAyah(ayah)">
                                     <span x-text="ayah.text"></span>
                                     <span class="ayah-marker"
-                                          :class="{ '!bg-white dark:!bg-slate-800 !text-primary-800 dark:!text-primary-400 shadow-sm border border-gold-400': selectedAyah === ayah.numberInSurah }"
-                                          x-text="convertToArabicNumbers(ayah.numberInSurah)"></span>
+                                          :class="{ 'ayah-marker--active': selectedAyah === ayah.numberInSurah }"
+                                          x-text="ayah.numberInSurah"></span>
 
                                     <!-- القائمة العائمة (Floating Action Bar) -->
                                     <div x-show="selectedAyah === ayah.numberInSurah"
@@ -547,14 +507,26 @@
 
             <!-- Tafsir Tabs -->
             <div class="flex items-center gap-2 px-6 py-4 border-b border-slate-200 dark:border-slate-700 overflow-x-auto hide-scrollbar">
-                <button @click="changeTafsir('muyassar')" :class="selectedTafsir === 'muyassar' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(16)" :class="selectedTafsir === 16 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
                     الميسر
                 </button>
-                <button @click="changeTafsir('jalalayn')" :class="selectedTafsir === 'jalalayn' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
-                    الجلالين
+                <button @click="changeTafsir(14)" :class="selectedTafsir === 14 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                    ابن كثير
                 </button>
-                <button @click="changeTafsir('saadi')" :class="selectedTafsir === 'saadi' ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(91)" :class="selectedTafsir === 91 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
                     السعدي
+                </button>
+                <button @click="changeTafsir(90)" :class="selectedTafsir === 90 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                    القرطبي
+                </button>
+                <button @click="changeTafsir(94)" :class="selectedTafsir === 94 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                    البغوي
+                </button>
+                <button @click="changeTafsir(93)" :class="selectedTafsir === 93 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                    الوسيط
+                </button>
+                <button @click="changeTafsir(15)" :class="selectedTafsir === 15 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                    الطبري
                 </button>
             </div>
 
@@ -678,7 +650,7 @@
         </div>
     </div>
 
-    <!-- Focus Mode Overlay - Premium Mushaf Experience -->
+    <!-- Focus Mode Overlay -->
     <div x-show="focusMode"
          x-cloak
          x-transition:enter="transition ease-out duration-500"
@@ -688,146 +660,137 @@
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
          class="fixed inset-0 z-[200] overflow-hidden flex flex-col"
-         style="background: linear-gradient(135deg, #f5f1e8 0%, #ebe4d1 100%);">
+         style="background:#faf6ef;"
+         @mousemove="showFocusBar()"
+         @touchstart.passive="showFocusBar()">
 
-        <!-- Background Image (fixed, covers viewport) -->
-        <div class="fixed inset-0 z-[199] pointer-events-none" style="background: url('{{ asset('assets/backgound.png') }}') center/cover no-repeat;"></div>
-        <!-- Top Control Bar -->
-        <div class="fixed top-0 left-0 right-0 z-[302] glass-panel-focus border-b border-amber-200/30">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+        <!-- Subtle dot-grid texture -->
+        <div class="fixed inset-0 z-[199] pointer-events-none"
+             style="background-image:radial-gradient(circle,rgba(180,140,60,.05) 1px,transparent 1px);background-size:22px 22px;"></div>
 
-                <!-- Exit Button -->
+        <!-- Top Bar (auto-hide) -->
+        <div x-show="focusBarVisible"
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 -translate-y-full"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-full"
+             class="fixed top-0 left-0 right-0 z-[302]"
+             style="background:rgba(250,246,239,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(180,140,60,.15);">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+
+                <!-- Exit -->
                 <button @click="toggleFocusMode()"
-                        class="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 hover:bg-white border border-amber-200 shadow-lg hover:shadow-xl transition-all">
-                    <iconify-icon icon="solar:arrow-right-bold" class="text-xl text-amber-700"></iconify-icon>
-                    <span class="text-sm font-bold text-amber-900 hidden sm:inline">رجوع</span>
-                    <kbd class="hidden md:inline-block px-2 py-1 text-xs font-mono bg-amber-50 text-amber-700 rounded border border-amber-200">ESC</kbd>
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-200/80 bg-white/70 hover:bg-white transition-all text-amber-800 text-sm font-bold shadow-sm shrink-0">
+                    <iconify-icon icon="solar:arrow-right-bold" class="text-base"></iconify-icon>
+                    <span class="hidden sm:inline">رجوع</span>
+                    <kbd class="hidden md:inline-block px-1.5 py-0.5 text-xs font-mono bg-amber-50 text-amber-700 rounded border border-amber-200/60">ESC</kbd>
                 </button>
 
-                <!-- Surah Info -->
-                <div class="flex items-center gap-3" x-show="selectedSurah">
-                    <div class="text-right">
-                        <div class="text-lg font-bold text-amber-900" x-text="currentSurahData?.name || ''"></div>
-                        <div class="text-xs text-amber-700">
-                            <span x-text="currentSurahData?.revelationType === 'Meccan' ? 'مكية' : 'مدنية'"></span>
-                            <span class="mx-1">•</span>
-                            <span x-text="(currentAyahs?.length || 0) + ' آية'"></span>
-                        </div>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                        <span x-text="selectedSurah"></span>
-                    </div>
+                <!-- Surah Name -->
+                <div class="text-center min-w-0" x-show="selectedSurah">
+                    <p class="font-bold text-amber-900 text-base truncate" style="font-family:'Amiri',serif;" x-text="currentSurahData?.name || ''"></p>
+                    <p class="text-xs text-amber-600/80" x-text="(currentSurahData?.revelationType === 'Meccan' ? 'مكية' : 'مدنية') + ' · ' + (currentAyahs?.length || 0) + ' آية'"></p>
                 </div>
 
                 <!-- Font Controls -->
-                <div class="flex items-center gap-2 bg-white/80 rounded-xl p-2 border border-amber-200 shadow-lg">
+                <div class="flex items-center gap-1 px-2 py-1 rounded-xl border border-amber-200/80 bg-white/70 shadow-sm shrink-0">
                     <button @click="decreaseFontSize()"
-                            class="w-8 h-8 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors">
-                        <iconify-icon icon="solar:minus-circle-bold" class="text-lg text-amber-700"></iconify-icon>
-                    </button>
-                    <span class="text-xs font-bold text-amber-900 min-w-[40px] text-center" x-text="fontSize + 'px'"></span>
+                            class="w-7 h-7 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors text-amber-700 font-bold text-base">−</button>
+                    <span class="text-xs font-bold text-amber-800 w-9 text-center" x-text="fontSize + 'px'"></span>
                     <button @click="increaseFontSize()"
-                            class="w-8 h-8 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors">
-                        <iconify-icon icon="solar:add-circle-bold" class="text-lg text-amber-700"></iconify-icon>
-                    </button>
+                            class="w-7 h-7 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors text-amber-700 font-bold text-base">+</button>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content Area -->
-        <div class="flex-1 overflow-y-auto pt-24 pb-12 px-4 sm:px-6 relative z-[201]">
-            <div class="max-w-5xl mx-auto">
+        <!-- Main Scrollable Content -->
+        <div class="flex-1 overflow-y-auto relative z-[201] focus-scroll-area">
+            <div class="max-w-3xl mx-auto px-6 sm:px-10 pt-20 pb-32">
 
-                <!-- Mushaf Page -->
-                <div class="mushaf-page-premium relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 sm:p-12 md:p-16 border-4 border-amber-200/50">
-
-                    <!-- Bismillah (if applicable) -->
-                    <div x-show="selectedSurah !== 1 && selectedSurah !== 9 && !loading && currentAyahs.length > 0"
-                         class="text-center mb-12">
-                        <div class="inline-flex items-center justify-center gap-4 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-amber-200 shadow-md">
-                            <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 2L12.5 7.5L18 8.5L14 13L15 18.5L10 15.5L5 18.5L6 13L2 8.5L7.5 7.5L10 2Z"/>
-                            </svg>
-                            <p class="font-quran text-2xl sm:text-3xl md:text-4xl text-amber-900">
-                                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                            </p>
-                            <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 2L12.5 7.5L18 8.5L14 13L15 18.5L10 15.5L5 18.5L6 13L2 8.5L7.5 7.5L10 2Z"/>
-                            </svg>
-                        </div>
+                <!-- Bismillah -->
+                <div x-show="selectedSurah !== 1 && selectedSurah !== 9 && !loading && currentAyahs.length > 0"
+                     class="text-center mb-10">
+                    <p class="text-amber-900" style="font-family:'Amiri',serif;font-size:2rem;line-height:2.4;">
+                        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                    </p>
+                    <div class="flex items-center justify-center gap-3 mt-1 opacity-20">
+                        <div class="h-px w-20 bg-amber-700"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-amber-700"></div>
+                        <div class="h-px w-20 bg-amber-700"></div>
                     </div>
+                </div>
 
-                    <!-- Quranic Text -->
-                    <div x-show="!loading && currentAyahs.length > 0" class="space-y-0">
-                        <div class="font-quran text-justify"
-                             :style="'font-size: ' + fontSize + 'px; line-height: 2.5; color: #1a1a1a;'"
-                             dir="rtl">
-                            <template x-for="(ayah, index) in currentAyahs" :key="ayah.numberInSurah">
-                                <span class="inline ayah-segment">
-                                    <span x-html="ayah.text" class="ayah-text"></span>
-                                    <!-- Decorative Ayah Number -->
-                                    <span class="inline-flex items-center justify-center mx-2 relative ayah-number-container"
-                                          style="width: 32px; height: 32px; vertical-align: middle;">
-                                        <svg class="absolute inset-0" viewBox="0 0 32 32" fill="none">
-                                            <circle cx="16" cy="16" r="15" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-                                            <circle cx="16" cy="16" r="12" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
-                                            <path d="M16,4 L18,8 L22,8 L19,11 L20,15 L16,12 L12,15 L13,11 L10,8 L14,8 Z" fill="#d97706" opacity="0.3"/>
-                                        </svg>
-                                        <span class="relative text-sm font-bold text-amber-900" x-text="ayah.numberInSurah"></span>
-                                    </span>
-                                    <span x-show="index < currentAyahs.length - 1" class="ayah-space"> </span>
+                <!-- Quranic Text -->
+                <div x-show="!loading && currentAyahs.length > 0">
+                    <div class="text-justify text-amber-950"
+                         :style="'font-family:\'Amiri\',serif;font-size:' + fontSize + 'px;line-height:2.6;'"
+                         dir="rtl">
+                        <template x-for="(ayah, index) in currentAyahs" :key="ayah.numberInSurah">
+                            <span class="ayah-focus-segment">
+                                <span x-html="ayah.text"></span>
+                                <span class="inline-flex items-center justify-center mx-1.5 ayah-number-container"
+                                      style="width:26px;height:26px;vertical-align:middle;position:relative;">
+                                    <svg class="absolute inset-0" viewBox="0 0 26 26" fill="none">
+                                        <circle cx="13" cy="13" r="12" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                                    </svg>
+                                    <span class="relative text-xs font-bold text-amber-800" x-text="ayah.numberInSurah"></span>
                                 </span>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div x-show="loading" class="text-center py-32">
-                        <div class="inline-flex flex-col items-center gap-6">
-                            <div class="relative">
-                                <div class="w-16 h-16 border-4 border-amber-200 border-t-transparent rounded-full animate-spin"></div>
-                                <div class="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-amber-600 rounded-full animate-spin" style="animation-duration: 1.5s;"></div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl font-bold text-amber-900">جارٍ التحميل</span>
-                                <div class="flex gap-1">
-                                    <span class="w-2 h-2 bg-amber-600 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
-                                    <span class="w-2 h-2 bg-amber-600 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
-                                    <span class="w-2 h-2 bg-amber-600 rounded-full animate-bounce" style="animation-delay: 0.4s;"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- No Surah Selected -->
-                    <div x-show="!selectedSurah && !loading" class="text-center py-32">
-                        <div class="inline-flex flex-col items-center gap-6">
-                            <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center shadow-lg">
-                                <iconify-icon icon="solar:book-2-bold-duotone" class="text-5xl text-amber-600"></iconify-icon>
-                            </div>
-                            <div>
-                                <p class="text-2xl font-bold text-amber-900 mb-2">اختر سورة للبدء</p>
-                                <p class="text-sm text-amber-700">اضغط ESC للرجوع واختيار سورة</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Page Number Footer -->
-                    <div x-show="selectedSurah && !loading" class="mt-16 pt-8 border-t-2 border-amber-200/50">
-                        <div class="flex items-center justify-center gap-6">
-                            <div class="w-12 h-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-600 rounded-full"></div>
-                            <div class="flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 border-2 border-amber-300 shadow-md">
-                                <svg class="w-4 h-4 text-amber-700" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
-                                </svg>
-                                <span class="text-sm font-bold text-amber-900" x-text="selectedSurah"></span>
-                            </div>
-                            <div class="w-12 h-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-600 rounded-full"></div>
-                        </div>
+                            </span>
+                        </template>
                     </div>
                 </div>
+
+                <!-- Loading -->
+                <div x-show="loading" class="text-center py-32">
+                    <div class="w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-amber-800 font-medium">جارٍ التحميل...</p>
+                </div>
+
+                <!-- No Surah Selected -->
+                <div x-show="!selectedSurah && !loading" class="text-center py-32">
+                    <iconify-icon icon="solar:book-2-bold-duotone" class="text-6xl text-amber-400 mb-4 block"></iconify-icon>
+                    <p class="text-amber-900 font-bold text-xl mb-2">اختر سورة للبدء</p>
+                    <p class="text-amber-700 text-sm">اضغط ESC للرجوع واختيار سورة</p>
+                </div>
+
             </div>
         </div>
+
+        <!-- Bottom Navigation Pill (auto-hide) -->
+        <div x-show="focusBarVisible && selectedSurah && !loading"
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-4"
+             class="fixed bottom-6 inset-x-0 z-[302] flex justify-center pointer-events-none">
+            <div class="flex items-center gap-2 px-3 py-2 rounded-2xl shadow-xl pointer-events-auto"
+                 style="background:rgba(250,246,239,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(180,140,60,.2);">
+
+                <button @click="selectedSurah > 1 && selectSurah(selectedSurah - 1)"
+                        :disabled="selectedSurah <= 1"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                    <iconify-icon icon="solar:arrow-right-bold" class="text-sm"></iconify-icon>
+                    <span class="hidden sm:inline">السابقة</span>
+                </button>
+
+                <div class="px-3 py-1 rounded-lg bg-amber-100 border border-amber-200/60 text-xs font-bold text-amber-800 min-w-[52px] text-center"
+                     x-text="selectedSurah + ' / 114'"></div>
+
+                <button @click="selectedSurah < 114 && selectSurah(selectedSurah + 1)"
+                        :disabled="selectedSurah >= 114"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                    <span class="hidden sm:inline">التالية</span>
+                    <iconify-icon icon="solar:arrow-left-bold" class="text-sm"></iconify-icon>
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <style>
@@ -1165,7 +1128,7 @@
                 showTafsirModal: false,
                 currentTafsirAyah: null,
                 currentTafsirText: '',
-                selectedTafsir: 'muyassar',
+                selectedTafsir: 16,
                 loadingTafsir: false,
 
                 // Bookmarks
@@ -1174,6 +1137,8 @@
 
                 // Focus Mode
                 focusMode: false,
+                focusBarVisible: true,
+                focusBarTimer: null,
 
                 // Loading State
                 loading: false,
@@ -1316,23 +1281,20 @@
                 async loadSurah() {
                     this.loading = true;
                     try {
-                        const response = await fetch(`https://api.alquran.cloud/v1/surah/${this.selectedSurah}`);
+                        const response = await fetch(
+                            `https://api.quran.com/api/v4/verses/by_chapter/${this.selectedSurah}` +
+                            `?language=ar&words=false&per_page=300&fields=text_uthmani`
+                        );
                         const data = await response.json();
 
-                        if (data.code === 200) {
-                            let ayahs = data.data.ayahs.map(ayah => ({
-                                ...ayah,
-                                surahName: this.currentSurahData.name
+                        if (data.verses) {
+                            const ayahs = data.verses.map(verse => ({
+                                number: verse.id,
+                                numberInSurah: verse.verse_number,
+                                verseKey: verse.verse_key,
+                                text: verse.text_uthmani,
+                                surahName: this.currentSurahData.name,
                             }));
-
-                            // Strip Bismillah from the first ayah (it's shown separately in the UI)
-                            // Except for Al-Fatiha (1) where it IS the first ayah, and At-Tawbah (9) which has none
-                            if (this.selectedSurah !== 1 && this.selectedSurah !== 9 && ayahs.length > 0) {
-                                ayahs[0].text = ayahs[0].text
-                                    .replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, '')
-                                    .replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/, '')
-                                    .trim();
-                            }
 
                             this.currentAyahs = ayahs;
                             await this.setupAudio();
@@ -1458,13 +1420,11 @@
                     this.loadingTafsir = true;
 
                     try {
-                        // Fetch tafsir from API
-                        const response = await fetch(`https://api.alquran.cloud/v1/ayah/${ayah.number}/editions/ar.${this.selectedTafsir}`);
+                        const response = await fetch(
+                            `https://api.quran.com/api/v4/tafsirs/${this.selectedTafsir}/by_ayah/${ayah.verseKey}?language=ar`
+                        );
                         const data = await response.json();
-
-                        if (data.code === 200) {
-                            this.currentTafsirText = data.data[0].text;
-                        }
+                        this.currentTafsirText = data.tafsir?.text || 'لا يوجد تفسير لهذه الآية';
                     } catch (error) {
                         console.error('Error fetching tafsir:', error);
                         this.currentTafsirText = 'عذراً، حدث خطأ في تحميل التفسير';
@@ -1490,12 +1450,11 @@
                     this.loadingTafsir = true;
 
                     try {
-                        const response = await fetch(`https://api.alquran.cloud/v1/ayah/${this.currentTafsirAyah.number}/editions/ar.${this.selectedTafsir}`);
+                        const response = await fetch(
+                            `https://api.quran.com/api/v4/tafsirs/${this.selectedTafsir}/by_ayah/${this.currentTafsirAyah.verseKey}?language=ar`
+                        );
                         const data = await response.json();
-
-                        if (data.code === 200) {
-                            this.currentTafsirText = data.data[0].text;
-                        }
+                        this.currentTafsirText = data.tafsir?.text || 'لا يوجد تفسير لهذه الآية';
                     } catch (error) {
                         console.error('Error fetching tafsir:', error);
                         this.currentTafsirText = 'عذراً، حدث خطأ في تحميل التفسير';
@@ -1508,28 +1467,35 @@
                     this.focusMode = !this.focusMode;
 
                     if (this.focusMode) {
-                        // Enable focus mode - hide distractions
                         document.body.classList.add('overflow-hidden');
-
-                        // Close any open panels
                         this.showSidebar = false;
                         this.showBookmarksPanel = false;
                         this.showTafsirModal = false;
 
-                        // If no surah selected, load Al-Fatiha (Surah 1)
                         if (!this.selectedSurah) {
                             await this.selectSurah(1);
                         }
 
-                        // Pause audio if playing
                         if (this.isPlaying) {
                             this.audio.pause();
                             this.isPlaying = false;
                         }
+
+                        // Show bar briefly on enter, then auto-hide
+                        this.showFocusBar();
                     } else {
-                        // Disable focus mode - restore normal view
                         document.body.classList.remove('overflow-hidden');
+                        clearTimeout(this.focusBarTimer);
+                        this.focusBarVisible = true;
                     }
+                },
+
+                showFocusBar() {
+                    this.focusBarVisible = true;
+                    clearTimeout(this.focusBarTimer);
+                    this.focusBarTimer = setTimeout(() => {
+                        this.focusBarVisible = false;
+                    }, 3000);
                 },
 
                 toggleBookmark(ayah) {
@@ -1615,28 +1581,23 @@
                     return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>');
                 },
 
-                async downloadSurah() {
+                downloadSurah() {
                     if (!this.audio || !this.audio.src) {
                         this.showAlert('error', 'خطأ', 'لا يوجد ملف صوتي للتحميل. يرجى اختيار سورة أولاً.');
                         return;
                     }
 
-                    try {
-                        const surahName = this.currentSurahData?.name || 'سورة';
-                        const link = document.createElement('a');
-                        link.href = this.audio.src;
-                        link.download = `${surahName} - ${this.selectedReciterName}.mp3`;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        this.showAlert('success', 'تم', 'بدأ تحميل السورة');
-                    } catch (error) {
-                        console.error('Download error:', error);
-                        // Fallback: open in new tab
-                        window.open(this.audio.src, '_blank');
-                    }
+                    const surahName = this.currentSurahData?.name || 'سورة';
+                    const fileName = `${surahName} - ${this.selectedReciterName}`;
+                    const proxyUrl = `/quran/download?url=${encodeURIComponent(this.audio.src)}&name=${encodeURIComponent(fileName)}`;
+
+                    const link = document.createElement('a');
+                    link.href = proxyUrl;
+                    link.download = fileName + '.mp3';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    this.showAlert('success', 'تم', 'بدأ تحميل السورة');
                 },
 
                 formatBytes(bytes) {

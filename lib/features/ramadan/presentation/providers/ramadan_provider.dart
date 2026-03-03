@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../prayer_times/presentation/providers/prayer_times_provider.dart';
@@ -21,7 +22,9 @@ final ramadanScheduleProvider = FutureProvider.autoDispose<RamadanSchedule?>((
     final position = await ref.watch(locationProvider.future);
     lat = position.latitude;
     lon = position.longitude;
-  } catch (_) {}
+  } catch (e) {
+    if (kDebugMode) debugPrint('[ramadanScheduleProvider] location unavailable, using Mecca: $e');
+  }
 
   return RamadanRepository.instance.getSchedule(
     lat: lat,
@@ -47,7 +50,9 @@ final ramadanTodayProvider = FutureProvider.autoDispose<RamadanDay?>((
     final position = await ref.watch(locationProvider.future);
     lat = position.latitude;
     lon = position.longitude;
-  } catch (_) {}
+  } catch (e) {
+    if (kDebugMode) debugPrint('[ramadanTodayProvider] location unavailable, using Mecca: $e');
+  }
 
   return RamadanRepository.instance.getToday(
     lat: lat,

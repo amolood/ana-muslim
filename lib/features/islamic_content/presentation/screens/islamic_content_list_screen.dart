@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../../data/models/islamhouse_item.dart';
@@ -47,6 +48,7 @@ class _IslamicContentListScreenState
   final TextEditingController _searchController = TextEditingController();
 
   List<IslamhouseItem> _items = [];
+  List<IslamhouseItem> _filteredItems = [];
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalItems = 0;
@@ -84,14 +86,11 @@ class _IslamicContentListScreenState
     return item.normalizedType == selectedType;
   }
 
-  List<IslamhouseItem> get _filteredItems {
-    final visible = _items.where((item) => _matchesSelectedType(item)).toList();
+  List<IslamhouseItem> _computeFilteredItems() {
+    final visible = _items.where(_matchesSelectedType).toList();
     final query = IslamhouseItem.normalizeForSearch(_query);
     if (query.isEmpty) return visible;
-
-    return visible.where((item) {
-      return item.searchIndex.contains(query);
-    }).toList();
+    return visible.where((item) => item.searchIndex.contains(query)).toList();
   }
 
   List<_SectionedListRow> _buildSectionRows(List<IslamhouseItem> items) {
@@ -141,12 +140,13 @@ class _IslamicContentListScreenState
       if (!mounted) return;
       setState(() {
         _items = page.items
-            .where((item) => _matchesSelectedType(item))
+            .where(_matchesSelectedType)
             .toList();
         _currentPage = page.currentPage;
         _totalPages = page.totalPages;
         _totalItems = _items.length;
         _isInitialLoading = false;
+        _filteredItems = _computeFilteredItems();
       });
     } catch (e) {
       if (!mounted) return;
@@ -177,12 +177,13 @@ class _IslamicContentListScreenState
       setState(() {
         _items = [
           ..._items,
-          ...page.items.where((item) => _matchesSelectedType(item)),
+          ...page.items.where(_matchesSelectedType),
         ];
         _currentPage = page.currentPage;
         _totalPages = page.totalPages;
         _totalItems = _items.length;
         _isLoadingMore = false;
+        _filteredItems = _computeFilteredItems();
       });
     } catch (e) {
       if (!mounted) return;
@@ -205,7 +206,7 @@ class _IslamicContentListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredItems;
+    final filtered = _filteredItems;  // reads cached field, never recomputes
     final sectionRows = _isShowAllMode
         ? _buildSectionRows(filtered)
         : const <_SectionedListRow>[];
@@ -264,8 +265,10 @@ class _IslamicContentListScreenState
                         children: [
                           TextField(
                             controller: _searchController,
-                            onChanged: (value) =>
-                                setState(() => _query = value),
+                            onChanged: (value) => setState(() {
+                              _query = value;
+                              _filteredItems = _computeFilteredItems();
+                            }),
                             style: GoogleFonts.tajawal(
                               fontSize: 14,
                               color: AppColors.textPrimary(context),
@@ -284,7 +287,10 @@ class _IslamicContentListScreenState
                                   : IconButton(
                                       onPressed: () {
                                         _searchController.clear();
-                                        setState(() => _query = '');
+                                        setState(() {
+                                          _query = '';
+                                          _filteredItems = _computeFilteredItems();
+                                        });
                                       },
                                       icon: const Icon(Icons.close_rounded),
                                       color: AppColors.textSecondaryDark,
@@ -454,7 +460,7 @@ class _ListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () => context.push('/hadith/islamic-content/item/${item.id}'),
+      onTap: () => context.push(Routes.islamicContentItem(item.id)),
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

@@ -16,13 +16,26 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('hadith/{book}', [\App\Http\Controllers\Admin\HadithLibraryController::class, 'show'])->name('hadith.show');
     Route::post('reciters/update-order', [\App\Http\Controllers\Admin\ReciterController::class, 'updateOrder'])->name('reciters.update-order');
     Route::resource('reciters', \App\Http\Controllers\Admin\ReciterController::class);
-    Route::resource('notifications', \App\Http\Controllers\Admin\NotificationController::class);
+    Route::get('notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/create', [\App\Http\Controllers\Admin\NotificationController::class, 'create'])->name('notifications.create');
     Route::post('notifications/send', [\App\Http\Controllers\Admin\NotificationController::class, 'send'])->name('notifications.send');
     Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
     Route::get('messages', [\App\Http\Controllers\Admin\ContactMessageController::class, 'index'])->name('messages.index');
     Route::get('messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'show'])->name('messages.show');
     Route::delete('messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'destroy'])->name('messages.destroy');
+
+    // Ramadan Schedule Admin
+    Route::prefix('ramadan')->name('ramadan.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\RamadanController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\RamadanController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\RamadanController::class, 'store'])->name('store');
+        Route::get('/city/{cityKey}', [\App\Http\Controllers\Admin\RamadanController::class, 'show'])->name('show');
+        Route::delete('/city/{cityKey}', [\App\Http\Controllers\Admin\RamadanController::class, 'destroyCity'])->name('city.destroy');
+        Route::get('/{id}/edit', [\App\Http\Controllers\Admin\RamadanController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\RamadanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\RamadanController::class, 'destroy'])->name('destroy');
+    });
 
     // Hisnmuslim Admin Routes
     Route::prefix('hisnmuslim')->name('hisnmuslim.')->group(function () {
@@ -81,6 +94,42 @@ Route::get('/contact', function () {
 })->name('contact');
 
 Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->name('contact.store');
+
+Route::get('/quran/download', function (\Illuminate\Http\Request $request) {
+    $url = $request->query('url');
+
+    if (! $url || ! filter_var($url, FILTER_VALIDATE_URL)) {
+        abort(400, 'Invalid URL');
+    }
+
+    $allowed = ['cdn.islamic.network', 'server8.mp3quran.net', 'server6.mp3quran.net', 'server7.mp3quran.net', 'server10.mp3quran.net', 'server11.mp3quran.net', 'server12.mp3quran.net', 'download.quranicaudio.com', 'verses.quran.com', 'audio.islamway.net', 'islamway.net', 'mp3quran.net', 'quranicaudio.com'];
+    $host = parse_url($url, PHP_URL_HOST);
+
+    if (! in_array($host, $allowed) && ! str_ends_with($host ?? '', '.mp3quran.net') && ! str_ends_with($host ?? '', '.quranicaudio.com') && ! str_ends_with($host ?? '', '.islamway.net')) {
+        abort(403, 'Domain not allowed');
+    }
+
+    $name = $request->query('name', 'surah').'.mp3';
+
+    $context = stream_context_create(['http' => ['timeout' => 60, 'follow_location' => true]]);
+    $stream = fopen($url, 'rb', false, $context);
+
+    if (! $stream) {
+        abort(502, 'Could not fetch audio file');
+    }
+
+    return response()->stream(function () use ($stream) {
+        while (! feof($stream)) {
+            echo fread($stream, 8192);
+            flush();
+        }
+        fclose($stream);
+    }, 200, [
+        'Content-Type' => 'audio/mpeg',
+        'Content-Disposition' => 'attachment; filename="'.$name.'"',
+        'Cache-Control' => 'no-store',
+    ]);
+})->name('quran.download');
 
 Route::get('/faq', function () {
     return view('faq');

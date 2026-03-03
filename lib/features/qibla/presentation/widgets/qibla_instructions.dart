@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/qibla_state.dart';
 
@@ -75,7 +76,7 @@ class QiblaInstructions extends StatelessWidget {
                 if (state.locationName != null) ...[
                   const Icon(
                     Icons.location_on,
-                    color: Color(0xFF4AFFA3),
+                    color: AppColors.qiblaGreen,
                     size: 12,
                   ),
                   const SizedBox(width: 4),
@@ -127,13 +128,13 @@ class QiblaInstructions extends StatelessWidget {
   /// بيانات دقة الموقع
   ({Color color, String label}) _getAccuracyData(double confidence) {
     if (confidence >= 90) {
-      return (color: const Color(0xFF00FF88), label: 'ممتازة');
+      return (color: AppColors.qiblaBrightGreen, label: 'ممتازة');
     } else if (confidence >= 75) {
-      return (color: const Color(0xFF4AFFA3), label: 'جيدة جداً');
+      return (color: AppColors.qiblaGreen, label: 'جيدة جداً');
     } else if (confidence >= 50) {
-      return (color: const Color(0xFFFFAA00), label: 'جيدة');
+      return (color: AppColors.qiblaWarning, label: 'جيدة');
     } else {
-      return (color: const Color(0xFFFF6B6B), label: 'ضعيفة');
+      return (color: AppColors.qiblaError, label: 'ضعيفة');
     }
   }
 
@@ -146,14 +147,14 @@ class QiblaInstructions extends StatelessWidget {
   }) _getInstructionData(double absDelta, double delta) {
     if (absDelta < 3) {
       return (
-        color: const Color(0xFF00FF88),
+        color: AppColors.qiblaBrightGreen,
         icon: Icons.check_circle,
         mainText: 'ممتاز! الاتجاه صحيح',
         subText: 'يمكنك الآن الصلاة في هذا الاتجاه بإذن الله',
       );
     } else if (absDelta < 10) {
       return (
-        color: const Color(0xFF4AFFA3),
+        color: AppColors.qiblaGreen,
         icon: Icons.near_me,
         mainText: 'قريب جداً من الاتجاه الصحيح',
         subText: delta > 0
@@ -162,7 +163,7 @@ class QiblaInstructions extends StatelessWidget {
       );
     } else if (absDelta < 30) {
       return (
-        color: const Color(0xFFFFAA00),
+        color: AppColors.qiblaWarning,
         icon: Icons.rotate_right,
         mainText: 'قريب من الاتجاه',
         subText: delta > 0
@@ -171,7 +172,7 @@ class QiblaInstructions extends StatelessWidget {
       );
     } else if (absDelta < 90) {
       return (
-        color: const Color(0xFFFF6B6B),
+        color: AppColors.qiblaError,
         icon: Icons.explore,
         mainText: 'ابحث عن الاتجاه',
         subText: delta > 0

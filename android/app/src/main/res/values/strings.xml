@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget descriptions shown in the Android 12+ widget picker -->
+    <string name="quran_widget_description">يعرض آية قرآنية عشوائية على الشاشة الرئيسية وتتجدد تلقائياً</string>
+    <string name="prayer_widget_description">يعرض أوقات الصلوات الخمس على الشاشة الرئيسية</string>
+    <string name="transparent_widget_description">ودجت شفاف يعرض اليوم والتاريخ ووقت الصلاة القادمة</string>
+    <string name="date_widget_description">يعرض التاريخ الهجري والميلادي مع اسم اليوم بخط ديواني</string>
+    <string name="hijri_month_widget_description">يعرض اسم ورقم الشهر الهجري الحالي</string>
+</resources>

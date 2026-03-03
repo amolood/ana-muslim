@@ -27,33 +27,48 @@ dependencies:
   timezone: ^0.11.0
   hadith: 1.0.1
   http: ^1.2.2
+  audio_service: ^0.18.15
   just_audio: ^0.10.5
   audioplayers: ^6.1.0
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
   path_provider: ^2.1.5
   home_widget: ^0.9.0
   url_launcher: ^6.3.0
   video_player: ^2.10.0
-  syncfusion_flutter_pdfviewer: ^32.2.5
+  syncfusion_flutter_pdfviewer: ^32.2.7
   wakelock_plus: ^1.4.0
   flutter_islamic_icons: ^1.0.2
   flutter_svg: ^2.0.10+1
-  file_picker: ^8.1.4
+  file_picker: ^10.3.10
   pusher_channels_flutter: ^2.2.1
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: ^6.0.0
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/sounds/
     - assets/sounds/azan/
     - assets/branding/
+    - assets/decor/
     - .env
   fonts:
     - family: KFGQPC Uthmanic Script
       fonts:
         - asset: assets/fonts/KFGQPC_Uthmanic_Script.ttf
+    - family: Ayman
+      fonts:
+        - asset: assets/fonts/ayman.ttf
+    - family: CalligraphyDays
+      fonts:
+        - asset: assets/fonts/calligraphy_days.ttf
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/ibm_plex_sans_arabic_medium.ttf
+        - asset: assets/fonts/ibm_plex_sans_arabic_bold.ttf
+          weight: 700

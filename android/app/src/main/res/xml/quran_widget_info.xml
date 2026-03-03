@@ -4,7 +4,11 @@
     android:minHeight="110dp"
     android:minResizeWidth="180dp"
     android:minResizeHeight="90dp"
-    android:updatePeriodMillis="0"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/quran_widget"
+    android:previewLayout="@layout/quran_widget"
+    android:description="@string/quran_widget_description"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

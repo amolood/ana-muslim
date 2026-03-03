@@ -108,7 +108,20 @@
                 <p class="text-slate-500 dark:text-slate-400" x-text="t('loading')"></p>
             </div>
 
-            <div x-show="!loading" id="azkar-list" class="grid gap-4">
+            <div x-show="!loading && loadError" class="flex flex-col items-center justify-center py-16 text-center">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(239,68,68,.1);">
+                    <iconify-icon icon="solar:wifi-router-minimalistic-bold" class="text-3xl" style="color:#ef4444;"></iconify-icon>
+                </div>
+                <p class="font-bold text-slate-700 dark:text-slate-200 mb-1" x-text="errorMsg"></p>
+                <button @click="loadError = false; errorMsg = ''; init()"
+                        class="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90"
+                        style="background:linear-gradient(135deg,#11D4B4,#0d9e87);">
+                    <iconify-icon icon="solar:refresh-bold"></iconify-icon>
+                    <span x-text="locale === 'ar' ? 'إعادة المحاولة' : 'Retry'"></span>
+                </button>
+            </div>
+
+            <div x-show="!loading && !loadError" id="azkar-list" class="grid gap-4">
                 <template x-for="item in items" :key="item.id">
                     <div class="zikr-card glass-button rounded-3xl p-6 cursor-pointer hover:bg-primary/5 transition-all text-right group" @click="updateCount($event.currentTarget, item.count)">
                         <p class="text-lg leading-relaxed mb-6 text-slate-800 dark:text-slate-200 font-bold" x-text="item.zekr"></p>
@@ -129,6 +142,8 @@
             return {
                 locale: localStorage.getItem('locale') || 'ar',
                 loading: false,
+                loadError: false,
+                errorMsg: '',
                 items: [],
                 categories: [],
                 currentCategoryId: null,
@@ -162,7 +177,8 @@
                         }
                     } catch (e) {
                         console.error('Error fetching categories:', e);
-                        alert(this.locale === 'ar' ? 'خطأ في تحميل الأبواب' : 'Error loading chapters');
+                        this.loadError = true;
+                        this.errorMsg = this.locale === 'ar' ? 'تعذّر تحميل الأبواب. تحقق من اتصالك بالإنترنت.' : 'Error loading chapters. Check your connection.';
                     }
                     this.renderCategories();
                     this.loading = false;
@@ -187,7 +203,8 @@
                         }
                     } catch (e) {
                         console.error('Error fetching duas:', e);
-                        alert(this.locale === 'ar' ? 'خطأ في تحميل الأدعية' : 'Error loading duas');
+                        this.loadError = true;
+                        this.errorMsg = this.locale === 'ar' ? 'تعذّر تحميل الأذكار. تحقق من اتصالك بالإنترنت.' : 'Error loading duas. Check your connection.';
                         this.items = [];
                     }
                     this.loading = false;

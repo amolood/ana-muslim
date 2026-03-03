@@ -4,6 +4,49 @@ class AppColors {
   // Brand colors
   static const Color primary = Color(0xFF11D4B4);
 
+  // ─── Quran / Mushaf ───────────────────────────────────────────────────────
+  /// Gold accent used in dark-mode Mushaf page decorations (verse numbers, separators)
+  static const Color mushafGold = Color(0xFFF4D03F);
+
+  // ─── Feature-specific dark surfaces ──────────────────────────────────────
+  /// Dark card / list-item background used in Tahfeez feature (Slate-800)
+  static const Color cardDark = Color(0xFF1E293B);
+
+  /// Deep scaffold background used in Tahfeez feature (Slate-900)
+  static const Color backgroundDeepDark = Color(0xFF0F172A);
+
+  // ─── Shared accents ──────────────────────────────────────────────────────
+  /// Teal border used across hadith, azkar, settings cards
+  static const Color borderTeal = Color(0xFF2D5E57);
+
+  /// Dark teal card surface (hadith expanded tile, search results)
+  static const Color surfaceTealDark = Color(0xFF142C28);
+
+  /// Warm gold for surah titles and Quran index
+  static const Color surahGold = Color(0xFFD6B06B);
+
+  /// Amber used in Ramadan feature cards
+  static const Color ramadanAmber = Color(0xFFFBBF24);
+
+  /// Darker amber used in Ramadan gradients
+  static const Color ramadanAmberDark = Color(0xFFF59E0B);
+
+  // ─── Qibla ──────────────────────────────────────────────────────────────
+  /// Primary qibla accent green
+  static const Color qiblaGreen = Color(0xFF4AFFA3);
+
+  /// Bright green — fully aligned / excellent accuracy
+  static const Color qiblaBrightGreen = Color(0xFF00FF88);
+
+  /// Warning orange — fair accuracy
+  static const Color qiblaWarning = Color(0xFFFFAA00);
+
+  /// Error red — poor accuracy
+  static const Color qiblaError = Color(0xFFFF6B6B);
+
+  /// Deep black background for qibla compass
+  static const Color qiblaDark = Color(0xFF0A0A0A);
+
   // ─── Light theme ──────────────────────────────────────────────────────────
   // IMPROVED: Better contrast ratios for WCAG AA compliance (reduced white glare)
   static const Color backgroundLight = Color(0xFFF3F7F6); // page background - soft mint-gray

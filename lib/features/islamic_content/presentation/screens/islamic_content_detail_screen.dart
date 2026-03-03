@@ -67,7 +67,7 @@ class _IslamicContentDetailScreenState
             ),
           ),
           error: (error, _) => _ErrorView(
-            message: '$error',
+            message: 'تعذر تحميل تفاصيل المحتوى',
             onRetry: () {
               ref.invalidate(islamhouseItemDetailsProvider(widget.itemId));
             },

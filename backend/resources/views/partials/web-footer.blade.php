@@ -10,9 +10,8 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             {{-- Brand Section --}}
             <div class="md:col-span-2">
-                <div class="flex items-center gap-3 mb-4">
-                    <img src="{{ asset('assets/logo.svg') }}" alt="I'm Muslim Logo" class="h-12 w-auto">
-                    <span class="text-2xl font-bold tracking-tight" x-text="t('brand.name')"></span>
+                <div class="mb-4">
+                    <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/logo.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed mb-6" x-text="t('footer.description')">
                 </p>
