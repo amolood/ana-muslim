@@ -60,15 +60,19 @@ class _HadithBookScreenState extends ConsumerState<HadithBookScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _header(context, ref),
-            Expanded(child: _buildBody(context)),
-          ],
+    // Hadiths are Arabic content — enforce RTL regardless of app language.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _header(context, ref),
+              Expanded(child: _buildBody(context)),
+            ],
+          ),
         ),
       ),
     );

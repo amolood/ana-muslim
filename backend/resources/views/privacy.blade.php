@@ -19,15 +19,10 @@
     <div class="max-w-3xl mx-auto px-4 pt-32 pb-24 relative z-10">
         <!-- Header -->
         <div class="text-center mb-12">
-            <div class="inline-flex items-center justify-center w-18 h-18 mb-6">
-                <svg width="72" height="72" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M256 42 C270 28 284 26 295 30 C282 40 276 54 278 68 C280 82 290 93 304 97 C310 99 316 99 320 98 C312 114 294 122 274 118 C251 113 238 91 242 68 C245 55 250 47 256 42Z" fill="#2d7a22"/>
-                    <circle cx="256" cy="108" r="5" fill="#2d7a22"/>
-                    <circle cx="256" cy="122" r="3.5" fill="#2d7a22"/>
-                    <path d="M256 148 C210 148 148 192 148 268 C148 334 196 390 256 405 C316 390 364 334 364 268 C364 192 302 148 256 148Z" fill="#6abf45"/>
-                    <path d="M256 148 L304 220 L256 248 L208 220 Z" fill="#2d7a22" opacity="0.85"/>
-                    <path d="M256 250 C240 250 224 264 224 285 L224 370 C234 378 245 382 256 383 C267 382 278 378 288 370 L288 285 C288 264 272 250 256 250Z" fill="#020617"/>
-                </svg>
+            <div class="inline-flex items-center justify-center mb-6">
+                <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/anaalmuslim.svg')) }}"
+                     alt="I'm Muslim Logo"
+                     class="h-20 w-auto">
             </div>
             <h1 class="text-3xl md:text-4xl font-bold mb-3 text-slate-900 dark:text-white">سياسة الخصوصية</h1>
             <p class="text-slate-500 dark:text-slate-400">تطبيق أنا المسلم — آخر تحديث: 24 فبراير 2026</p>

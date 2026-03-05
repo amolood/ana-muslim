@@ -119,9 +119,11 @@ class QuranPageModeReader extends StatelessWidget {
         );
       }
 
+      // Strip embedded sajda character (U+06E9) — rendered explicitly below.
+      final ayahText = ayah.text.replaceAll('\u06E9', '').trim();
       spans.add(
         TextSpan(
-          text: ayah.text.trim(),
+          text: ayahText,
           style: _quranTextStyle(
             size: quranFontSize + 1,
             color: textColor,
@@ -170,14 +172,12 @@ class QuranPageModeReader extends StatelessWidget {
                 ),
                 Text(
                   _toArabicNumber(ayah.ayahNumber),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Tajawal',
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.8),
+                    // Always dark on gold badge — readable in all themes.
+                    color: Color(0xFF4A2800),
                     height: 1.0,
                   ),
                 ),

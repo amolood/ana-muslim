@@ -8,6 +8,11 @@ import '../network/fast_api_client.dart';
 
 enum VersionStatus { upToDate, updateAvailable, forceUpdate }
 
+/// Fallback store URLs used when the backend does not return them.
+const _kStoreUrlAndroid =
+    'https://play.google.com/store/apps/details?id=com.anaalmuslim.app';
+const _kStoreUrlIos = '';
+
 class AppVersionInfo {
   final VersionStatus status;
   final String latestVersion;
@@ -63,8 +68,14 @@ final appVersionCheckProvider = FutureProvider<AppVersionInfo?>((ref) async {
     final latestVersion = data['latest_version'] as String? ?? '1.0.0';
     final minVersion = data['min_version'] as String? ?? '1.0.0';
     final forceUpdateFlag = data['force_update'] as bool? ?? false;
-    final storeUrlAndroid = data['store_url_android'] as String? ?? '';
-    final storeUrlIos = data['store_url_ios'] as String? ?? '';
+    final storeUrlAndroid =
+        (data['store_url_android'] as String?)?.trim().isNotEmpty == true
+            ? data['store_url_android'] as String
+            : _kStoreUrlAndroid;
+    final storeUrlIos =
+        (data['store_url_ios'] as String?)?.trim().isNotEmpty == true
+            ? data['store_url_ios'] as String
+            : _kStoreUrlIos;
     final messageAr = data['message_ar'] as String? ?? '';
     final messageEn = data['message_en'] as String? ?? '';
     final messageFr = data['message_fr'] as String? ?? '';

@@ -10,7 +10,10 @@ import '../../../../core/permissions/permissions_screen.dart';
 import '../../../../core/providers/clock_provider.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
+import '../../../../core/widgets/brand_logo.dart';
 import '../../../khatmah/presentation/providers/khatmah_controller.dart';
+import '../../../prayer_times/presentation/providers/prayer_times_provider.dart';
 import '../widgets/continue_reading_card.dart';
 import '../widgets/daily_wird_section.dart';
 import '../widgets/motivation_stats_card.dart';
@@ -66,6 +69,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (dayMarker != _lastDayMarker) {
           _lastDayMarker = dayMarker;
           ref.invalidate(khatmahControllerProvider);
+          ref.invalidate(prayerTimesProvider);
+          ref.invalidate(aladhanTimesProvider);
           ref.read(prayerDailyProgressProvider.notifier).ensureToday();
           ref.read(sebhaStateProvider.notifier).ensureToday();
         }
@@ -84,14 +89,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildBrandingHeader(context),
               const PrayerTimesCard(),
               const NowPlayingCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+              const ContinueReadingCard(),
+              const SizedBox(height: 28),
               const QuickActionsGrid(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               const MotivationStatsCard(),
               const SizedBox(height: 24),
               const DailyWirdSection(),
-              const SizedBox(height: 32),
-              const ContinueReadingCard(),
             ],
           ),
         ),
@@ -101,62 +106,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBrandingHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/branding/logo.png',
-                    fit: BoxFit.cover,
-                    semanticLabel: 'شعار تطبيق انا المسلم',
-                  ),
-                ),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'انا المسلم',
-                    style: GoogleFonts.tajawal(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary(context),
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  Text(
-                    'انا المسلم',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(9),
+              child: const BrandLogo(fit: BoxFit.contain),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'أنا المسلم',
+              style: GoogleFonts.tajawal(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: context.colors.textPrimary,
+                letterSpacing: -0.3,
               ),
-            ],
+            ),
           ),
           IconButton(
             onPressed: () => context.push(Routes.settings),
             tooltip: 'الإعدادات',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(10),
+            ),
             icon: Icon(
               Icons.settings_outlined,
-              color: AppColors.textSecondary(context),
-              size: 26,
+              color: context.colors.iconSecondary,
+              size: 22,
             ),
           ),
         ],

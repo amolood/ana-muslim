@@ -56,8 +56,12 @@
                 android:id="@+id/txtDate"
                 android:textSize="20sp"
                 android:textColor="#FFFFFFFF"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:gravity="end" />
 
             <TextView
                 android:id="@+id/txtDivider"
@@ -71,8 +75,12 @@
                 android:id="@+id/txtHijri"
                 android:textSize="20sp"
                 android:textColor="#FFFFFFFF"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:gravity="start" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

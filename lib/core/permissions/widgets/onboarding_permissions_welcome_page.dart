@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
+import '../../widgets/brand_logo.dart';
 
 /// First page of the onboarding permissions flow.
 /// Shows the app icon, basmala, name, tagline, and a feature highlights list.
@@ -43,10 +44,9 @@ class OnboardingPermissionsWelcomePage extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.mosque,
+            child: const BrandLogo(
               size: 60,
-              color: Colors.white,
+              semanticsLabel: 'شعار تطبيق أنا المسلم في ترحيب الأذونات',
             ),
           ),
 

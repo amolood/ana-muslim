@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quran_library/quran_library.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 
 /// بطاقة اختيار نطاق الحفظ
 class RangeSelectorCard extends StatefulWidget {
@@ -50,12 +52,12 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? AppColors.cardDark : Colors.white,
+      color: colors.surfaceCard,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -82,7 +84,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                   style: GoogleFonts.tajawal(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: colors.textPrimary,
                   ),
                 ),
               ],
@@ -96,7 +98,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
               style: GoogleFonts.tajawal(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -104,10 +106,10 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: isDark ? Colors.white24 : Colors.black12,
+                  color: colors.borderDefault,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
+                color: colors.surfaceVariant,
               ),
               child: DropdownButton<int>(
                 value: _selectedSurah,
@@ -131,7 +133,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                         '$surahNum. $surahName',
                         style: GoogleFonts.tajawal(
                           fontSize: 15,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: colors.textPrimary,
                         ),
                       ),
                     );
@@ -159,7 +161,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
               style: GoogleFonts.tajawal(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -172,10 +174,10 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: isDark ? Colors.white24 : Colors.black12,
+                        color: colors.borderDefault,
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
+                      color: colors.surfaceVariant,
                     ),
                     child: TextField(
                       controller: _startController,
@@ -184,13 +186,13 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                       style: GoogleFonts.tajawal(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: colors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: 'من',
                         hintStyle: GoogleFonts.tajawal(
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: colors.textTertiary,
                         ),
                       ),
                       onChanged: (value) {
@@ -207,7 +209,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Icon(
                     Icons.arrow_back,
-                    color: isDark ? Colors.white54 : Colors.black54,
+                    color: colors.iconSecondary,
                   ),
                 ),
 
@@ -217,10 +219,10 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: isDark ? Colors.white24 : Colors.black12,
+                        color: colors.borderDefault,
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      color: isDark ? AppColors.backgroundDeepDark : Colors.grey[50],
+                      color: colors.surfaceVariant,
                     ),
                     child: TextField(
                       controller: _endController,
@@ -229,13 +231,13 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                       style: GoogleFonts.tajawal(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: colors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: 'إلى',
                         hintStyle: GoogleFonts.tajawal(
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: colors.textTertiary,
                         ),
                       ),
                       onChanged: (value) {
@@ -262,13 +264,17 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildInfo('عدد الآيات', '${_endAyah - _startAyah + 1}', isDark),
+                  _buildInfo(
+                    context,
+                    'عدد الآيات',
+                    '${_endAyah - _startAyah + 1}',
+                  ),
                   Container(
                     width: 1,
                     height: 30,
-                    color: isDark ? Colors.white24 : Colors.black12,
+                    color: colors.borderDefault,
                   ),
-                  _buildInfo('إجمالي السورة', '$_maxAyahs', isDark),
+                  _buildInfo(context, 'إجمالي السورة', '$_maxAyahs'),
                 ],
               ),
             ),
@@ -289,14 +295,14 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
                           'بداية النطاق يجب أن تكون أقل من أو تساوي النهاية',
                           style: GoogleFonts.tajawal(),
                         ),
-                        backgroundColor: Colors.red,
+                        backgroundColor: colors.error,
                       ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: colors.textOnPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -317,7 +323,9 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
     );
   }
 
-  Widget _buildInfo(String label, String value, bool isDark) {
+  Widget _buildInfo(BuildContext context, String label, String value) {
+    final colors = context.colors;
+
     return Column(
       children: [
         Text(
@@ -333,7 +341,7 @@ class _RangeSelectorCardState extends State<RangeSelectorCard> {
           label,
           style: GoogleFonts.tajawal(
             fontSize: 12,
-            color: isDark ? Colors.white70 : Colors.black54,
+            color: colors.textSecondary,
           ),
         ),
       ],

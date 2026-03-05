@@ -8,6 +8,8 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../settings/presentation/notification_reschedule.dart';
+import '../../data/models/aladhan_prayer_times.dart';
+import '../../data/services/aladhan_service.dart';
 
 /// Prayer times with manual offsets applied.
 class AdjustedPrayerTimes {
@@ -130,20 +132,84 @@ final locationNameProvider = FutureProvider<String>((ref) async {
   return 'موقع غير معروف';
 });
 
+/// Local adhan-library prayer times — used as fallback when the AlAdhan API
+/// is unavailable, and as the source for notification scheduling (which does
+/// NOT use the API to avoid network dependency at alarm time).
 final prayerTimesProvider = FutureProvider<PrayerTimes>((ref) async {
   final position = await ref.watch(locationProvider.future);
   final calcMethodStr = ref.watch(calculationMethodProvider);
+  final madhabStr = ref.watch(madhabProvider);
 
-  // Uses the shared buildCalculationParams() so that display, notification
-  // scheduling, and manual-reschedule all use identical CalculationParameters
-  // (including madhab). This guarantees the adhan fires at the exact time shown.
   final coordinates = Coordinates(position.latitude, position.longitude);
-  final params = buildCalculationParams(calcMethodStr);
+  final params = buildCalculationParams(calcMethodStr, madhab: madhabStr);
   final date = DateComponents.from(DateTime.now());
   return PrayerTimes(coordinates, date, params);
 });
 
-/// Prayer times with manual offsets applied — use this for display.
+/// Primary display source: AlAdhan REST API with disk-cache and adhan fallback.
+///
+/// Cache key: `aladhan_{method}_{madhab}_{YYYY-MM-DD}` in SharedPreferences.
+/// This provider is reactive — it auto-recomputes when location, method, or
+/// madhab change, and is invalidated at midnight by the home screen.
+final aladhanTimesProvider = FutureProvider<AladhanPrayerTimes>((ref) async {
+  final position = await ref.watch(locationProvider.future);
+  final method = ref.watch(calculationMethodProvider);
+  final madhab = ref.watch(madhabProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+
+  final today = () {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }();
+
+  // Safe key — strip characters that might be problematic in prefs keys
+  final safeMethod = method.replaceAll(' ', '_');
+  final cacheKey = 'aladhan_${safeMethod}_${madhab}_$today';
+
+  // 1. Try disk cache (valid until midnight via key date component)
+  final cached = prefs.getString(cacheKey);
+  if (cached != null) {
+    try {
+      if (kDebugMode) debugPrint('[AlAdhan] using disk cache for $today');
+      return AladhanPrayerTimes.fromJsonString(cached);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AlAdhan] cache parse failed: $e');
+    }
+  }
+
+  // 2. Fetch from API
+  try {
+    final times = await AladhanService.fetchTimings(
+      lat: position.latitude,
+      lng: position.longitude,
+      method: method,
+      madhab: madhab,
+    );
+    // Persist to disk (valid until tomorrow's key changes)
+    await prefs.setString(cacheKey, times.toJsonString());
+    if (kDebugMode) debugPrint('[AlAdhan] fetched and cached for $today');
+    return times;
+  } catch (e) {
+    if (kDebugMode) debugPrint('[AlAdhan] API failed, falling back to adhan lib: $e');
+  }
+
+  // 3. Fallback to local adhan library (always available offline)
+  final raw = await ref.read(prayerTimesProvider.future);
+  return AladhanPrayerTimes(
+    fajr: raw.fajr,
+    sunrise: raw.sunrise,
+    dhuhr: raw.dhuhr,
+    asr: raw.asr,
+    maghrib: raw.maghrib,
+    isha: raw.isha,
+  );
+});
+
+/// Prayer times with manual offsets applied — use this everywhere for DISPLAY.
+///
+/// Sources in priority order:
+/// 1. Manual exact times (if user has enabled them)
+/// 2. [aladhanTimesProvider] (AlAdhan API → disk cache → adhan fallback)
 final adjustedPrayerTimesProvider = FutureProvider<AdjustedPrayerTimes>((
   ref,
 ) async {
@@ -160,7 +226,7 @@ final adjustedPrayerTimesProvider = FutureProvider<AdjustedPrayerTimes>((
     );
   }
 
-  final raw = await ref.watch(prayerTimesProvider.future);
+  final raw = await ref.watch(aladhanTimesProvider.future);
   final offsets = ref.watch(prayerManualOffsetsProvider);
 
   Duration d(Prayer p) => Duration(minutes: offsets.offsetFor(p));

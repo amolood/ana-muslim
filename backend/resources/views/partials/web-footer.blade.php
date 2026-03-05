@@ -11,7 +11,7 @@
             {{-- Brand Section --}}
             <div class="md:col-span-2">
                 <div class="mb-4">
-                    <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/logo.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
+                    <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/anaalmuslim.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed mb-6" x-text="t('footer.description')">
                 </p>

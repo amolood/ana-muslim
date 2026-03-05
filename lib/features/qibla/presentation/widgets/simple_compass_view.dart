@@ -4,8 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import '../../data/models/qibla_state.dart';
 
-/// Immersive Qibla compass — large ring with Kaaba badge on the edge,
-/// rotating arrow, and integrated status text below.
 class SimpleCompassView extends StatelessWidget {
   final QiblaUiState state;
 
@@ -18,37 +16,43 @@ class SimpleCompassView extends StatelessWidget {
     final absDelta = state.delta.abs();
     final Color accentColor = _getArrowColor(absDelta);
     final bool isAligned = absDelta < 3.0;
+    final heading = state.smoothedHeading ?? state.rawHeading ?? 0.0;
+
+    const ringPadding = 20.0;
+    const indicatorGap = 30.0;
+    final stackSize = compassSize + (ringPadding * 2);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── Compass with Kaaba on ring ──
+        // ── Compass: rotating dial + fixed HUD ──
         SizedBox(
-          width: compassSize + 40, // extra room for Kaaba badge overhang
-          height: compassSize + 40,
+          width: stackSize,
+          height: stackSize,
           child: Stack(
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
-              // Ring + tick marks (CustomPainter)
-              CustomPaint(
-                size: Size(compassSize, compassSize),
-                painter: CompassRingPainter(accentColor: accentColor),
+              _buildRotatingDial(
+                compassSize,
+                accentColor,
+                heading,
+                state.qiblaBearing,
+                isAligned,
               ),
 
-              // Cardinal labels (skip North — Kaaba sits there)
-              _buildCardinalLabels(compassSize),
-
-              // Rotating arrow
-              _buildRotatingArrow(compassSize, accentColor, isAligned),
-
-              // Center hub
-              _buildCenterHub(compassSize, accentColor, absDelta, isAligned),
-
-              // Kaaba badge sitting ON the ring at 12 o'clock
+              // Fixed top indicator (phone top reference)
               Positioned(
-                top: 20 - 22, // half of badge height above ring top
-                child: _buildKaabaBadge(isAligned, accentColor),
+                top: ringPadding + indicatorGap,
+                child: _buildFixedTopIndicator(accentColor),
+              ),
+
+              // Fixed center readout
+              _buildCenterHub(
+                compassSize,
+                accentColor,
+                isAligned,
+                heading,
               ),
             ],
           ),
@@ -62,16 +66,14 @@ class SimpleCompassView extends StatelessWidget {
     );
   }
 
-  /// Cardinal labels: ق (East), ج (South), غ (West) — skip North (Kaaba is there)
+  // ... (Cardinals and Labels remain the same) ...
   Widget _buildCardinalLabels(double size) {
     final double radius = size / 2 - 28;
     final center = size / 2;
-
-    // Angles: East=90°, South=180°, West=270° (measured clockwise from North)
     const cardinals = [
-      (label: 'ق', angleDeg: 90.0),  // شرق (East) — right
-      (label: 'ج', angleDeg: 180.0), // جنوب (South) — bottom
-      (label: 'غ', angleDeg: 270.0), // غرب (West) — left
+      (label: 'ق', angleDeg: 90.0),
+      (label: 'ج', angleDeg: 180.0),
+      (label: 'غ', angleDeg: 270.0),
     ];
 
     return SizedBox(
@@ -105,35 +107,79 @@ class SimpleCompassView extends StatelessWidget {
     );
   }
 
-  /// Rotating Qibla arrow (kept exactly as original)
-  Widget _buildRotatingArrow(double size, Color color, bool isAligned) {
+  // 🔥 UPDATED: Passes the current rotation angle to the badge
+  Widget _buildRotatingDial(
+    double size,
+    Color accentColor,
+    double heading,
+    double? qiblaBearing,
+    bool isAligned,
+  ) {
+    const kaabaBadgeSize = 56.0;
+    const kaabaTrackInset = 6.0;
+    final center = size / 2;
+    final radius = size / 2;
+
+    double? kaabaLeft;
+    double? kaabaTop;
+    if (qiblaBearing != null) {
+      final normalizedBearing = ((qiblaBearing % 360) + 360) % 360;
+      final bearingRad = normalizedBearing * math.pi / 180;
+      final markerRadius = radius - kaabaTrackInset;
+      kaabaLeft =
+          center + markerRadius * math.sin(bearingRad) - (kaabaBadgeSize / 2);
+      kaabaTop =
+          center - markerRadius * math.cos(bearingRad) - (kaabaBadgeSize / 2);
+    }
+
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: state.delta),
+      tween: Tween<double>(begin: 0, end: heading),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
       builder: (context, angle, child) {
+        // We capture 'angle' here to pass it down
         return Transform.rotate(
           angle: -angle * (math.pi / 180),
-          child: child,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                CustomPaint(
+                  size: Size(size, size),
+                  painter: CompassRingPainter(accentColor: accentColor),
+                ),
+                _buildCardinalLabels(size),
+                if (kaabaLeft != null && kaabaTop != null)
+                  Positioned(
+                    left: kaabaLeft,
+                    top: kaabaTop,
+                    // 🔥 Passing 'angle' to counter-rotate the icon
+                    child: _buildKaabaBadge(isAligned, accentColor, angle),
+                  ),
+              ],
+            ),
+          ),
         );
       },
-      child: CustomPaint(
-        size: Size(size, size),
-        painter: QiblaArrowPainter(
-          color: color,
-          isAligned: isAligned,
-          glowIntensity: _getGlowIntensity(state.delta.abs()),
-        ),
-      ),
     );
   }
 
-  /// Center hub — small circle showing ✓ when aligned, degree otherwise
+  Widget _buildFixedTopIndicator(Color accentColor) {
+    return Icon(
+      Icons.navigation_rounded,
+      size: 38,
+      color: accentColor,
+    );
+  }
+
   Widget _buildCenterHub(
     double compassSize,
     Color accentColor,
-    double absDelta,
     bool isAligned,
+    double heading,
   ) {
     final hubSize = compassSize * 0.28;
 
@@ -148,57 +194,79 @@ class SimpleCompassView extends StatelessWidget {
           width: 2,
         ),
       ),
-      child: Center(
-        child: isAligned
-            ? Icon(
-                Icons.check_rounded,
-                size: hubSize * 0.45,
-                color: accentColor,
-              )
-            : Text(
-                '${absDelta.toInt()}°',
-                style: GoogleFonts.tajawal(
-                  fontSize: hubSize * 0.28,
-                  fontWeight: FontWeight.bold,
-                  color: accentColor,
-                ),
-              ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '${heading.toStringAsFixed(0)}°',
+            style: GoogleFonts.tajawal(
+              fontSize: hubSize * 0.28,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'اتجاهك',
+            style: GoogleFonts.tajawal(
+              fontSize: hubSize * 0.12,
+              color: Colors.white54,
+            ),
+          ),
+          if (isAligned) ...[
+            const SizedBox(height: 2),
+            Icon(
+              Icons.check_rounded,
+              size: hubSize * 0.2,
+              color: accentColor,
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  /// Kaaba badge — sits ON the ring at 12 o'clock, half in / half out
-  Widget _buildKaabaBadge(bool isAligned, Color accentColor) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isAligned
-            ? accentColor.withValues(alpha: 0.25)
-            : const Color(0xFF1A1A1A),
-        border: Border.all(
-          color: accentColor,
-          width: isAligned ? 2.5 : 1.5,
+  // 🔥 UPDATED: Counter-rotates the badge using rotationAngle
+  Widget _buildKaabaBadge(bool isAligned, Color accentColor, double rotationAngle) {
+    return Transform.rotate(
+      // Counter-rotation: Positive angle cancels out the parent's Negative angle
+      angle: rotationAngle * (math.pi / 180), 
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isAligned
+              ? accentColor.withValues(alpha: 0.25)
+              : const Color(0xFF1A1A1A),
+          border: Border.all(
+            color: accentColor,
+            width: isAligned ? 2.5 : 1.5,
+          ),
+          boxShadow: isAligned
+              ? [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                  ),
+                ]
+              : [],
         ),
-        boxShadow: isAligned
-            ? [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.5),
-                  blurRadius: 20,
-                  spreadRadius: 4,
-                ),
-              ]
-            : [],
-      ),
-      child: const Center(
-        child: Text('🕋', style: TextStyle(fontSize: 20)),
+        child: const Center(
+          child: Text(
+            '🕋',
+            style: TextStyle(
+              fontSize: 30,
+              height: 1,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  /// Status text — single bold line + optional subtitle
   Widget _buildStatusText(double absDelta, double delta, Color accentColor) {
     final String mainText;
     final String? subText;
@@ -248,16 +316,9 @@ class SimpleCompassView extends StatelessWidget {
     if (absDelta < 60) return const Color(0xFFFF6B6B);
     return Colors.white54;
   }
-
-  double _getGlowIntensity(double absDelta) {
-    if (absDelta < 3) return 1.0;
-    if (absDelta < 10) return 0.7;
-    if (absDelta < 30) return 0.4;
-    return 0.0;
-  }
 }
 
-/// Draws the compass ring + 36 tick marks efficiently in a single paint call.
+// ... (CompassRingPainter remains the same) ...
 class CompassRingPainter extends CustomPainter {
   final Color accentColor;
 
@@ -324,188 +385,5 @@ class CompassRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(CompassRingPainter oldDelegate) {
     return oldDelegate.accentColor != accentColor;
-  }
-}
-
-/// Arrow painter — kept exactly as original design
-class QiblaArrowPainter extends CustomPainter {
-  final Color color;
-  final bool isAligned;
-  final double glowIntensity;
-
-  QiblaArrowPainter({
-    required this.color,
-    required this.isAligned,
-    required this.glowIntensity,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final arrowLength = radius - 20;
-
-    // Multi-layer outer glow
-    if (glowIntensity > 0) {
-      final outerGlowPaint = Paint()
-        ..color = color.withValues(alpha: glowIntensity * 0.15)
-        ..strokeWidth = 20
-        ..strokeCap = StrokeCap.round
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25)
-        ..style = PaintingStyle.stroke;
-
-      canvas.drawLine(
-        center,
-        Offset(center.dx, center.dy - arrowLength),
-        outerGlowPaint,
-      );
-
-      final midGlowPaint = Paint()
-        ..color = color.withValues(alpha: glowIntensity * 0.3)
-        ..strokeWidth = 14
-        ..strokeCap = StrokeCap.round
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15)
-        ..style = PaintingStyle.stroke;
-
-      canvas.drawLine(
-        center,
-        Offset(center.dx, center.dy - arrowLength),
-        midGlowPaint,
-      );
-    }
-
-    // Arrow body with gradient
-    final gradient = LinearGradient(
-      begin: Alignment.bottomCenter,
-      end: Alignment.topCenter,
-      colors: [
-        color.withValues(alpha: 0.7),
-        color,
-      ],
-    );
-
-    final arrowBodyPaint = Paint()
-      ..shader = gradient.createShader(
-        Rect.fromPoints(
-          center,
-          Offset(center.dx, center.dy - arrowLength),
-        ),
-      )
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-      Offset(center.dx, center.dy - 15),
-      Offset(center.dx, center.dy - arrowLength + 25),
-      arrowBodyPaint,
-    );
-
-    // Arrow head
-    final arrowTipY = center.dy - arrowLength;
-
-    final arrowHeadPath = Path()
-      ..moveTo(center.dx, arrowTipY - 5)
-      ..quadraticBezierTo(
-        center.dx - 8, arrowTipY + 15,
-        center.dx - 16, arrowTipY + 22,
-      )
-      ..lineTo(center.dx, arrowTipY + 12)
-      ..lineTo(center.dx + 16, arrowTipY + 22)
-      ..quadraticBezierTo(
-        center.dx + 8, arrowTipY + 15,
-        center.dx, arrowTipY - 5,
-      )
-      ..close();
-
-    if (glowIntensity > 0) {
-      canvas.drawPath(
-        arrowHeadPath,
-        Paint()
-          ..color = color.withValues(alpha: glowIntensity * 0.4)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
-      );
-    }
-
-    final arrowHeadGradient = RadialGradient(
-      center: Alignment.topCenter,
-      radius: 1.5,
-      colors: [
-        color,
-        color.withValues(alpha: 0.8),
-      ],
-    );
-
-    final arrowHeadPaint = Paint()
-      ..shader = arrowHeadGradient.createShader(
-        Rect.fromLTRB(
-          center.dx - 20,
-          arrowTipY - 10,
-          center.dx + 20,
-          arrowTipY + 30,
-        ),
-      )
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(arrowHeadPath, arrowHeadPaint);
-
-    final arrowHeadBorderPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawPath(arrowHeadPath, arrowHeadBorderPaint);
-
-    // Center dot
-    if (glowIntensity > 0) {
-      canvas.drawCircle(
-        center,
-        12,
-        Paint()
-          ..color = color.withValues(alpha: glowIntensity * 0.3)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-      );
-    }
-
-    canvas.drawCircle(
-      center,
-      10,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-
-    final centerGradient = RadialGradient(
-      colors: [
-        color,
-        color.withValues(alpha: 0.6),
-      ],
-    );
-
-    canvas.drawCircle(
-      center,
-      8,
-      Paint()
-        ..shader = centerGradient.createShader(
-          Rect.fromCircle(center: center, radius: 8),
-        )
-        ..style = PaintingStyle.fill,
-    );
-
-    canvas.drawCircle(
-      center,
-      3,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.9)
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(QiblaArrowPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.isAligned != isAligned ||
-        oldDelegate.glowIntensity != glowIntensity;
   }
 }

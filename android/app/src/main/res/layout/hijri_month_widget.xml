@@ -33,15 +33,17 @@
         android:orientation="horizontal"
         android:padding="2dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:baselineAligned="false">
 
         <ImageView
             android:id="@+id/monthImage"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:scaleType="fitCenter"
             android:adjustViewBounds="true"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:minHeight="24dp" />
 
         <TextView
             android:id="@+id/txtMonthNumber"
@@ -50,11 +52,12 @@
             android:gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minWidth="32dp"
             android:scaleType="centerCrop"
             android:text=""
             android:fontFamily="@font/ayman"
             android:textAlignment="center"
-            android:paddingStart="5dp"
-            android:paddingEnd="15dp" />
+            android:paddingStart="4dp"
+            android:paddingEnd="8dp" />
     </LinearLayout>
 </FrameLayout>

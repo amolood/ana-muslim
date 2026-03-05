@@ -23,6 +23,7 @@ abstract final class Routes {
   static const quranSearch = '/quran/search';
   static const quranBookmarks = '/quran/bookmarks';
   static const quranTahfeez = '/quran/tahfeez';
+  static const quranFontPicker = '/quran/font-picker';
 
   /// Builds a path to the Quran reader for [surahNumber].
   ///
@@ -66,6 +67,15 @@ abstract final class Routes {
   static const settingsDefaultReciter = '/settings/default-reciter';
   static const settingsPrayerSilence = '/settings/prayer-silence';
   static const settingsWidgets = '/settings/widgets';
+  static const settingsLibrary = '/settings/library';
+
+  // ─── Hijri Calendar ───────────────────────────────────────────────────
+
+  static const hijriCalendar = '/hijri-calendar';
+
+  // ─── Asma Al-Husna ────────────────────────────────────────────────────
+
+  static const asmaUlHusna = '/asma-ul-husna';
 
   // ─── Adhan player ──────────────────────────────────────────────────────
 

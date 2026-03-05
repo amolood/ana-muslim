@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 import '../../../../core/utils/arabic_utils.dart';
 import '../providers/worship_stats_provider.dart';
 
@@ -16,6 +17,8 @@ class MotivationStatsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(worshipStatsProvider);
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scorePercent = (stats.overallScore * 100).round();
 
     return Padding(
@@ -23,16 +26,18 @@ class MotivationStatsCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface(context),
+          color: colors.surfaceCard,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border(context)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          border: Border.all(color: colors.borderSubtle),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +63,7 @@ class MotivationStatsCard extends ConsumerWidget {
                     style: GoogleFonts.tajawal(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary(context),
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -77,7 +82,7 @@ class MotivationStatsCard extends ConsumerWidget {
               stats.motivationBody,
               style: GoogleFonts.tajawal(
                 fontSize: 13,
-                color: AppColors.textSecondary(context),
+                color: colors.textSecondary,
                 height: 1.55,
               ),
             ),
@@ -87,7 +92,7 @@ class MotivationStatsCard extends ConsumerWidget {
               child: LinearProgressIndicator(
                 minHeight: 7,
                 value: stats.overallScore,
-                backgroundColor: AppColors.surfaceElevated(context),
+                backgroundColor: colors.surfaceVariant,
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   AppColors.primary,
                 ),
@@ -98,16 +103,16 @@ class MotivationStatsCard extends ConsumerWidget {
               children: [
                 _miniMetric(
                   context,
+                  colors: colors,
                   icon: FlutterIslamicIcons.quran,
-                  text:
-                      'القرآن ${stats.quranLastPage} / ٦٠٤',
+                  text: 'القرآن ${stats.quranLastPage} / ٦٠٤',
                 ),
                 const SizedBox(width: 10),
                 _miniMetric(
                   context,
+                  colors: colors,
                   icon: Icons.self_improvement_rounded,
-                  text:
-                      'الصلاة ${stats.prayerCompleted} / ${stats.prayerTotal}',
+                  text: 'الصلاة ${stats.prayerCompleted} / ${stats.prayerTotal}',
                 ),
               ],
             ),
@@ -138,6 +143,7 @@ class MotivationStatsCard extends ConsumerWidget {
 
   Widget _miniMetric(
     BuildContext context, {
+    required AppSemanticColors colors,
     required IconData icon,
     required String text,
   }) {
@@ -145,11 +151,9 @@ class MotivationStatsCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated(context),
+          color: colors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.border(context).withValues(alpha: 0.5),
-          ),
+          border: Border.all(color: colors.borderSubtle),
         ),
         child: Row(
           children: [
@@ -162,7 +166,7 @@ class MotivationStatsCard extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.tajawal(
                   fontSize: 11,
-                  color: AppColors.textSecondary(context),
+                  color: colors.textSecondary,
                   fontWeight: FontWeight.w700,
                 ),
               ),

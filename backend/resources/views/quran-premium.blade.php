@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>القرآن الكريم | أنا المسلم</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- خطوط جوجل: أميري للقرآن، وتجوال للواجهة العصرية -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,38 +14,39 @@
     <!-- مكتبة الأيقونات Iconify (مجموعة Solar الفاخرة) -->
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Tajawal', 'sans-serif'],
-                        quran: ['Amiri', 'serif'],
-                    },
-                    colors: {
-                        primary: '#11D4B4',
-                        sand: {
-                            50: '#FDFBF7',
-                            100: '#F4EFE6',
-                            200: '#E8DFCE',
-                        },
-                        gold: {
-                            400: '#FBBF24',
-                            500: '#D4AF37',
-                            600: '#B48A27',
-                        }
-                    },
-                    boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                        'soft': '0 20px 40px -15px rgba(0,0,0,0.05)',
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
+    :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-2: #fdfbf7;
+        --border: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --text-soft: #64748b;
+        --primary: #11d4b4;
+        --primary-soft: rgba(17, 212, 180, 0.16);
+        --gold: #d4af37;
+        --danger: #dc2626;
+        --shadow: 0 18px 38px -18px rgba(15, 23, 42, 0.22);
+    }
+
+    .dark {
+        --bg: #020617;
+        --surface: #0f172a;
+        --surface-2: #1e293b;
+        --border: #334155;
+        --border-strong: #475569;
+        --text: #e2e8f0;
+        --text-muted: #cbd5e1;
+        --text-soft: #94a3b8;
+        --primary: #2dd4bf;
+        --primary-soft: rgba(45, 212, 191, 0.22);
+        --gold: #fbbf24;
+        --danger: #f87171;
+        --shadow: 0 24px 48px -28px rgba(2, 6, 23, 0.9);
+    }
+
     /* Navbar Glass Effects */
     .glass-panel {
         background: rgba(255, 255, 255, 0.85);
@@ -92,6 +93,21 @@
         transform: scale(1.12);
     }
 
+    .mushaf-frame {
+        border-color: color-mix(in srgb, var(--gold) 24%, transparent);
+    }
+
+    .ayah-selected {
+        background: var(--primary-soft);
+        border-bottom: 2px solid var(--primary);
+        border-radius: 0.5rem 0.5rem 0 0;
+        box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.65);
+    }
+
+    .dark .ayah-selected {
+        box-shadow: 0 14px 26px -18px rgba(2, 6, 23, 0.9);
+    }
+
     /* Ayah marker circle in main view */
     .ayah-marker {
         display: inline-flex;
@@ -100,38 +116,40 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: #94a3b8;
-        font-size: 0.65rem;
+        background: var(--surface);
+        color: var(--text-soft);
+        font-size: 0.66rem;
         font-weight: 800;
         font-family: 'Readex Pro', sans-serif;
         vertical-align: middle;
         margin: 0 8px;
         flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
-        border: 1.5px solid rgba(255,255,255,.08);
-        transition: transform 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 10px rgba(2, 6, 23, 0.16);
+        border: 1.5px solid var(--border-strong);
+        transition: transform 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s, border-color 0.2s;
         letter-spacing: 0;
     }
-    .verse-hover:hover .ayah-marker {
-        background: linear-gradient(135deg, #0d9e87 0%, #11D4B4 100%);
+    .verse-hover:hover .ayah-marker,
+    .verse-hover:focus-visible .ayah-marker {
+        background: var(--primary);
         color: #fff;
-        transform: scale(1.12);
-        box-shadow: 0 4px 12px rgba(17,212,180,.35);
-        border-color: rgba(255,255,255,.15);
+        transform: scale(1.08);
+        box-shadow: 0 6px 14px -6px rgba(17, 212, 180, 0.55);
+        border-color: var(--primary);
     }
     .ayah-marker--active {
-        background: linear-gradient(135deg, #0d9e87 0%, #11D4B4 100%) !important;
+        background: var(--primary) !important;
         color: #fff !important;
-        box-shadow: 0 4px 12px rgba(17,212,180,.4) !important;
+        box-shadow: 0 8px 16px -7px rgba(17, 212, 180, 0.6) !important;
+        border-color: var(--primary) !important;
     }
     </style>
 </head>
-<body class="text-slate-800 dark:text-slate-200 antialiased selection:bg-primary-100 selection:text-primary-900 dark:selection:bg-primary-800 dark:selection:text-white flex flex-col min-h-screen">
+<body class="bg-[var(--bg)] text-[var(--text)] antialiased selection:bg-[var(--primary-soft)] selection:text-[var(--text)] flex flex-col min-h-screen transition-colors duration-300">
 
     <!-- خلفية الموقع مع تأثير ضبابي خفيف -->
     <div class="fixed inset-0 z-[-1] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjEsIDEyOCwgNjEsIDAuMDUpIi8+PC9zdmc+')] pointer-events-none opacity-60"></div>
-    <div class="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-primary-50/80 dark:from-slate-900/80 to-transparent z-[-1] pointer-events-none"></div>
+    <div class="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-[color-mix(in_srgb,var(--primary)_10%,transparent)] to-transparent z-[-1] pointer-events-none"></div>
 
     <!-- Navbar -->
     <div x-show="!focusMode" style="font-family: 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;">
@@ -144,40 +162,87 @@
         <div class="flex flex-col xl:flex-row items-center justify-between gap-6 mb-10">
 
             <div class="text-right w-full xl:w-auto">
-                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                <h1 class="text-3xl md:text-4xl font-bold text-[var(--text)] flex items-center gap-3">
                     القرآن الكريم
-                    <iconify-icon icon="solar:star-fall-bold-duotone" class="text-gold-500 text-2xl"></iconify-icon>
+                    <iconify-icon icon="solar:star-fall-bold-duotone" class="text-[var(--gold)] text-2xl"></iconify-icon>
                 </h1>
-                <p class="mt-2 text-slate-500 dark:text-slate-400 font-medium">﴿ كِتَابٌ أَنزَلْنَاهُ إِلَيْكَ مُبَارَكٌ لِّيَدَّبَّرُوا آيَاتِهِ ﴾</p>
+                <p class="mt-2 text-[var(--text-muted)] font-medium">﴿ كِتَابٌ أَنزَلْنَاهُ إِلَيْكَ مُبَارَكٌ لِّيَدَّبَّرُوا آيَاتِهِ ﴾</p>
             </div>
 
             <!-- شريط أدوات البحث والإعدادات -->
-            <div class="flex w-full xl:w-auto items-center p-1.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm shadow-slate-200/50">
+            <div class="flex w-full xl:w-auto items-center p-1.5 bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-[var(--shadow)]">
                 <div class="relative w-full md:w-64">
-                    <iconify-icon icon="solar:magnifer-linear" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></iconify-icon>
-                    <input type="text" x-model="searchQuery" @input="searchQuran()" placeholder="ابحث في القرآن..." class="w-full bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm rounded-xl py-2.5 pr-11 pl-4 border-none focus:ring-0 outline-none transition-colors text-slate-900 dark:text-white">
+                    <iconify-icon icon="solar:magnifer-linear" class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-soft)] text-lg"></iconify-icon>
+                    <input type="text"
+                           x-model="searchQuery"
+                           @input="searchQuran()"
+                           placeholder="ابحث في القرآن..."
+                           class="w-full bg-[var(--surface-2)] hover:bg-[var(--surface)] text-sm rounded-xl py-2.5 pr-11 pl-4 border border-[var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] transition-colors duration-200 text-[var(--text)]">
                 </div>
-                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
+                <div class="h-6 w-px bg-[var(--border)] mx-2 hidden md:block"></div>
                 <div class="flex items-center gap-1 overflow-x-auto hide-scrollbar">
-                    <button @click="showReciterModal = true" class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors">
-                        <iconify-icon icon="solar:user-circle-bold-duotone" class="text-primary-600 dark:text-primary-400 text-lg"></iconify-icon>
+                    <button @click="showReciterModal = true"
+                            class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-[var(--primary-soft)] active:scale-[0.98] text-sm font-medium text-[var(--text-muted)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
+                        <iconify-icon icon="solar:user-circle-bold-duotone" class="text-[var(--primary)] text-lg"></iconify-icon>
                         <span x-text="selectedReciterName"></span>
                     </button>
-                    <button @click="showBookmarks = !showBookmarks" class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors">
-                        <iconify-icon icon="solar:bookmark-bold-duotone" class="text-primary-600 dark:text-primary-400 text-lg"></iconify-icon>
+                    <button @click="showBookmarks = !showBookmarks"
+                            class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-[var(--primary-soft)] active:scale-[0.98] text-sm font-medium text-[var(--text-muted)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
+                        <iconify-icon icon="solar:bookmark-bold-duotone" class="text-[var(--primary)] text-lg"></iconify-icon>
                         علاماتي
                     </button>
-                    <button @click="toggleFocusMode()" class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors" title="وضع القراءة المركزة">
-                        <iconify-icon icon="solar:eye-bold-duotone" class="text-primary-600 dark:text-primary-400 text-lg"></iconify-icon>
+                    <button @click="toggleFocusMode()"
+                            class="flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl hover:bg-[var(--primary-soft)] active:scale-[0.98] text-sm font-medium text-[var(--text-muted)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+                            title="وضع القراءة المركزة">
+                        <iconify-icon icon="solar:eye-bold-duotone" class="text-[var(--primary)] text-lg"></iconify-icon>
                         <span class="hidden md:inline">وضع التركيز</span>
                     </button>
-                    <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
-                        <button @click="decreaseFontSize()" class="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-slate-600 flex items-center justify-center transition-colors" title="تصغير الخط">
-                            <iconify-icon icon="solar:minus-circle-bold" class="text-lg text-slate-600 dark:text-slate-300"></iconify-icon>
+                    <!-- Font Picker Button -->
+                    <div class="relative">
+                        <button @click="showFontMenu = !showFontMenu"
+                                @click.away="showFontMenu = false"
+                                class="flex items-center gap-1.5 h-9 px-3 rounded-xl hover:bg-[var(--primary-soft)] active:scale-[0.98] text-sm font-medium text-[var(--text-muted)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
+                            <template x-if="fontLoading">
+                                <span class="w-3.5 h-3.5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin block"></span>
+                            </template>
+                            <template x-if="!fontLoading">
+                                <iconify-icon icon="solar:text-field-focus-bold" class="text-[var(--primary)] text-lg"></iconify-icon>
+                            </template>
+                            <span class="hidden md:inline max-w-[90px] truncate" x-text="selectedFont.name"></span>
+                            <iconify-icon icon="solar:alt-arrow-down-bold" class="text-[var(--text-soft)] text-xs"></iconify-icon>
                         </button>
-                        <span class="text-xs font-bold px-2 text-slate-600 dark:text-slate-300" x-text="fontSize + 'px'"></span>
-                        <button @click="increaseFontSize()" class="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-slate-600 flex items-center justify-center transition-colors" title="تكبير الخط">
-                            <iconify-icon icon="solar:add-circle-bold" class="text-lg text-slate-600 dark:text-slate-300"></iconify-icon>
+                        <!-- Font Dropdown -->
+                        <div x-show="showFontMenu"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute left-0 top-11 z-50 w-56 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-1.5 max-h-72 overflow-y-auto"
+                             style="min-width:14rem;">
+                            <p class="text-[10px] font-bold text-[var(--text-soft)] px-2 py-1 uppercase tracking-wider">اختر خط القرآن</p>
+                            <template x-for="font in availableFonts" :key="font.key">
+                                <button @click="applyFont(font); showFontMenu = false"
+                                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-all duration-150 hover:bg-[var(--surface-2)] active:scale-[0.98]"
+                                        :class="selectedFont.key === font.key ? 'bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-[var(--primary)]' : 'text-[var(--text)]'">
+                                    <span class="flex-1 text-sm font-bold text-right" x-text="font.name"></span>
+                                    <iconify-icon x-show="selectedFont.key === font.key" icon="solar:check-circle-bold" class="text-[var(--primary)] shrink-0"></iconify-icon>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 bg-[var(--surface-2)] rounded-xl p-1 border border-[var(--border)]">
+                        <button @click="decreaseFontSize()"
+                                class="w-8 h-8 rounded-lg hover:bg-[var(--surface)] active:scale-95 flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                                title="تصغير الخط">
+                            <iconify-icon icon="solar:minus-circle-bold" class="text-lg text-[var(--text-muted)]"></iconify-icon>
+                        </button>
+                        <span class="text-xs font-bold px-2 text-[var(--text-muted)]" x-text="fontSize + 'px'"></span>
+                        <button @click="increaseFontSize()"
+                                class="w-8 h-8 rounded-lg hover:bg-[var(--surface)] active:scale-95 flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                                title="تكبير الخط">
+                            <iconify-icon icon="solar:add-circle-bold" class="text-lg text-[var(--text-muted)]"></iconify-icon>
                         </button>
                     </div>
                 </div>
@@ -186,58 +251,58 @@
         </div>
 
         <!-- Bookmarks Panel -->
-        <div x-show="showBookmarks" x-cloak class="mb-8 bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 p-6">
+        <div x-show="showBookmarks" x-cloak class="mb-8 bg-[var(--surface)] rounded-2xl shadow-[var(--shadow)] border border-[var(--border)] p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <iconify-icon icon="solar:bookmark-bold-duotone" class="text-primary-600 dark:text-primary-400"></iconify-icon>
+                <h3 class="text-lg font-bold text-[var(--text)] flex items-center gap-2">
+                    <iconify-icon icon="solar:bookmark-bold-duotone" class="text-[var(--primary)]"></iconify-icon>
                     العلامات المرجعية
                 </h3>
-                <button @click="showBookmarks = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <button @click="showBookmarks = false" class="text-[var(--text-soft)] hover:text-[var(--text)] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-lg">
                     <iconify-icon icon="solar:close-circle-bold" class="text-2xl"></iconify-icon>
                 </button>
             </div>
-            <div x-show="bookmarks.length === 0" class="text-center py-8 text-slate-500 dark:text-slate-400">
+            <div x-show="bookmarks.length === 0" class="text-center py-8 text-[var(--text-muted)]">
                 <iconify-icon icon="solar:bookmark-bold-duotone" class="text-6xl mb-4 opacity-20"></iconify-icon>
                 <p>لا توجد علامات مرجعية بعد</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <template x-for="bookmark in bookmarks" :key="bookmark.id">
-                    <div class="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 transition-all cursor-pointer group" @click="goToBookmark(bookmark)">
+                    <div class="bg-[var(--surface-2)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group" @click="goToBookmark(bookmark)">
                         <div class="flex items-start justify-between mb-2">
                             <div class="flex-1">
-                                <h4 class="font-bold text-slate-900 dark:text-white" x-text="bookmark.surahName"></h4>
-                                <p class="text-sm text-slate-500 dark:text-slate-400" x-text="'آية ' + bookmark.ayahNumber"></p>
+                                <h4 class="font-bold text-[var(--text)]" x-text="bookmark.surahName"></h4>
+                                <p class="text-sm text-[var(--text-muted)]" x-text="'آية ' + bookmark.ayahNumber"></p>
                             </div>
-                            <button @click.stop="removeBookmark(bookmark.id)" class="text-slate-400 hover:text-red-500 transition-colors">
+                            <button @click.stop="removeBookmark(bookmark.id)" class="text-[var(--text-soft)] hover:text-[var(--danger)] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)] rounded-lg">
                                 <iconify-icon icon="solar:trash-bin-minimalistic-bold" class="text-lg"></iconify-icon>
                             </button>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 font-quran line-clamp-2" x-text="bookmark.ayahText"></p>
-                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-2" x-text="new Date(bookmark.timestamp).toLocaleDateString('ar-SA')"></p>
+                        <p class="text-sm text-[var(--text-muted)] font-quran line-clamp-2" x-text="bookmark.ayahText"></p>
+                        <p class="text-xs text-[var(--text-soft)] mt-2" x-text="new Date(bookmark.timestamp).toLocaleDateString('ar-SA')"></p>
                     </div>
                 </template>
             </div>
         </div>
 
         <!-- Search Results -->
-        <div x-show="searchResults.length > 0" x-cloak class="mb-8 bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-200 dark:border-slate-700 p-6">
+        <div x-show="searchResults.length > 0" x-cloak class="mb-8 bg-[var(--surface)] rounded-2xl shadow-[var(--shadow)] border border-[var(--border)] p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <iconify-icon icon="solar:magnifer-bold-duotone" class="text-primary-600 dark:text-primary-400"></iconify-icon>
+                <h3 class="text-lg font-bold text-[var(--text)] flex items-center gap-2">
+                    <iconify-icon icon="solar:magnifer-bold-duotone" class="text-[var(--primary)]"></iconify-icon>
                     نتائج البحث (<span x-text="searchResults.length"></span>)
                 </h3>
-                <button @click="searchResults = []; searchQuery = ''" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <button @click="searchResults = []; searchQuery = ''" class="text-[var(--text-soft)] hover:text-[var(--text)] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-lg">
                     <iconify-icon icon="solar:close-circle-bold" class="text-2xl"></iconify-icon>
                 </button>
             </div>
             <div class="space-y-3 max-h-96 overflow-y-auto">
                 <template x-for="result in searchResults" :key="result.surahNum + '-' + result.ayahNum">
-                    <div class="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 transition-all cursor-pointer" @click="goToSearchResult(result)">
+                    <div class="bg-[var(--surface-2)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--primary)] transition-all duration-200 cursor-pointer" @click="goToSearchResult(result)">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-sm font-bold text-primary-700 dark:text-primary-400" x-text="result.surahName"></span>
-                            <span class="text-sm text-slate-500 dark:text-slate-400" x-text="'آية ' + result.ayahNum"></span>
+                            <span class="text-sm font-bold text-[var(--primary)]" x-text="result.surahName"></span>
+                            <span class="text-sm text-[var(--text-muted)]" x-text="'آية ' + result.ayahNum"></span>
                         </div>
-                        <p class="text-slate-700 dark:text-slate-300 font-quran leading-loose" x-html="highlightSearchTerm(result.text, searchQuery)"></p>
+                        <p class="text-[var(--text-muted)] font-quran leading-loose" x-html="highlightSearchTerm(result.text, searchQuery)"></p>
                     </div>
                 </template>
             </div>
@@ -252,66 +317,75 @@
                 <!-- Surahs Grid View -->
                 <div x-show="!selectedSurah" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
                     <template x-for="surah in surahs" :key="surah.number">
-                        <button @click="selectSurah(surah.number)" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all text-right group">
+                        <button @click="selectSurah(surah.number)"
+                                class="bg-[var(--surface)] p-6 rounded-2xl border border-[var(--border)] text-right group shadow-[var(--shadow)] hover:border-[var(--primary)] hover:shadow-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] transition-all duration-200">
                             <div class="flex items-center justify-between mb-3">
-                                <span class="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-400 font-bold text-lg" x-text="surah.number"></span>
-                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400" x-text="surah.englishName"></span>
+                                <span class="w-12 h-12 rounded-full bg-[var(--primary-soft)] border border-[var(--border)] flex items-center justify-center text-[var(--primary)] font-bold text-lg" x-text="surah.number"></span>
+                                <span class="text-xs font-medium text-[var(--text-soft)]" x-text="surah.englishName"></span>
                             </div>
-                            <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-quran" x-text="surah.name"></h3>
-                            <p class="text-sm text-slate-600 dark:text-slate-400" x-text="surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'"></p>
-                            <p class="text-sm text-slate-500 dark:text-slate-500" x-text="surah.numberOfAyahs + ' آية'"></p>
+                            <h3 class="text-2xl font-bold text-[var(--text)] mb-2 font-quran" x-text="surah.name"></h3>
+                            <p class="text-sm text-[var(--text-muted)]" x-text="surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'"></p>
+                            <p class="text-sm text-[var(--text-soft)]" x-text="surah.numberOfAyahs + ' آية'"></p>
                         </button>
                     </template>
                 </div>
 
                 <!-- ورقة المصحف -->
-                <div x-show="selectedSurah" x-cloak class="bg-sand-50 dark:bg-slate-800 rounded-[2rem] shadow-soft border border-sand-200 dark:border-slate-700 relative overflow-hidden mushaf-page">
+                <div x-show="selectedSurah"
+                     x-cloak
+                     class="rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] bg-[var(--surface-2)] relative overflow-hidden mushaf-page transition-colors duration-300">
 
                     <!-- إطار المصحف الزخرفي -->
-                    <div class="absolute inset-2 border border-gold-500/10 rounded-[1.5rem] pointer-events-none"></div>
+                    <div class="absolute inset-2 border rounded-[1.5rem] pointer-events-none mushaf-frame"></div>
 
                     <div class="p-6 sm:p-10 md:p-14">
 
                         <!-- معلومات السورة (هيدر الآيات) -->
                         <div class="flex flex-col items-center justify-center mb-12">
                             <!-- Back Button -->
-                            <button @click="selectedSurah = null; currentAyahs = []; stopAudio()" class="mb-6 flex items-center gap-2 text-primary-700 dark:text-primary-400 hover:gap-3 transition-all font-bold self-start">
+                            <button @click="selectedSurah = null; currentAyahs = []; stopAudio()"
+                                    class="mb-6 flex items-center gap-2 text-[var(--primary)] hover:gap-3 font-bold self-start transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-2)]">
                                 <iconify-icon icon="solar:alt-arrow-right-linear" class="text-2xl"></iconify-icon>
                                 <span>العودة للسور</span>
                             </button>
 
                             <!-- التاج / البادج -->
-                            <div x-show="currentSurahData" class="flex items-center gap-4 bg-white dark:bg-slate-900 px-6 py-2 rounded-full border border-sand-200 dark:border-slate-700 shadow-sm mb-8">
-                                <span class="text-sm font-bold text-primary-800 dark:text-primary-400 flex items-center gap-1.5">
-                                    <iconify-icon icon="solar:moon-stars-bold-duotone" class="text-gold-500 text-lg"></iconify-icon>
+                            <div x-show="currentSurahData"
+                                 class="flex items-center gap-4 px-6 py-2 rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] mb-8 transition-colors duration-300">
+                                <span class="text-sm font-bold text-[var(--primary)] flex items-center gap-1.5">
+                                    <iconify-icon icon="solar:moon-stars-bold-duotone" class="text-[var(--gold)] text-lg"></iconify-icon>
                                     <span x-text="currentSurahData?.revelationType === 'Meccan' ? 'مكية' : 'مدنية'"></span>
                                 </span>
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-600"></span>
-                                <span class="text-sm font-medium text-slate-600 dark:text-slate-400" x-text="'آياتها ' + convertToArabicNumbers(currentSurahData?.numberOfAyahs)"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]"></span>
+                                <span class="text-sm font-medium text-[var(--text-muted)]" x-text="'آياتها ' + convertToArabicNumbers(currentSurahData?.numberOfAyahs)"></span>
                             </div>
 
                             <!-- اسم السورة -->
-                            <h2 class="font-quran text-4xl md:text-5xl text-primary-900 dark:text-primary-300 mb-8" x-text="currentSurahData?.name"></h2>
+                            <h2 class="font-quran text-4xl md:text-5xl text-[var(--primary)] mb-8" x-text="currentSurahData?.name"></h2>
 
                             <!-- البسملة -->
-                            <div x-show="selectedSurah !== 1 && selectedSurah !== 9" class="font-quran text-3xl md:text-4xl text-slate-800 dark:text-slate-200 tracking-wide">
+                            <div x-show="selectedSurah !== 1 && selectedSurah !== 9"
+                                 class="font-quran text-3xl md:text-4xl tracking-wide text-[var(--text)]">
                                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                             </div>
 
                             <!-- فاصل أنيق -->
-                            <div class="mt-8 flex items-center justify-center w-full max-w-xs opacity-60">
-                                <div class="h-[1px] w-full bg-gradient-to-r from-transparent to-gold-500"></div>
-                                <iconify-icon icon="solar:star-fall-bold" class="text-gold-500 text-lg mx-3"></iconify-icon>
-                                <div class="h-[1px] w-full bg-gradient-to-l from-transparent to-gold-500"></div>
+                            <div class="mt-8 flex items-center justify-center w-full max-w-xs opacity-80">
+                                <div class="h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--gold)] to-transparent"></div>
+                                <iconify-icon icon="solar:star-fall-bold" class="text-[var(--gold)] text-lg mx-3"></iconify-icon>
+                                <div class="h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--gold)] to-transparent"></div>
                             </div>
                         </div>
 
                         <!-- الآيات -->
-                        <div class="font-quran quran-text text-slate-800 dark:text-slate-200 text-center leading-loose" dir="rtl" :style="'font-size: ' + fontSize + 'px; line-height: 2.2;'">
+                        <div class="font-quran quran-text text-[var(--text)] text-center"
+                             dir="rtl"
+                             :style="'font-family:\'' + selectedFont.cssFamily + '\',\'Amiri\',serif;font-size:' + fontSize + 'px;line-height:2.35;'">
                             <template x-for="(ayah, index) in currentAyahs" :key="ayah.number">
-                                <span class="relative group inline verse-hover px-1 py-0.5"
-                                      :class="{ 'bg-primary-100/40 dark:bg-primary-900/20 border-b-2 border-primary-300 dark:border-primary-600 rounded-t-lg': selectedAyah === ayah.numberInSurah }"
-                                      @click="selectAyah(ayah)">
+                                <button type="button"
+                                        class="relative group inline verse-hover px-1 py-0.5 rounded-lg transition-all duration-200 hover:bg-[var(--primary-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-2)]"
+                                        :class="{ 'ayah-selected': selectedAyah === ayah.numberInSurah }"
+                                        @click="selectAyah(ayah)">
                                     <span x-text="ayah.text"></span>
                                     <span class="ayah-marker"
                                           :class="{ 'ayah-marker--active': selectedAyah === ayah.numberInSurah }"
@@ -320,20 +394,27 @@
                                     <!-- القائمة العائمة (Floating Action Bar) -->
                                     <div x-show="selectedAyah === ayah.numberInSurah"
                                          x-cloak
-                                         class="absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white dark:bg-slate-800 rounded-xl p-1.5 shadow-xl border border-slate-100 dark:border-slate-700 animate-fade-in-up z-50">
-                                        <button @click.stop="showTafsir(ayah)" class="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" style="color: #11D4B4;" title="التفسير">
+                                         class="absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[var(--surface)] rounded-xl p-1.5 shadow-[var(--shadow)] border border-[var(--border-strong)] animate-fade-in-up z-50">
+                                        <button @click.stop="showTafsir(ayah)"
+                                                class="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--primary)] hover:bg-[var(--primary-soft)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-all duration-200"
+                                                title="التفسير">
                                             <iconify-icon icon="solar:book-bookmark-bold" class="text-lg"></iconify-icon>
                                         </button>
-                                        <button @click.stop="toggleBookmark(ayah)" class="flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" :class="{ 'text-gold-500 dark:text-gold-400': isBookmarked(ayah) }" title="علامة مرجعية">
+                                        <button @click.stop="toggleBookmark(ayah)"
+                                                class="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--text-soft)] hover:bg-[var(--primary-soft)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-all duration-200"
+                                                :class="{ 'text-[var(--gold)]': isBookmarked(ayah) }"
+                                                title="علامة مرجعية">
                                             <iconify-icon :icon="isBookmarked(ayah) ? 'solar:bookmark-bold' : 'solar:bookmark-linear'" class="text-lg"></iconify-icon>
                                         </button>
-                                        <button @click.stop="copyAyah(ayah)" class="flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="نسخ">
+                                        <button @click.stop="copyAyah(ayah)"
+                                                class="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--text-soft)] hover:bg-[var(--primary-soft)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-all duration-200"
+                                                title="نسخ">
                                             <iconify-icon icon="solar:copy-bold" class="text-lg"></iconify-icon>
                                         </button>
                                         <!-- السهم السفلي للقائمة -->
-                                        <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-800 border-b border-r border-slate-100 dark:border-slate-700 rotate-45"></div>
+                                        <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[var(--surface)] border-b border-r border-[var(--border-strong)] rotate-45"></div>
                                     </div>
-                                </span>
+                                </button>
                             </template>
                         </div>
                     </div>
@@ -341,22 +422,26 @@
 
                 <!-- أزرار التنقل السفلية بين السور -->
                 <div x-show="selectedSurah" x-cloak class="mt-8 flex items-center justify-between gap-4">
-                    <button @click="navigateSurah('prev')" :disabled="selectedSurah === 1" class="group flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    <button @click="navigateSurah('prev')"
+                            :disabled="selectedSurah === 1"
+                            class="group flex items-center gap-4 bg-[var(--surface)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg active:scale-[0.99] transition-all duration-200 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-soft)] border border-[var(--border)] group-hover:bg-[var(--primary-soft)] group-hover:text-[var(--primary)] transition-colors duration-200">
                             <iconify-icon icon="solar:round-alt-arrow-right-bold-duotone" class="text-3xl"></iconify-icon>
                         </div>
                         <div class="text-right">
-                            <span class="block text-xs font-bold text-slate-400 dark:text-slate-500">السورة السابقة</span>
-                            <span class="block text-base font-bold text-slate-800 dark:text-slate-200" x-text="getPrevSurahName()"></span>
+                            <span class="block text-xs font-bold text-[var(--text-soft)]">السورة السابقة</span>
+                            <span class="block text-base font-bold text-[var(--text)]" x-text="getPrevSurahName()"></span>
                         </div>
                     </button>
 
-                    <button @click="navigateSurah('next')" :disabled="selectedSurah === 114" class="group flex items-center justify-end gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all w-full sm:w-auto text-left disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button @click="navigateSurah('next')"
+                            :disabled="selectedSurah === 114"
+                            class="group flex items-center justify-end gap-4 bg-[var(--surface)] p-4 rounded-2xl shadow-[var(--shadow)] border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg active:scale-[0.99] transition-all duration-200 w-full sm:w-auto text-left disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]">
                         <div class="text-left hidden sm:block">
-                            <span class="block text-xs font-bold text-slate-400 dark:text-slate-500">السورة التالية</span>
-                            <span class="block text-base font-bold text-slate-800 dark:text-slate-200" x-text="getNextSurahName()"></span>
+                            <span class="block text-xs font-bold text-[var(--text-soft)]">السورة التالية</span>
+                            <span class="block text-base font-bold text-[var(--text)]" x-text="getNextSurahName()"></span>
                         </div>
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-soft)] border border-[var(--border)] group-hover:bg-[var(--primary-soft)] group-hover:text-[var(--primary)] transition-colors duration-200">
                             <iconify-icon icon="solar:round-alt-arrow-left-bold-duotone" class="text-3xl"></iconify-icon>
                         </div>
                     </button>
@@ -366,72 +451,74 @@
             <!-- مشغل الصوتيات -->
             <div class="lg:col-span-4 xl:col-span-3 order-1 lg:order-2">
                 <!-- Desktop Player -->
-                <div class="hidden lg:block sticky top-28 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2rem] shadow-glass border border-white dark:border-slate-700 p-6 sm:p-8">
+                <div class="hidden lg:block sticky top-28 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-xl rounded-[2rem] shadow-[var(--shadow)] border border-[var(--border)] p-6 sm:p-8">
 
                     <!-- صورة / أيقونة القارئ -->
                     <div class="flex justify-center mb-6">
-                        <div class="relative w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-primary-400 to-gold-400 shadow-lg shadow-primary-500/20">
-                            <div class="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 overflow-hidden relative">
+                        <div class="relative w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-[var(--primary)] to-[var(--gold)] shadow-lg shadow-[color-mix(in_srgb,var(--primary)_35%,transparent)]">
+                            <div class="w-full h-full bg-[var(--surface)] rounded-full flex items-center justify-center border-4 border-[var(--border)] overflow-hidden relative">
                                 <!-- اسطوانة تدور -->
-                                <iconify-icon icon="solar:vinyl-bold" class="text-white text-5xl opacity-90" :class="isPlaying ? 'animate-spin-playing' : 'animate-spin-slow'"></iconify-icon>
+                                <iconify-icon icon="solar:vinyl-bold" class="text-[var(--text)] text-5xl opacity-90" :class="isPlaying ? 'animate-spin-playing' : 'animate-spin-slow'"></iconify-icon>
                                 <!-- ثقب الاسطوانة -->
-                                <div class="absolute w-3 h-3 bg-white rounded-full"></div>
+                                <div class="absolute w-3 h-3 bg-[var(--surface-2)] rounded-full border border-[var(--border)]"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- معلومات المقطع -->
                     <div class="text-center mb-8">
-                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white font-quran mb-1" x-text="currentSurahData?.name || 'القرآن الكريم'"></h3>
-                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400" x-text="selectedReciterName"></p>
+                        <h3 class="text-2xl font-bold text-[var(--text)] font-quran mb-1" x-text="currentSurahData?.name || 'القرآن الكريم'"></h3>
+                        <p class="text-sm font-medium text-[var(--text-muted)]" x-text="selectedReciterName"></p>
                     </div>
 
                     <!-- شريط التقدم -->
                     <div class="mb-8">
-                        <div class="flex justify-between text-xs font-bold text-slate-400 dark:text-slate-500 mb-3 px-1">
+                        <div class="flex justify-between text-xs font-bold text-[var(--text-soft)] mb-3 px-1">
                             <span x-text="currentTime"></span>
                             <span x-text="duration"></span>
                         </div>
-                        <div @click="seekAudio($event)" class="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer relative group">
-                            <div class="absolute top-0 left-0 h-full bg-primary-500 dark:bg-primary-600 rounded-full relative" :style="'width: ' + progress + '%'">
-                                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-slate-200 rounded-full shadow-sm scale-0 group-hover:scale-100 transition-transform origin-center"></div>
+                        <div @click="seekAudio($event)" class="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden cursor-pointer relative group border border-[var(--border)]">
+                            <div class="absolute top-0 left-0 h-full bg-[var(--primary)] rounded-full relative" :style="'width: ' + progress + '%'">
+                                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-sm scale-0 group-hover:scale-100 transition-transform duration-200 origin-center"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- أزرار التحكم الرئيسية -->
                     <div class="flex items-center justify-center gap-6 mb-8">
-                        <button @click="skipBackward()" class="text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-2" title="الآية السابقة">
+                        <button @click="skipBackward()" class="text-[var(--text-soft)] hover:text-[var(--primary)] transition-colors duration-200 p-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]" title="الآية السابقة">
                             <iconify-icon icon="solar:skip-next-bold" class="text-2xl"></iconify-icon>
                         </button>
 
                         <!-- زر التشغيل الفاخر -->
-                        <button @click="toggleAudio()" class="w-16 h-16 rounded-full bg-primary-600 dark:bg-primary-700 text-white flex items-center justify-center shadow-lg shadow-primary-600/30 hover:bg-primary-500 dark:hover:bg-primary-600 hover:scale-105 active:scale-95 transition-all" style="background-color: #11D4B4 !important;">
-                            <iconify-icon :icon="isPlaying ? 'solar:pause-bold' : 'solar:play-bold'" class="text-3xl" style="color: white;"></iconify-icon>
+                        <button @click="toggleAudio()" class="w-16 h-16 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-lg shadow-[color-mix(in_srgb,var(--primary)_35%,transparent)] hover:brightness-110 hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
+                            <iconify-icon :icon="isPlaying ? 'solar:pause-bold' : 'solar:play-bold'" class="text-3xl"></iconify-icon>
                         </button>
 
-                        <button @click="skipForward()" class="text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-2" title="الآية التالية">
+                        <button @click="skipForward()" class="text-[var(--text-soft)] hover:text-[var(--primary)] transition-colors duration-200 p-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]" title="الآية التالية">
                             <iconify-icon icon="solar:skip-previous-bold" class="text-2xl"></iconify-icon>
                         </button>
                     </div>
 
                     <!-- أدوات إضافية -->
-                    <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 space-y-3">
+                    <div class="bg-[var(--surface-2)] rounded-2xl p-4 border border-[var(--border)] space-y-3">
                         <!-- Volume Control (LTR) -->
                         <div class="flex items-center gap-3" dir="ltr">
-                            <iconify-icon icon="solar:volume-loud-bold" class="text-slate-400 dark:text-slate-500"></iconify-icon>
-                            <input type="range" min="0" max="100" x-model="volume" @input="changeVolume()" class="flex-grow h-1 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer" style="accent-color: #16a34a;">
-                            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 min-w-[2rem] text-left" x-text="volume + '%'"></span>
+                            <iconify-icon icon="solar:volume-loud-bold" class="text-[var(--text-soft)]"></iconify-icon>
+                            <input type="range" min="0" max="100" x-model="volume" @input="changeVolume()" class="flex-grow h-1 bg-[var(--border)] rounded-full appearance-none cursor-pointer" style="accent-color: var(--primary);">
+                            <span class="text-xs font-bold text-[var(--text-muted)] min-w-[2rem] text-left" x-text="volume + '%'"></span>
                         </div>
 
                         <!-- Repeat & Download Buttons -->
                         <div class="flex items-center gap-2">
-                            <button @click="toggleRepeat()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all" :class="repeatMode ? 'bg-[#11D4B4]/10 text-[#11D4B4] border border-[#11D4B4]/30' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent'">
+                            <button @click="toggleRepeat()"
+                                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                                    :class="repeatMode ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] border border-transparent'">
                                 <iconify-icon icon="solar:repeat-bold" class="text-lg"></iconify-icon>
                                 <span>تكرار</span>
                             </button>
 
-                            <button @click="downloadSurah()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90" style="background-color: #11D4B4;">
+                            <button @click="downloadSurah()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold bg-[var(--primary)] text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                                 <iconify-icon icon="solar:download-minimalistic-bold" class="text-lg"></iconify-icon>
                                 <span>تحميل</span>
                             </button>
@@ -445,46 +532,46 @@
     </main>
 
     <!-- Mobile Player (Fixed Bottom) -->
-    <div x-show="selectedSurah && !focusMode" x-cloak class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 shadow-2xl" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div x-show="selectedSurah && !focusMode" x-cloak class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] backdrop-blur-xl border-t border-[var(--border-strong)] shadow-[var(--shadow)]" style="padding-bottom: env(safe-area-inset-bottom);">
         <div class="px-4 py-3">
             <!-- Progress Bar -->
-            <div @click="seekAudio($event)" class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer mb-3 relative group">
-                <div class="absolute top-0 left-0 h-full bg-primary-500 rounded-full" :style="'width: ' + progress + '%'"></div>
+            <div @click="seekAudio($event)" class="h-1 bg-[var(--border)] rounded-full overflow-hidden cursor-pointer mb-3 relative group">
+                <div class="absolute top-0 left-0 h-full bg-[var(--primary)] rounded-full" :style="'width: ' + progress + '%'"></div>
             </div>
 
             <!-- Player Controls -->
             <div class="flex items-center justify-between gap-3">
                 <!-- Surah Info -->
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="relative w-12 h-12 shrink-0 rounded-full p-0.5 bg-gradient-to-tr from-primary-400 to-gold-400">
-                        <div class="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-full flex items-center justify-center overflow-hidden">
-                            <iconify-icon icon="solar:vinyl-bold" class="text-white text-xl" :class="isPlaying ? 'animate-spin-playing' : ''"></iconify-icon>
+                    <div class="relative w-12 h-12 shrink-0 rounded-full p-0.5 bg-gradient-to-tr from-[var(--primary)] to-[var(--gold)]">
+                        <div class="w-full h-full bg-[var(--surface)] rounded-full flex items-center justify-center overflow-hidden border border-[var(--border)]">
+                            <iconify-icon icon="solar:vinyl-bold" class="text-[var(--text)] text-xl" :class="isPlaying ? 'animate-spin-playing' : ''"></iconify-icon>
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-bold text-slate-900 dark:text-white truncate" x-text="currentSurahData?.name || 'القرآن الكريم'"></h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="selectedReciterName"></p>
+                        <h4 class="text-sm font-bold text-[var(--text)] truncate" x-text="currentSurahData?.name || 'القرآن الكريم'"></h4>
+                        <p class="text-xs text-[var(--text-muted)] truncate" x-text="selectedReciterName"></p>
                     </div>
                 </div>
 
                 <!-- Control Buttons -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <button @click="skipBackward()" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary flex items-center justify-center transition-colors">
+                    <button @click="skipBackward()" class="w-10 h-10 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary-soft)] flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                         <iconify-icon icon="solar:skip-next-bold" class="text-lg"></iconify-icon>
                     </button>
 
-                    <button @click="toggleAudio()" class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+                    <button @click="toggleAudio()" class="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shadow-lg shadow-[color-mix(in_srgb,var(--primary)_35%,transparent)] hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                         <iconify-icon :icon="isPlaying ? 'solar:pause-bold' : 'solar:play-bold'" class="text-xl"></iconify-icon>
                     </button>
 
-                    <button @click="skipForward()" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary flex items-center justify-center transition-colors">
+                    <button @click="skipForward()" class="w-10 h-10 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary-soft)] flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                         <iconify-icon icon="solar:skip-previous-bold" class="text-lg"></iconify-icon>
                     </button>
                 </div>
             </div>
 
             <!-- Time Display -->
-            <div class="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-2">
+            <div class="flex justify-between text-xs text-[var(--text-soft)] mt-2">
                 <span x-text="currentTime"></span>
                 <span x-text="duration"></span>
             </div>
@@ -493,39 +580,39 @@
 
     <!-- Tafsir Modal -->
     <div x-show="showTafsirModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop" @click.self="showTafsirModal = false">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden" @click.stop>
+        <div class="bg-[var(--surface)] rounded-2xl shadow-[var(--shadow)] max-w-3xl w-full max-h-[80vh] overflow-hidden border border-[var(--border)]" @click.stop>
             <!-- Modal Header -->
-            <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                    <iconify-icon icon="solar:book-bookmark-bold-duotone" class="text-primary-600 dark:text-primary-400"></iconify-icon>
+            <div class="flex items-center justify-between p-6 border-b border-[var(--border)]">
+                <h3 class="text-2xl font-bold text-[var(--text)] flex items-center gap-3">
+                    <iconify-icon icon="solar:book-bookmark-bold-duotone" class="text-[var(--primary)]"></iconify-icon>
                     التفسير
                 </h3>
-                <button @click="showTafsirModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <button @click="showTafsirModal = false" class="text-[var(--text-soft)] hover:text-[var(--text)] transition-colors duration-200 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     <iconify-icon icon="solar:close-circle-bold" class="text-3xl"></iconify-icon>
                 </button>
             </div>
 
             <!-- Tafsir Tabs -->
-            <div class="flex items-center gap-2 px-6 py-4 border-b border-slate-200 dark:border-slate-700 overflow-x-auto hide-scrollbar">
-                <button @click="changeTafsir(16)" :class="selectedTafsir === 16 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+            <div class="flex items-center gap-2 px-6 py-4 border-b border-[var(--border)] overflow-x-auto hide-scrollbar">
+                <button @click="changeTafsir(16)" :class="selectedTafsir === 16 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     الميسر
                 </button>
-                <button @click="changeTafsir(14)" :class="selectedTafsir === 14 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(14)" :class="selectedTafsir === 14 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     ابن كثير
                 </button>
-                <button @click="changeTafsir(91)" :class="selectedTafsir === 91 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(91)" :class="selectedTafsir === 91 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     السعدي
                 </button>
-                <button @click="changeTafsir(90)" :class="selectedTafsir === 90 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(90)" :class="selectedTafsir === 90 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     القرطبي
                 </button>
-                <button @click="changeTafsir(94)" :class="selectedTafsir === 94 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(94)" :class="selectedTafsir === 94 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     البغوي
                 </button>
-                <button @click="changeTafsir(93)" :class="selectedTafsir === 93 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(93)" :class="selectedTafsir === 93 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     الوسيط
                 </button>
-                <button @click="changeTafsir(15)" :class="selectedTafsir === 15 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors">
+                <button @click="changeTafsir(15)" :class="selectedTafsir === 15 ? 'bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface)]'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     الطبري
                 </button>
             </div>
@@ -533,22 +620,22 @@
             <!-- Modal Body -->
             <div class="p-6 overflow-y-auto max-h-[50vh]">
                 <!-- الآية -->
-                <div class="bg-sand-50 dark:bg-slate-900 rounded-xl p-6 mb-6 border border-sand-200 dark:border-slate-700">
+                <div class="bg-[var(--surface-2)] rounded-xl p-6 mb-6 border border-[var(--border)]">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="text-sm font-bold text-primary-700 dark:text-primary-400" x-text="currentTafsirAyah?.surahName"></span>
-                        <span class="text-sm text-slate-500 dark:text-slate-400" x-text="'آية ' + currentTafsirAyah?.numberInSurah"></span>
+                        <span class="text-sm font-bold text-[var(--primary)]" x-text="currentTafsirAyah?.surahName"></span>
+                        <span class="text-sm text-[var(--text-muted)]" x-text="'آية ' + currentTafsirAyah?.numberInSurah"></span>
                     </div>
-                    <p class="font-quran text-2xl text-slate-800 dark:text-slate-200 leading-loose text-center" x-text="currentTafsirAyah?.text"></p>
+                    <p class="font-quran text-2xl text-[var(--text)] leading-loose text-center" x-text="currentTafsirAyah?.text"></p>
                 </div>
 
                 <!-- التفسير -->
                 <div x-show="loadingTafsir" class="text-center py-8">
-                    <iconify-icon icon="solar:spinner-bold-duotone" class="text-4xl text-primary-600 dark:text-primary-400 animate-spin"></iconify-icon>
-                    <p class="text-slate-500 dark:text-slate-400 mt-4">جارٍ تحميل التفسير...</p>
+                    <iconify-icon icon="solar:spinner-bold-duotone" class="text-4xl text-[var(--primary)] animate-spin"></iconify-icon>
+                    <p class="text-[var(--text-muted)] mt-4">جارٍ تحميل التفسير...</p>
                 </div>
 
-                <div x-show="!loadingTafsir" class="prose dark:prose-invert max-w-none">
-                    <p class="text-slate-700 dark:text-slate-300 leading-loose text-lg" x-text="currentTafsirText"></p>
+                <div x-show="!loadingTafsir" class="prose max-w-none">
+                    <p class="text-[var(--text-muted)] leading-loose text-lg" x-text="currentTafsirText"></p>
                 </div>
             </div>
         </div>
@@ -556,20 +643,20 @@
 
     <!-- Custom Alert Dialog -->
     <div x-show="showDialog" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop" @click.self="showDialog = false">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in-up" @click.stop>
+        <div class="bg-[var(--surface)] rounded-2xl shadow-[var(--shadow)] max-w-md w-full p-6 animate-fade-in-up border border-[var(--border)]" @click.stop>
             <div class="flex items-start gap-4 mb-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                     :class="dialogType === 'success' ? 'bg-[#11D4B4]/10 text-[#11D4B4]' : dialogType === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'">
+                     :class="dialogType === 'success' ? 'bg-[var(--primary-soft)] text-[var(--primary)]' : dialogType === 'error' ? 'bg-[color-mix(in_srgb,var(--danger)_20%,transparent)] text-[var(--danger)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'">
                     <iconify-icon :icon="dialogType === 'success' ? 'solar:check-circle-bold' : dialogType === 'error' ? 'solar:close-circle-bold' : 'solar:info-circle-bold'" class="text-3xl"></iconify-icon>
                 </div>
                 <div class="flex-1">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1" x-text="dialogTitle"></h3>
-                    <p class="text-slate-600 dark:text-slate-400" x-text="dialogMessage"></p>
+                    <h3 class="text-lg font-bold text-[var(--text)] mb-1" x-text="dialogTitle"></h3>
+                    <p class="text-[var(--text-muted)]" x-text="dialogMessage"></p>
                 </div>
             </div>
             <div class="flex justify-end gap-3">
-                <button @click="showDialog = false" class="px-6 py-2.5 rounded-xl font-bold transition-colors"
-                        :class="dialogType === 'success' ? 'bg-[#11D4B4] text-white hover:bg-[#0FC4A4]' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'">
+                <button @click="showDialog = false" class="px-6 py-2.5 rounded-xl font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                        :class="dialogType === 'success' ? 'bg-[var(--primary)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface)]'">
                     حسناً
                 </button>
             </div>
@@ -578,35 +665,35 @@
 
     <!-- Reciter Selection Modal -->
     <div x-show="showReciterModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop" @click.self="showReciterModal = false">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden" @click.stop>
-            <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                    <iconify-icon icon="solar:user-circle-bold-duotone" style="color: #11D4B4;"></iconify-icon>
+        <div class="bg-[var(--surface)] rounded-2xl shadow-[var(--shadow)] max-w-2xl w-full max-h-[80vh] overflow-hidden border border-[var(--border)]" @click.stop>
+            <div class="flex items-center justify-between p-6 border-b border-[var(--border)]">
+                <h3 class="text-2xl font-bold text-[var(--text)] flex items-center gap-3">
+                    <iconify-icon icon="solar:user-circle-bold-duotone" class="text-[var(--primary)]"></iconify-icon>
                     اختر القارئ
                 </h3>
-                <button @click="showReciterModal = false; selectedNationality = ''; reciterSearchQuery = ''; filterReciters()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <button @click="showReciterModal = false" class="text-[var(--text-soft)] hover:text-[var(--text)] transition-colors duration-200 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     <iconify-icon icon="solar:close-circle-bold" class="text-3xl"></iconify-icon>
                 </button>
             </div>
 
             <!-- Search Bar -->
-            <div class="p-6 border-b border-slate-200 dark:border-slate-700 space-y-4">
+            <div class="p-6 border-b border-[var(--border)] space-y-4">
                 <div class="relative">
-                    <iconify-icon icon="solar:magnifer-linear" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></iconify-icon>
-                    <input type="text" x-model="reciterSearchQuery" @input="filterReciters()" placeholder="ابحث عن القارئ..." class="w-full bg-slate-50 dark:bg-slate-900 text-sm rounded-xl py-3 pr-11 pl-4 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#11D4B4] focus:border-transparent outline-none transition-all text-slate-900 dark:text-white">
+                    <iconify-icon icon="solar:magnifer-linear" class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-soft)] text-lg"></iconify-icon>
+                    <input type="text" x-model="reciterSearchQuery" @input="filterReciters()" placeholder="ابحث عن القارئ..." class="w-full bg-[var(--surface-2)] text-sm rounded-xl py-3 pr-11 pl-4 border border-[var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] transition-all duration-200 text-[var(--text)]">
                 </div>
                 <!-- Nationality Filter -->
                 <div x-show="availableNationalities.length > 0" class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
                     <button @click="selectedNationality = ''; filterReciters()"
-                            :class="selectedNationality === '' ? 'bg-[#11D4B4] text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
-                            class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
+                            :class="selectedNationality === '' ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-[var(--surface-2)] text-[var(--text-muted)] hover:bg-[var(--surface)] border border-[var(--border)]'"
+                            class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                         الكل
                         <span class="mr-0.5 opacity-75" x-text="'(' + reciters.length + ')'"></span>
                     </button>
                     <template x-for="nat in availableNationalities" :key="nat.code">
                         <button @click="selectedNationality = nat.code; filterReciters()"
-                                :class="selectedNationality === nat.code ? 'bg-[#11D4B4] text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
-                                class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all">
+                                :class="selectedNationality === nat.code ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-[var(--surface-2)] text-[var(--text-muted)] hover:bg-[var(--surface)] border border-[var(--border)]'"
+                                class="shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                             <span x-text="nat.label"></span>
                             <span class="mr-0.5 opacity-75" x-text="'(' + nat.count + ')'"></span>
                         </button>
@@ -617,28 +704,28 @@
             <div class="p-6 overflow-y-auto max-h-[50vh]">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <template x-for="reciter in filteredReciters" :key="reciter.id">
-                        <div :class="selectedReciter === reciter.id ? 'bg-[#11D4B4]/5 border-[#11D4B4]' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'"
+                        <div :class="selectedReciter === reciter.id ? 'bg-[var(--primary-soft)] border-[var(--primary)]' : 'bg-[var(--surface-2)] border-[var(--border)]'"
                              class="rounded-xl border-2 transition-all overflow-hidden">
                             <button @click="selectReciter(reciter)"
-                                    class="w-full flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-right">
-                                <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                                     :style="'background-color: ' + (selectedReciter === reciter.id ? 'rgba(17, 212, 180, 0.1)' : 'rgba(148, 163, 184, 0.1)')">
-                                    <iconify-icon icon="solar:user-circle-bold" class="text-2xl" :style="'color: ' + (selectedReciter === reciter.id ? '#11D4B4' : '#94a3b8')"></iconify-icon>
+                                    class="w-full flex items-center gap-4 p-4 hover:bg-[var(--surface)] transition-colors duration-200 text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border border-[var(--border)]"
+                                     :class="selectedReciter === reciter.id ? 'bg-[var(--primary-soft)] text-[var(--primary)]' : 'bg-[var(--surface)] text-[var(--text-soft)]'">
+                                    <iconify-icon icon="solar:user-circle-bold" class="text-2xl"></iconify-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <h4 class="font-bold text-slate-900 dark:text-white" x-text="reciter.name"></h4>
+                                    <h4 class="font-bold text-[var(--text)]" x-text="reciter.name"></h4>
                                     <div class="flex items-center gap-2">
-                                        <p class="text-sm text-slate-500 dark:text-slate-400" x-text="reciter.style || 'مرتل'"></p>
+                                        <p class="text-sm text-[var(--text-muted)]" x-text="reciter.style || 'مرتل'"></p>
                                         <template x-if="reciter.nationality">
-                                            <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium" x-text="nationalityLabels[reciter.nationality] || reciter.nationality"></span>
+                                            <span class="text-[10px] bg-[color-mix(in_srgb,var(--gold)_20%,transparent)] text-[var(--gold)] px-1.5 py-0.5 rounded font-medium" x-text="nationalityLabels[reciter.nationality] || reciter.nationality"></span>
                                         </template>
                                     </div>
                                 </div>
-                                <iconify-icon x-show="selectedReciter === reciter.id" icon="solar:check-circle-bold" class="text-2xl" style="color: #11D4B4;"></iconify-icon>
+                                <iconify-icon x-show="selectedReciter === reciter.id" icon="solar:check-circle-bold" class="text-2xl text-[var(--primary)]"></iconify-icon>
                             </button>
-                            <div x-show="selectedReciter === reciter.id" class="border-t border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-800">
-                                <button @click.stop="setDefaultReciter(reciter)" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                                        :class="defaultReciterId === reciter.id ? 'bg-[#11D4B4] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-[#11D4B4] hover:text-white'">
+                            <div x-show="selectedReciter === reciter.id" class="border-t border-[var(--border)] p-3 bg-[var(--surface)]">
+                                <button @click.stop="setDefaultReciter(reciter)" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                                        :class="defaultReciterId === reciter.id ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] hover:bg-[var(--primary)] hover:text-white'">
                                     <iconify-icon :icon="defaultReciterId === reciter.id ? 'solar:star-bold' : 'solar:star-linear'" class="text-lg"></iconify-icon>
                                     <span x-text="defaultReciterId === reciter.id ? 'القارئ الافتراضي' : 'تعيين كافتراضي'"></span>
                                 </button>
@@ -659,14 +746,13 @@
          x-transition:leave="transition ease-in duration-300"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[200] overflow-hidden flex flex-col"
-         style="background:#faf6ef;"
+         class="fixed inset-0 z-[200] overflow-hidden flex flex-col bg-[var(--surface-2)]"
          @mousemove="showFocusBar()"
          @touchstart.passive="showFocusBar()">
 
         <!-- Subtle dot-grid texture -->
         <div class="fixed inset-0 z-[199] pointer-events-none"
-             style="background-image:radial-gradient(circle,rgba(180,140,60,.05) 1px,transparent 1px);background-size:22px 22px;"></div>
+             style="background-image:radial-gradient(circle,color-mix(in srgb,var(--gold) 12%,transparent) 1px,transparent 1px);background-size:22px 22px;"></div>
 
         <!-- Top Bar (auto-hide) -->
         <div x-show="focusBarVisible"
@@ -677,31 +763,63 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 -translate-y-full"
-             class="fixed top-0 left-0 right-0 z-[302]"
-             style="background:rgba(250,246,239,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(180,140,60,.15);">
+             class="fixed top-0 left-0 right-0 z-[302] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] backdrop-blur-xl border-b border-[var(--border)]">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
 
                 <!-- Exit -->
                 <button @click="toggleFocusMode()"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-200/80 bg-white/70 hover:bg-white transition-all text-amber-800 text-sm font-bold shadow-sm shrink-0">
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] transition-all duration-200 text-[var(--text)] text-sm font-bold shadow-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     <iconify-icon icon="solar:arrow-right-bold" class="text-base"></iconify-icon>
                     <span class="hidden sm:inline">رجوع</span>
-                    <kbd class="hidden md:inline-block px-1.5 py-0.5 text-xs font-mono bg-amber-50 text-amber-700 rounded border border-amber-200/60">ESC</kbd>
+                    <kbd class="hidden md:inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--surface-2)] text-[var(--text-muted)] rounded border border-[var(--border)]">ESC</kbd>
                 </button>
 
                 <!-- Surah Name -->
                 <div class="text-center min-w-0" x-show="selectedSurah">
-                    <p class="font-bold text-amber-900 text-base truncate" style="font-family:'Amiri',serif;" x-text="currentSurahData?.name || ''"></p>
-                    <p class="text-xs text-amber-600/80" x-text="(currentSurahData?.revelationType === 'Meccan' ? 'مكية' : 'مدنية') + ' · ' + (currentAyahs?.length || 0) + ' آية'"></p>
+                    <p class="font-bold text-[var(--text)] text-base truncate" style="font-family:'Amiri',serif;" x-text="currentSurahData?.name || ''"></p>
+                    <p class="text-xs text-[var(--text-muted)]" x-text="(currentSurahData?.revelationType === 'Meccan' ? 'مكية' : 'مدنية') + ' · ' + (currentAyahs?.length || 0) + ' آية'"></p>
                 </div>
 
                 <!-- Font Controls -->
-                <div class="flex items-center gap-1 px-2 py-1 rounded-xl border border-amber-200/80 bg-white/70 shadow-sm shrink-0">
+                <!-- Font Picker in Focus Mode -->
+                <div class="relative">
+                    <button @click="showFontMenu = !showFontMenu"
+                            @click.away="showFontMenu = false"
+                            class="flex items-center gap-1 px-2 py-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-all duration-200 hover:bg-[var(--surface-2)]">
+                        <template x-if="fontLoading">
+                            <span class="w-3 h-3 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin block"></span>
+                        </template>
+                        <template x-if="!fontLoading">
+                            <iconify-icon icon="solar:text-field-focus-bold" class="text-[var(--primary)] text-sm"></iconify-icon>
+                        </template>
+                        <iconify-icon icon="solar:alt-arrow-down-bold" class="text-[var(--text-soft)] text-xs"></iconify-icon>
+                    </button>
+                    <div x-show="showFontMenu"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 translate-y-1"
+                         class="absolute left-0 top-10 z-[400] w-52 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-1.5 max-h-64 overflow-y-auto"
+                         style="min-width:13rem;">
+                        <p class="text-[10px] font-bold text-[var(--text-soft)] px-2 py-1 uppercase tracking-wider">اختر خط القرآن</p>
+                        <template x-for="font in availableFonts" :key="font.key">
+                            <button @click="applyFont(font); showFontMenu = false"
+                                    class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-right transition-all duration-150 hover:bg-[var(--surface-2)] active:scale-[0.98]"
+                                    :class="selectedFont.key === font.key ? 'bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] text-[var(--primary)]' : 'text-[var(--text)]'">
+                                <span class="flex-1 text-xs font-bold text-right" x-text="font.name"></span>
+                                <iconify-icon x-show="selectedFont.key === font.key" icon="solar:check-circle-bold" class="text-[var(--primary)] shrink-0 text-sm"></iconify-icon>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 px-2 py-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shrink-0">
                     <button @click="decreaseFontSize()"
-                            class="w-7 h-7 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors text-amber-700 font-bold text-base">−</button>
-                    <span class="text-xs font-bold text-amber-800 w-9 text-center" x-text="fontSize + 'px'"></span>
+                            class="w-7 h-7 rounded-lg hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] flex items-center justify-center transition-colors duration-200 text-[var(--text-muted)] font-bold text-base">−</button>
+                    <span class="text-xs font-bold text-[var(--text)] w-9 text-center" x-text="fontSize + 'px'"></span>
                     <button @click="increaseFontSize()"
-                            class="w-7 h-7 rounded-lg hover:bg-amber-100 flex items-center justify-center transition-colors text-amber-700 font-bold text-base">+</button>
+                            class="w-7 h-7 rounded-lg hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] flex items-center justify-center transition-colors duration-200 text-[var(--text-muted)] font-bold text-base">+</button>
                 </div>
             </div>
         </div>
@@ -713,20 +831,20 @@
                 <!-- Bismillah -->
                 <div x-show="selectedSurah !== 1 && selectedSurah !== 9 && !loading && currentAyahs.length > 0"
                      class="text-center mb-10">
-                    <p class="text-amber-900" style="font-family:'Amiri',serif;font-size:2rem;line-height:2.4;">
+                    <p class="text-[var(--text)]" style="font-family:'Amiri',serif;font-size:2rem;line-height:2.4;">
                         بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                     </p>
-                    <div class="flex items-center justify-center gap-3 mt-1 opacity-20">
-                        <div class="h-px w-20 bg-amber-700"></div>
-                        <div class="w-1.5 h-1.5 rounded-full bg-amber-700"></div>
-                        <div class="h-px w-20 bg-amber-700"></div>
+                    <div class="flex items-center justify-center gap-3 mt-1 opacity-35">
+                        <div class="h-px w-20 bg-[var(--gold)]"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-[var(--gold)]"></div>
+                        <div class="h-px w-20 bg-[var(--gold)]"></div>
                     </div>
                 </div>
 
                 <!-- Quranic Text -->
                 <div x-show="!loading && currentAyahs.length > 0">
-                    <div class="text-justify text-amber-950"
-                         :style="'font-family:\'Amiri\',serif;font-size:' + fontSize + 'px;line-height:2.6;'"
+                    <div class="text-justify text-[var(--text)]"
+                         :style="'font-family:\'' + selectedFont.cssFamily + '\',\'Amiri\',serif;font-size:' + fontSize + 'px;line-height:2.6;'"
                          dir="rtl">
                         <template x-for="(ayah, index) in currentAyahs" :key="ayah.numberInSurah">
                             <span class="ayah-focus-segment">
@@ -734,9 +852,9 @@
                                 <span class="inline-flex items-center justify-center mx-1.5 ayah-number-container"
                                       style="width:26px;height:26px;vertical-align:middle;position:relative;">
                                     <svg class="absolute inset-0" viewBox="0 0 26 26" fill="none">
-                                        <circle cx="13" cy="13" r="12" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+                                        <circle cx="13" cy="13" r="12" fill="color-mix(in srgb,var(--gold) 20%, var(--surface))" stroke="var(--gold)" stroke-width="1.5"/>
                                     </svg>
-                                    <span class="relative text-xs font-bold text-amber-800" x-text="ayah.numberInSurah"></span>
+                                    <span class="relative text-xs font-bold text-[var(--text)]" x-text="ayah.numberInSurah"></span>
                                 </span>
                             </span>
                         </template>
@@ -745,15 +863,15 @@
 
                 <!-- Loading -->
                 <div x-show="loading" class="text-center py-32">
-                    <div class="w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p class="text-amber-800 font-medium">جارٍ التحميل...</p>
+                    <div class="w-12 h-12 border-4 border-[var(--border)] border-t-[var(--primary)] rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-[var(--text-muted)] font-medium">جارٍ التحميل...</p>
                 </div>
 
                 <!-- No Surah Selected -->
                 <div x-show="!selectedSurah && !loading" class="text-center py-32">
-                    <iconify-icon icon="solar:book-2-bold-duotone" class="text-6xl text-amber-400 mb-4 block"></iconify-icon>
-                    <p class="text-amber-900 font-bold text-xl mb-2">اختر سورة للبدء</p>
-                    <p class="text-amber-700 text-sm">اضغط ESC للرجوع واختيار سورة</p>
+                    <iconify-icon icon="solar:book-2-bold-duotone" class="text-6xl text-[var(--gold)] mb-4 block"></iconify-icon>
+                    <p class="text-[var(--text)] font-bold text-xl mb-2">اختر سورة للبدء</p>
+                    <p class="text-[var(--text-muted)] text-sm">اضغط ESC للرجوع واختيار سورة</p>
                 </div>
 
             </div>
@@ -769,22 +887,21 @@
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 translate-y-4"
              class="fixed bottom-6 inset-x-0 z-[302] flex justify-center pointer-events-none">
-            <div class="flex items-center gap-2 px-3 py-2 rounded-2xl shadow-xl pointer-events-auto"
-                 style="background:rgba(250,246,239,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(180,140,60,.2);">
+            <div class="flex items-center gap-2 px-3 py-2 rounded-2xl shadow-[var(--shadow)] pointer-events-auto bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] backdrop-blur-xl border border-[var(--border)]">
 
                 <button @click="selectedSurah > 1 && selectSurah(selectedSurah - 1)"
                         :disabled="selectedSurah <= 1"
-                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     <iconify-icon icon="solar:arrow-right-bold" class="text-sm"></iconify-icon>
                     <span class="hidden sm:inline">السابقة</span>
                 </button>
 
-                <div class="px-3 py-1 rounded-lg bg-amber-100 border border-amber-200/60 text-xs font-bold text-amber-800 min-w-[52px] text-center"
+                <div class="px-3 py-1 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-xs font-bold text-[var(--text)] min-w-[52px] text-center"
                      x-text="selectedSurah + ' / 114'"></div>
 
                 <button @click="selectedSurah < 114 && selectSurah(selectedSurah + 1)"
                         :disabled="selectedSurah >= 114"
-                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-[var(--text)] hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]">
                     <span class="hidden sm:inline">التالية</span>
                     <iconify-icon icon="solar:arrow-left-bold" class="text-sm"></iconify-icon>
                 </button>
@@ -897,9 +1014,6 @@
     <div x-show="!focusMode">
         @include('partials.web-footer')
     </div>
-
-    <!-- Alpine.js -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
         // Surahs data
@@ -1091,6 +1205,37 @@
             }
         }
 
+        // ── Quran Fonts List ────────────────────────────────────────
+        window.QURAN_FONTS_LIST = [
+            { key: 'default',       name: 'الخط الافتراضي (أميري)', cssFamily: 'Amiri',          woff2: null },
+            { key: 'quran_madina', name: 'مصحف المدينة',           cssFamily: 'QuranMadina',     woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/maddina.woff2' },
+            { key: 'kfgqpc_hafs',  name: 'مجمع الملك فهد - حفص',  cssFamily: 'KFGQPCHafs',      woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.woff2' },
+            { key: 'kfgqpc_warsh', name: 'مجمع الملك فهد - ورش',  cssFamily: 'KFGQPCWarsh',     woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/warsh-v8-full.woff2' },
+            { key: 'kfgqpc_qaloon',name: 'مجمع الملك فهد - قالون', cssFamily: 'KFGQPCQaloon',   woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/qaloon-v8-full.woff2' },
+            { key: 'kfgqpc_doori', name: 'مجمع الملك فهد - الدوري', cssFamily: 'KFGQPCDoori',   woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/doori-v8-full.woff2' },
+            { key: 'amiri_quran',  name: 'الخط الأميري القرآني',   cssFamily: 'AmiriQuran',      woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/amiri-quran-full.woff2' },
+            { key: 'al_qalam_majeed', name: 'خط القلم - قرآن مجيد', cssFamily: 'AlQalamMajeed', woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/al-qalam-quran-majeed.woff2' },
+            { key: 'al_mushaf',    name: 'خط المصحف',              cssFamily: 'AlMushaf',        woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/almushaf.woff2' },
+            { key: 'quran_standard', name: 'خط القرآن المعياري',  cssFamily: 'QuranStandard',   woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/qur-std.woff2' },
+            { key: 'noorehuda',    name: 'خط نور الهدى - نسخ',    cssFamily: 'NoorehudaNaskh',  woff2: 'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/noorehuda-regular.woff2' },
+        ];
+        window._loadedQuranFonts = new Set(['Amiri']);
+
+        // Restore saved font on page load
+        (async () => {
+            const savedKey = localStorage.getItem('quran_font_key');
+            if (savedKey && savedKey !== 'default') {
+                const font = window.QURAN_FONTS_LIST.find(f => f.key === savedKey);
+                if (font && font.woff2) {
+                    const style = document.createElement('style');
+                    style.textContent = `@font-face { font-family: '${font.cssFamily}'; src: url('${font.woff2}') format('woff2'); font-display: swap; }`;
+                    document.head.appendChild(style);
+                    try { await document.fonts.load(`1rem '${font.cssFamily}'`); } catch(_) {}
+                    window._loadedQuranFonts.add(font.cssFamily);
+                }
+            }
+        })();
+
         function quranApp() {
             return {
                 // i18n integration
@@ -1101,6 +1246,15 @@
 
                 // Font Size
                 fontSize: localStorage.getItem('quranFontSize') || 28,
+
+                // Quran Font Family
+                availableFonts: window.QURAN_FONTS_LIST,
+                selectedFont: (() => {
+                    const key = localStorage.getItem('quran_font_key') || 'default';
+                    return window.QURAN_FONTS_LIST.find(f => f.key === key) || window.QURAN_FONTS_LIST[0];
+                })(),
+                fontLoading: false,
+                showFontMenu: false,
 
                 // Surahs & Ayahs
                 surahs: surahsData,
@@ -1578,7 +1732,7 @@
                 highlightSearchTerm(text, term) {
                     if (!term) return text;
                     const regex = new RegExp(`(${term})`, 'gi');
-                    return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>');
+                    return text.replace(regex, '<mark class="bg-[color-mix(in_srgb,var(--gold)_35%,transparent)] text-[var(--text)] rounded px-1">$1</mark>');
                 },
 
                 downloadSurah() {
@@ -1632,7 +1786,6 @@
                     const lastSurah = localStorage.getItem('lastSurah');
                     if (lastSurah) {
                         // Don't auto-load, just remember it
-                        console.log('Last surah:', lastSurah);
                     }
                 },
 
@@ -1657,9 +1810,30 @@
                 decreaseFontSize() {
                     this.fontSize = Math.max(parseInt(this.fontSize) - 2, 16);
                     localStorage.setItem('quranFontSize', this.fontSize);
+                },
+
+                async applyFont(font) {
+                    if (font.key === this.selectedFont.key) return;
+                    if (font.woff2 && !window._loadedQuranFonts.has(font.cssFamily)) {
+                        this.fontLoading = true;
+                        try {
+                            const style = document.createElement('style');
+                            style.textContent = `@font-face { font-family: '${font.cssFamily}'; src: url('${font.woff2}') format('woff2'); font-display: swap; }`;
+                            document.head.appendChild(style);
+                            await document.fonts.load(`1rem '${font.cssFamily}'`);
+                            window._loadedQuranFonts.add(font.cssFamily);
+                        } catch (e) {
+                            console.error('Font load failed:', e);
+                        } finally {
+                            this.fontLoading = false;
+                        }
+                    }
+                    this.selectedFont = font;
+                    localStorage.setItem('quran_font_key', font.key);
                 }
             }
         }
+
     </script>
 </body>
 </html>

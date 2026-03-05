@@ -1,7 +1,7 @@
 // Constants for Qibla feature
 
 // Alignment thresholds
-const double kSuccessThreshold = 1.0; // degrees - user is perfectly aligned (same as Pray Watch APK)
+const double kSuccessThreshold = 5.0; // degrees - small deviation is accepted and triggers success feedback
 const double kNearThreshold = 10.0; // degrees - user is close to alignment
 const double kToleranceThreshold = 45.0; // degrees - acceptable for prayer outside Mecca
 

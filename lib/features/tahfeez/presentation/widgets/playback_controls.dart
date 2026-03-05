@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 
 /// عناصر التحكم في التشغيل
 class PlaybackControls extends StatelessWidget {
@@ -23,12 +25,12 @@ class PlaybackControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? AppColors.cardDark : Colors.white,
+      color: colors.surfaceCard,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -42,7 +44,7 @@ class PlaybackControls extends StatelessWidget {
                   style: GoogleFonts.tajawal(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: colors.textPrimary,
                   ),
                 ),
                 Row(
@@ -99,7 +101,7 @@ class PlaybackControls extends StatelessWidget {
                   _ControlButton(
                     icon: Icons.stop,
                     label: 'إيقاف',
-                    color: Colors.red,
+                    color: colors.error,
                     onPressed: onStop,
                   ),
 
@@ -107,7 +109,7 @@ class PlaybackControls extends StatelessWidget {
                 _ControlButton(
                   icon: isPlaying ? Icons.pause : Icons.play_arrow,
                   label: isPlaying ? 'إيقاف مؤقت' : 'تشغيل',
-                  color: isPlaying ? Colors.orange : Colors.green,
+                  color: isPlaying ? colors.warning : colors.success,
                   onPressed: isPlaying ? onPause : onPlay,
                   isPrimary: true,
                 ),
@@ -149,7 +151,7 @@ class _ControlButton extends StatelessWidget {
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        foregroundColor: Colors.white,
+        foregroundColor: context.colors.textOnPrimary,
         padding: EdgeInsets.symmetric(
           horizontal: isPrimary ? 24 : 16,
           vertical: isPrimary ? 12 : 10,

@@ -4,7 +4,7 @@
     {{-- Logo & Main Menu --}}
     <div class="flex items-center gap-8">
         <a href="{{ url('/') }}" class="flex items-center">
-            <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/logo.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
+            <img src="{{ \App\Models\AnaMuslimSetting::getValue('app_logo', asset('assets/anaalmuslim.svg')) }}" alt="I'm Muslim Logo" class="h-20 w-auto">
         </a>
 
         {{-- Desktop Navigation --}}

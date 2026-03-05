@@ -7,8 +7,8 @@
   "navQuran": "Coran",
   "@navQuran": { "description": "Bottom navigation: Quran tab" },
 
-  "navQibla": "Qibla",
-  "@navQibla": { "description": "Bottom navigation: Qibla tab" },
+  "navQibla": "Outils",
+  "@navQibla": { "description": "Bottom navigation: Onglet Outils (Qibla, Horaires, Dhikr, Ramadan)" },
 
   "navHadith": "Hadith",
   "@navHadith": { "description": "Bottom navigation: Hadith tab" },

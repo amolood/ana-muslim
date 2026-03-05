@@ -67,6 +67,22 @@ class AppColors {
   static const Color textPrimaryDark = Color(0xFFFFFFFF);
   static const Color textSecondaryDark = Color(0xFF92C9C0);
 
+  // ─── Quick-action grid accent colors ────────────────────────────────────
+  // Named constants so no raw Color(...) appears in UI widgets.
+  static const Color accentQuran = Color(0xFF2F9D95);
+  static const Color accentPrayer = Color(0xFFC4873E);
+  static const Color accentAzkar = Color(0xFF8B8CF2);
+  static const Color accentSebha = Color(0xFF5DB86F);
+  static const Color accentContent = Color(0xFF3E78B2);
+  static const Color accentHadith = Color(0xFFE09F3E);
+  static const Color accentTahfeez = Color(0xFFA78BFA);
+  /// Classic Islamic metallic gold — used for أسماء الله الحسنى feature.
+  static const Color accentAsma = Color(0xFFD4AF37);
+  /// Warm amber — used for the Hijri calendar feature.
+  static const Color accentCalendar = Color(0xFFE07B39);
+  // accentQibla → use AppColors.qiblaGreen
+  // accentRamadan → use AppColors.primary (teal-green matches brand)
+
   // ─── Theme-aware helpers ──────────────────────────────────────────────────
   // DEPRECATED: Use context.colors or Theme.of(context).colorScheme instead
   // These are kept for backward compatibility during migration

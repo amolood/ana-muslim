@@ -13,6 +13,7 @@ import '../../features/settings/presentation/screens/hijri_settings_screen.dart'
 import '../../features/settings/presentation/screens/prayer_adjustment_screen.dart';
 import '../../features/settings/presentation/screens/default_reciter_screen.dart';
 import '../../features/settings/presentation/screens/prayer_silence_screen.dart';
+import '../../features/settings/presentation/screens/library_screen.dart';
 import '../../features/settings/presentation/screens/widget_settings_screen.dart';
 import '../../features/settings/presentation/screens/widget_detail_settings_screen.dart';
 import '../../core/providers/widget_settings_provider.dart';
@@ -32,6 +33,9 @@ import '../../features/tahfeez/presentation/screens/tahfeez_screen.dart';
 import '../../features/adhan_player/presentation/screens/adhan_player_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/ramadan/presentation/screens/ramadan_screen.dart';
+import '../../features/asma_ul_husna/presentation/screens/asma_ul_husna_screen.dart';
+import '../../features/quran/presentation/screens/quran_font_picker_screen.dart';
+import '../../features/hijri_calendar/presentation/screens/hijri_calendar_screen.dart';
 import 'main_scaffold.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -136,6 +140,11 @@ class AppRouter {
                     builder: (context, state) => const QuranSearchScreen(),
                   ),
                   GoRoute(
+                    path: 'font-picker',
+                    name: 'quran_font_picker',
+                    builder: (context, state) => const QuranFontPickerScreen(),
+                  ),
+                  GoRoute(
                     path: 'reader/:id',
                     name: 'quran_reader',
                     builder: (context, state) {
@@ -187,6 +196,16 @@ class AppRouter {
                 path: '/ramadan',
                 name: 'ramadan',
                 builder: (context, state) => const RamadanScreen(),
+              ),
+              GoRoute(
+                path: '/asma-ul-husna',
+                name: 'asma_ul_husna',
+                builder: (context, state) => const AsmaUlHusnaScreen(),
+              ),
+              GoRoute(
+                path: '/hijri-calendar',
+                name: 'hijri_calendar',
+                builder: (context, state) => const HijriCalendarScreen(),
               ),
             ],
           ),
@@ -276,6 +295,11 @@ class AppRouter {
                     path: 'prayer-silence',
                     name: 'prayer_silence',
                     builder: (context, state) => const PrayerSilenceScreen(),
+                  ),
+                  GoRoute(
+                    path: 'library',
+                    name: 'settings_library',
+                    builder: (context, state) => const LibraryScreen(),
                   ),
                   GoRoute(
                     path: 'widgets',

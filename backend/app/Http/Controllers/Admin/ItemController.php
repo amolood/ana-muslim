@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\AnaMuslimItem;
 use App\Models\AnaMuslimAuthor;
+use App\Models\AnaMuslimItem;
+use Illuminate\Http\Request;
 
 class ItemController extends Controller
 {
@@ -18,10 +17,18 @@ class ItemController extends Controller
         $query = AnaMuslimItem::with(['categories', 'authors']);
 
         if ($request->has('search') && $request->get('search') !== '') {
-            $search = $request->get('search');
-            $query->where('title', 'like', "%{$search}%");
+            $search = trim((string) $request->get('search'));
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('full_description', 'like', "%{$search}%")
+                    ->orWhereHas('authors', function ($authorsQuery) use ($search) {
+                        $authorsQuery->where('title', 'like', "%{$search}%");
+                    });
+            });
         }
-        
+
         if ($request->has('type') && $request->get('type') !== '') {
             $query->where('type', $request->get('type'));
         }
@@ -30,37 +37,37 @@ class ItemController extends Controller
         if ($request->has('category_id') && $request->get('category_id') !== '') {
             $categoryId = $request->get('category_id');
             $currentCategory = \App\Models\AnaMuslimCategory::find($categoryId);
-            
+
             if ($currentCategory) {
                 // Fetch all child category IDs across the tree structure (up to 3 levels deep)
                 $categoryIds = [$categoryId];
-                
+
                 // Get Level 1 children
                 $level1 = \App\Models\AnaMuslimCategory::where('parent_id', $categoryId)->pluck('id')->toArray();
-                if (!empty($level1)) {
+                if (! empty($level1)) {
                     $categoryIds = array_merge($categoryIds, $level1);
-                    
+
                     // Get Level 2 children
                     $level2 = \App\Models\AnaMuslimCategory::whereIn('parent_id', $level1)->pluck('id')->toArray();
-                    if (!empty($level2)) {
+                    if (! empty($level2)) {
                         $categoryIds = array_merge($categoryIds, $level2);
-                        
+
                         // Get Level 3 children (just in case)
                         $level3 = \App\Models\AnaMuslimCategory::whereIn('parent_id', $level2)->pluck('id')->toArray();
-                        if (!empty($level3)) {
+                        if (! empty($level3)) {
                             $categoryIds = array_merge($categoryIds, $level3);
                         }
                     }
                 }
 
-                $query->whereHas('categories', function($q) use ($categoryIds) {
+                $query->whereHas('categories', function ($q) use ($categoryIds) {
                     $q->whereIn('ana_muslim_categories.id', $categoryIds);
                 });
             }
         }
 
         $items = $query->latest()->paginate(20);
-        
+
         $types = AnaMuslimItem::select('type')->distinct()->pluck('type')
             ->reject(function ($type) {
                 return is_numeric($type) || empty(trim($type));
@@ -82,7 +89,7 @@ class ItemController extends Controller
             'quran' => 'قرآن كريم',
             'khotab' => 'خطب',
             'poster' => 'بطاقات وملصقات',
-            'favorites' => 'مفضلة'
+            'favorites' => 'مفضلة',
         ];
 
         // Retrieve detailed statistics
@@ -103,7 +110,7 @@ class ItemController extends Controller
     {
         $categories = \App\Models\AnaMuslimCategory::with('parent.parent')->orderBy('title')->get();
         $authors = \App\Models\AnaMuslimAuthor::orderBy('title')->get();
-        
+
         return view('admin.items.form', compact('categories', 'authors'));
     }
 
@@ -148,7 +155,7 @@ class ItemController extends Controller
         $item = AnaMuslimItem::findOrFail($id);
         $categories = \App\Models\AnaMuslimCategory::with('parent.parent')->orderBy('title')->get();
         $authors = \App\Models\AnaMuslimAuthor::orderBy('title')->get();
-        
+
         return view('admin.items.form', compact('item', 'categories', 'authors'));
     }
 
@@ -198,13 +205,13 @@ class ItemController extends Controller
     public function destroy(string $id)
     {
         $item = AnaMuslimItem::findOrFail($id);
-        
+
         // Detach relations
         $item->categories()->detach();
         $item->authors()->detach();
         $item->attachments()->delete();
         $item->locales()->delete();
-        
+
         $item->delete();
 
         return redirect()->route('admin.items.index')->with('success', 'تم حذف المادة بنجاح');

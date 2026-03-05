@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_semantic_colors.dart';
 import '../providers/tahfeez_provider.dart';
 
 /// قائمة النطاقات السريعة الجاهزة
@@ -15,13 +17,13 @@ class QuickRangesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
     final quickRanges = ref.watch(quickRangesProvider);
 
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isDark ? AppColors.cardDark : Colors.white,
+      color: colors.surfaceCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -48,7 +50,7 @@ class QuickRangesList extends ConsumerWidget {
                   style: GoogleFonts.tajawal(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: colors.textPrimary,
                   ),
                 ),
               ],
@@ -66,7 +68,6 @@ class QuickRangesList extends ConsumerWidget {
                 final range = quickRanges[index];
                 return _QuickRangeCard(
                   range: range,
-                  isDark: isDark,
                   onTap: () => onRangeSelected(range),
                 );
               },
@@ -82,17 +83,17 @@ class QuickRangesList extends ConsumerWidget {
 
 class _QuickRangeCard extends StatelessWidget {
   final QuickRange range;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _QuickRangeCard({
     required this.range,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     return Container(
       width: 200,
       margin: const EdgeInsets.only(left: 12, bottom: 8),
@@ -153,7 +154,7 @@ class _QuickRangeCard extends StatelessWidget {
                 style: GoogleFonts.tajawal(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: colors.textPrimary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -166,7 +167,7 @@ class _QuickRangeCard extends StatelessWidget {
                 range.subtitle,
                 style: GoogleFonts.tajawal(
                   fontSize: 12,
-                  color: isDark ? Colors.white70 : Colors.black54,
+                  color: colors.textSecondary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

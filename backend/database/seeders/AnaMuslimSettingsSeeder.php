@@ -28,7 +28,7 @@ class AnaMuslimSettingsSeeder extends Seeder
             [
                 'key' => 'app_logo',
                 'label' => 'رابط الشعار',
-                'value' => 'https://anaalmuslim.com/logo.png',
+                'value' => 'https://anaalmuslim.com/assets/anaalmuslim.svg',
                 'type' => 'image',
             ],
             [

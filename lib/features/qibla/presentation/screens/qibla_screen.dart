@@ -8,6 +8,7 @@ import '../../data/models/qibla_state.dart';
 import '../providers/qibla_provider.dart';
 import '../widgets/simple_compass_view.dart';
 import '../widgets/calibration_overlay.dart';
+import '../../../../core/providers/navigation_provider.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -28,6 +29,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
     with WidgetsBindingObserver {
   bool _permissionsChecked = false;
   bool _hasLocationPermission = false;
+  bool _usingCachedLocation = false;
   String? _errorMessage;
 
   @override
@@ -56,6 +58,23 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
     }
   }
 
+  /// Returns true and starts compass using cached location if one exists.
+  bool _tryStartWithCache() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final savedLat = prefs.getDouble('qibla_saved_lat');
+    final savedLng = prefs.getDouble('qibla_saved_lng');
+    if (savedLat == null || savedLng == null) return false;
+
+    setState(() {
+      _permissionsChecked = true;
+      _hasLocationPermission = false;
+      _usingCachedLocation = true;
+    });
+    // Start the magnetometer stream; provider already has the cached bearing
+    ref.read(qiblaProvider.notifier).startListening();
+    return true;
+  }
+
   /// Check location permissions and start Qibla stream
   Future<void> _checkPermissionsAndStart() async {
     try {
@@ -81,6 +100,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
+        if (_tryStartWithCache()) return;
         setState(() {
           _errorMessage = "يرجى السماح بالوصول للموقع لتحديد اتجاه القبلة";
           _permissionsChecked = true;
@@ -93,6 +113,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!mounted) return;
       if (!serviceEnabled) {
+        if (_tryStartWithCache()) return;
         setState(() {
           _errorMessage = "يرجى تفعيل خدمات الموقع (GPS)";
           _permissionsChecked = true;
@@ -121,6 +142,17 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(qiblaProvider);
+
+    // Start/stop sensor when Qibla tab becomes active/inactive
+    ref.listen<int>(activeBranchIndexProvider, (prev, next) {
+      if (next == kQiblaBranchIndex) {
+        if (_hasLocationPermission || _usingCachedLocation) {
+          ref.read(qiblaProvider.notifier).startListening();
+        }
+      } else {
+        ref.read(qiblaProvider.notifier).stopListening();
+      }
+    });
 
     // Listen for alignment changes and trigger haptic feedback
     ref.listen(qiblaProvider.select((s) => s.isFullyAligned), (prev, next) {
@@ -230,6 +262,29 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen>
   Widget _buildCompassView(QiblaUiState state) {
     return Column(
       children: [
+        if (_usingCachedLocation)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.white.withValues(alpha: 0.07),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.location_off_rounded,
+                    color: Colors.white54, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'يستخدم الموقع المحفوظ',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontFamily: 'Tajawal',
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         const Spacer(),
 
         // Compass centered

@@ -1,0 +1,19 @@
+flutter_launcher_icons:
+  # Source image — 2048×2048 RGBA PNG, green logo on transparent
+  image_path: "assets/branding/anaalmuslim.png"
+
+  # ── Android ──────────────────────────────────────────────
+  android: "ic_launcher"
+  min_sdk_android: 21
+
+  # Adaptive icon (API 26+): foreground layer = logo, background = white
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/branding/anaalmuslim.png"
+  # Monochrome layer (Android 13+ themed icons)
+  adaptive_icon_monochrome: "assets/branding/anaalmuslim.png"
+
+  # ── iOS ──────────────────────────────────────────────────
+  ios: true
+  # iOS icons must be fully opaque — replace transparency with white
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"

@@ -51,31 +51,8 @@ class SettingsScreen extends StatelessWidget {
             _buildSectionTitle(context.l10n.sectionPrayer, context),
             const _PrayerSection(),
             const SizedBox(height: 24),
-            _buildSectionTitle(context.l10n.sectionCalendar, context),
-            _buildSectionContainer(
-              context,
-              children: [
-                SettingsItemTile(
-                  icon: Icons.calendar_month,
-                  title: context.l10n.settingHijriCalendar,
-                  subtitle: context.l10n.settingHijriCalendarSubtitle,
-                  onTap: () => context.push(Routes.settingsHijri),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle(context.l10n.sectionWidgets, context),
-            _buildSectionContainer(
-              context,
-              children: [
-                SettingsItemTile(
-                  icon: Icons.widgets_rounded,
-                  title: context.l10n.widgetSettingsTitle,
-                  subtitle: context.l10n.widgetSettingsSubtitle,
-                  onTap: () => context.push(Routes.settingsWidgets),
-                ),
-              ],
-            ),
+            _buildSectionTitle('القبلة', context),
+            const _QiblaSection(),
             const SizedBox(height: 24),
             _buildSectionTitle(context.l10n.sectionQuran, context),
             const _QuranSection(),
@@ -83,8 +60,21 @@ class SettingsScreen extends StatelessWidget {
             _buildSectionTitle(context.l10n.sectionSebha, context),
             const _SebhaSection(),
             const SizedBox(height: 24),
-            _buildSectionTitle(context.l10n.sectionOther, context),
-            const _OtherSection(),
+            _buildSectionTitle('المكتبة', context),
+            _buildSectionContainer(
+              context,
+              children: [
+                SettingsItemTile(
+                  icon: Icons.download_for_offline_rounded,
+                  title: 'المحتوى غير المتصل',
+                  subtitle: 'تفاسير، ترجمات، خطوط القرآن',
+                  onTap: () => context.push(Routes.settingsLibrary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildSectionTitle('عام', context),
+            const _GeneralSection(),
             const SizedBox(height: 48),
             _buildFooter(context),
           ],
@@ -262,7 +252,7 @@ class _AppearanceSection extends ConsumerWidget {
           onTap: () => showSettingsSelectionSheet(
             context,
             context.l10n.settingTheme,
-            ['داكن', 'فاتح'],
+            ['داكن', 'فاتح', 'نظام'],
             theme,
             (val) async => ref.read(appThemeProvider.notifier).save(val),
           ),
@@ -307,28 +297,32 @@ class _AppearanceSection extends ConsumerWidget {
 }
 
 // ─── Prayer section ────────────────────────────────────────────────────────
-// Watches: adhanAlertsProvider, calculationMethodProvider, locationNameProvider,
-//          qiblaSuccessToneProvider, qiblaSuccessToneOptionProvider
+// Watches: adhanAlertsProvider, calculationMethodProvider, madhabProvider,
+//          locationNameProvider
 
 class _PrayerSection extends ConsumerWidget {
   const _PrayerSection();
 
-  static const _qiblaToneOptionMap = {
-    'high': 'نغمة عالية',
-    'bell': 'نغمة جرس',
-    'labbaik': 'لبيك اللهم',
-  };
-
-  static String _qiblaToneOptionLabel(String key) =>
-      _qiblaToneOptionMap[key] ?? 'نغمة عالية';
+  static const _calcMethods = [
+    'أم القرى',
+    'رابطة العالم الإسلامي',
+    'الهيئة العامة للمساحة المصرية',
+    'جامعة العلوم الإسلامية بكراتشي',
+    'الجمعية الإسلامية لأمريكا الشمالية',
+    'دبي',
+    'الكويت',
+    'قطر',
+    'تركيا',
+    'إيران',
+    'سنغافورة',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final adhanAlerts = ref.watch(adhanAlertsProvider);
     final calcMethod = ref.watch(calculationMethodProvider);
+    final madhab = ref.watch(madhabProvider);
     final locationNameAsync = ref.watch(locationNameProvider);
-    final qiblaToneEnabled = ref.watch(qiblaSuccessToneProvider);
-    final qiblaToneOption = ref.watch(qiblaSuccessToneOptionProvider);
 
     return SettingsScreen._buildSectionContainer(
       context,
@@ -340,16 +334,24 @@ class _PrayerSection extends ConsumerWidget {
           onTap: () => showSettingsSelectionSheet(
             context,
             context.l10n.settingCalcMethod,
-            [
-              'أم القرى',
-              'رابطة العالم الإسلامي',
-              'الهيئة العامة للمساحة المصرية',
-              'جامعة العلوم الإسلامية بكراتشي',
-              'الجمعية الإسلامية لأمريكا الشمالية',
-            ],
+            _calcMethods,
             calcMethod,
             (val) async =>
                 ref.read(calculationMethodProvider.notifier).save(val),
+          ),
+        ),
+        SettingsScreen._buildDivider(context),
+        SettingsItemTile(
+          icon: Icons.mosque_rounded,
+          title: 'المذهب الفقهي',
+          subtitle: 'يؤثر على حساب وقت العصر',
+          trailingText: madhab,
+          onTap: () => showSettingsSelectionSheet(
+            context,
+            'المذهب الفقهي',
+            ['شافعي', 'حنفي'],
+            madhab,
+            (val) async => ref.read(madhabProvider.notifier).save(val),
           ),
         ),
         SettingsScreen._buildDivider(context),
@@ -363,67 +365,10 @@ class _PrayerSection extends ConsumerWidget {
         SettingsItemTile(
           icon: Icons.notifications_active,
           title: context.l10n.settingPrayerAlerts,
-          trailingText: adhanAlerts ? context.l10n.settingEnabled : context.l10n.settingDisabled,
+          trailingText: adhanAlerts
+              ? context.l10n.settingEnabled
+              : context.l10n.settingDisabled,
           onTap: () => context.push(Routes.settingsNotifications),
-        ),
-        SettingsScreen._buildDivider(context),
-        SettingsItemTile(
-          icon: Icons.spatial_audio,
-          title: context.l10n.settingQiblaTone,
-          trailingText: qiblaToneEnabled ? context.l10n.settingEnabled : context.l10n.settingDisabled,
-          onTap: () => showSettingsSelectionSheet(
-            context,
-            context.l10n.settingQiblaTone,
-            ['مفعلة', 'موقفة'],
-            qiblaToneEnabled ? 'مفعلة' : 'موقفة',
-            (val) async => ref
-                .read(qiblaSuccessToneProvider.notifier)
-                .save(val == 'مفعلة'),
-          ),
-        ),
-        SettingsScreen._buildDivider(context),
-        SettingsItemTile(
-          icon: Icons.music_note_rounded,
-          title: context.l10n.settingQiblaToneType,
-          trailingText: qiblaToneOption.label,
-          onTap: () => showSettingsSelectionSheet(
-            context,
-            context.l10n.settingQiblaToneType,
-            ['high', 'bell', 'labbaik'],
-            qiblaToneOption.key,
-            (val) async {
-              final option = switch (val) {
-                'bell' => QiblaSuccessToneOption.bell,
-                'labbaik' => QiblaSuccessToneOption.labbaik,
-                _ => QiblaSuccessToneOption.high,
-              };
-              await ref
-                  .read(qiblaSuccessToneOptionProvider.notifier)
-                  .save(option);
-            },
-            displayMapper: _qiblaToneOptionLabel,
-          ),
-        ),
-        SettingsScreen._buildDivider(context),
-        SettingsItemTile(
-          icon: Icons.play_arrow_rounded,
-          title: context.l10n.settingQiblaPreview,
-          subtitle: context.l10n.settingQiblaPreviewSubtitle,
-          onTap: () async {
-            if (!qiblaToneEnabled) {
-              SettingsScreen._showInfoMessage(
-                context,
-                context.l10n.qiblaToneEnableFirst,
-              );
-              return;
-            }
-            try {
-              await ref.read(qiblaTonePlayerProvider).play(qiblaToneOption);
-            } catch (_) {
-              if (!context.mounted) return;
-              SettingsScreen._showInfoMessage(context, context.l10n.qiblaTonePlayFailed);
-            }
-          },
         ),
         SettingsScreen._buildDivider(context),
         SettingsItemTile(
@@ -447,10 +392,98 @@ class _PrayerSection extends ConsumerWidget {
             try {
               await ref.read(locationNameProvider.future);
               if (!context.mounted) return;
-              SettingsScreen._showInfoMessage(context, context.l10n.locationUpdated);
+              SettingsScreen._showInfoMessage(
+                  context, context.l10n.locationUpdated);
             } catch (e) {
               if (!context.mounted) return;
-              SettingsScreen._showInfoMessage(context, context.l10n.locationUpdateFailed);
+              SettingsScreen._showInfoMessage(
+                  context, context.l10n.locationUpdateFailed);
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Qibla section ─────────────────────────────────────────────────────────
+// Watches: qiblaSuccessToneProvider, qiblaSuccessToneOptionProvider
+
+class _QiblaSection extends ConsumerWidget {
+  const _QiblaSection();
+
+  static const _qiblaToneOptionMap = {
+    'high': 'نغمة عالية',
+    'bell': 'نغمة جرس',
+    'labbaik': 'لبيك اللهم',
+  };
+
+  static String _qiblaToneOptionLabel(String key) =>
+      _qiblaToneOptionMap[key] ?? 'نغمة عالية';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final qiblaToneEnabled = ref.watch(qiblaSuccessToneProvider);
+    final qiblaToneOption = ref.watch(qiblaSuccessToneOptionProvider);
+
+    return SettingsScreen._buildSectionContainer(
+      context,
+      children: [
+        SettingsItemTile(
+          icon: Icons.spatial_audio,
+          title: context.l10n.settingQiblaTone,
+          trailingText: qiblaToneEnabled
+              ? context.l10n.settingEnabled
+              : context.l10n.settingDisabled,
+          onTap: () => showSettingsSelectionSheet(
+            context,
+            context.l10n.settingQiblaTone,
+            ['مفعلة', 'موقفة'],
+            qiblaToneEnabled ? 'مفعلة' : 'موقفة',
+            (val) async =>
+                ref.read(qiblaSuccessToneProvider.notifier).save(val == 'مفعلة'),
+          ),
+        ),
+        SettingsScreen._buildDivider(context),
+        SettingsItemTile(
+          icon: Icons.music_note_rounded,
+          title: context.l10n.settingQiblaToneType,
+          trailingText: qiblaToneOption.label,
+          onTap: () => showSettingsSelectionSheet(
+            context,
+            context.l10n.settingQiblaToneType,
+            ['high', 'bell', 'labbaik'],
+            qiblaToneOption.key,
+            (val) async {
+              final option = switch (val) {
+                'bell' => QiblaSuccessToneOption.bell,
+                'labbaik' => QiblaSuccessToneOption.labbaik,
+                _ => QiblaSuccessToneOption.high,
+              };
+              await ref.read(qiblaSuccessToneOptionProvider.notifier).save(option);
+            },
+            displayMapper: _qiblaToneOptionLabel,
+          ),
+        ),
+        SettingsScreen._buildDivider(context),
+        SettingsItemTile(
+          icon: Icons.play_arrow_rounded,
+          title: context.l10n.settingQiblaPreview,
+          subtitle: context.l10n.settingQiblaPreviewSubtitle,
+          onTap: () async {
+            if (!qiblaToneEnabled) {
+              SettingsScreen._showInfoMessage(
+                context,
+                context.l10n.qiblaToneEnableFirst,
+              );
+              return;
+            }
+            try {
+              await ref.read(qiblaTonePlayerProvider).play(qiblaToneOption);
+            } catch (_) {
+              if (!context.mounted) return;
+              SettingsScreen._showInfoMessage(
+                  context, context.l10n.qiblaTonePlayFailed);
             }
           },
         ),
@@ -590,11 +623,12 @@ class _SebhaSection extends ConsumerWidget {
   }
 }
 
-// ─── Other section ──────────────────────────────────────────────────────────
+// ─── General section ─────────────────────────────────────────────────────────
 // Watches: packageInfoProvider (for dynamic version string)
+// Contains: Calendar, Widgets, rating, privacy, contact, about
 
-class _OtherSection extends ConsumerWidget {
-  const _OtherSection();
+class _GeneralSection extends ConsumerWidget {
+  const _GeneralSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -607,6 +641,36 @@ class _OtherSection extends ConsumerWidget {
     return SettingsScreen._buildSectionContainer(
       context,
       children: [
+        SettingsItemTile(
+          icon: Icons.widgets_rounded,
+          title: context.l10n.widgetSettingsTitle,
+          subtitle: context.l10n.widgetSettingsSubtitle,
+          onTap: () => context.push(Routes.settingsWidgets),
+        ),
+        SettingsScreen._buildDivider(context),
+        SettingsItemTile(
+          icon: Icons.star_rounded,
+          title: 'تقييم التطبيق',
+          subtitle: 'ساعدنا بتقييم أنا المسلم على المتجر',
+          onTap: () async {
+            const url =
+                'https://play.google.com/store/apps/details?id=com.anaalmuslim.app';
+            try {
+              final opened = await launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.externalApplication,
+              );
+              if (!opened && context.mounted) {
+                SettingsScreen._showInfoMessage(context, 'تعذّر فتح المتجر');
+              }
+            } catch (_) {
+              if (context.mounted) {
+                SettingsScreen._showInfoMessage(context, 'تعذّر فتح المتجر');
+              }
+            }
+          },
+        ),
+        SettingsScreen._buildDivider(context),
         SettingsItemTile(
           icon: Icons.privacy_tip,
           title: context.l10n.settingPrivacy,

@@ -13,6 +13,19 @@ class PusherService {
   static PusherChannelsFlutter? _pusher;
   static bool _initialized = false;
 
+  static const Set<String> _ignoredInternalEvents = {
+    'pusher:subscription_succeeded',
+    'pusher_internal:subscription_succeeded',
+    'pusher:ping',
+    'pusher:pong',
+  };
+
+  static const Set<String> _noisyConnectionErrors = {
+    'UnknownHostException',
+    'Unable to resolve host',
+    'ENOTFOUND',
+  };
+
   /// تهيئة Pusher
   static Future<void> init() async {
     if (_initialized) return;
@@ -90,10 +103,19 @@ class PusherService {
   // ─── Event Handlers ──────────────────────────────────────────────────────
 
   static void _onEvent(PusherEvent event) {
-    debugPrint('📨 Pusher Event:');
-    debugPrint('  Channel: ${event.channelName}');
-    debugPrint('  Event: ${event.eventName}');
-    debugPrint('  Data: ${event.data}');
+    if (_isInternalEvent(event.eventName)) {
+      if (kDebugMode) {
+        debugPrint('ℹ️ Pusher internal event ignored: ${event.eventName}');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('📨 Pusher Event:');
+      debugPrint('  Channel: ${event.channelName}');
+      debugPrint('  Event: ${event.eventName}');
+      debugPrint('  Data: ${event.data}');
+    }
 
     _handleEvent(event);
   }
@@ -122,6 +144,15 @@ class PusherService {
   }
 
   static void _onError(String message, int? code, dynamic e) {
+    final errorText = '$message ${e ?? ''}';
+
+    if (_isNoisyConnectionError(errorText)) {
+      if (kDebugMode) {
+        debugPrint('ℹ️ Pusher transient network issue: $message');
+      }
+      return;
+    }
+
     debugPrint('❌ Pusher error: $message (code: $code)');
     debugPrint('  Error: $e');
   }
@@ -147,8 +178,31 @@ class PusherService {
         break;
 
       default:
-        debugPrint('⚠️ Unknown event type: ${event.eventName}');
+        if (kDebugMode) {
+          debugPrint('⚠️ Unknown event type: ${event.eventName}');
+        }
     }
+  }
+
+  static bool _isInternalEvent(String? eventName) {
+    if (eventName == null || eventName.isEmpty) {
+      return false;
+    }
+
+    return _ignoredInternalEvents.contains(eventName) ||
+        eventName.startsWith('pusher_internal:');
+  }
+
+  static bool _isNoisyConnectionError(String errorText) {
+    final lower = errorText.toLowerCase();
+
+    for (final pattern in _noisyConnectionErrors) {
+      if (lower.contains(pattern.toLowerCase())) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /// معالجة الإشعارات المخصصة من الإدارة

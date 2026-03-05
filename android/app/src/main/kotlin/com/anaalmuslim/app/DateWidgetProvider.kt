@@ -4,6 +4,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
+import android.util.TypedValue
+import android.view.View
 import android.widget.RemoteViews
 
 /**
@@ -29,13 +32,17 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    companion object {
-        // Day name → digit for calligraphy font rendering
-        private val DAY_MAP = mapOf(
-            "الأحد" to "1", "الاثنين" to "2", "الثلاثاء" to "3",
-            "الأربعاء" to "4", "الخميس" to "5", "الجمعة" to "6", "السبت" to "7"
-        )
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        updateWidget(context, appWidgetManager, appWidgetId)
+    }
 
+    companion object {
         fun updateAllWidgets(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(
@@ -53,6 +60,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         ) {
             val prefs = context.getSharedPreferences(WidgetHelper.PREFS_NAME, Context.MODE_PRIVATE)
             val views = RemoteViews(context.packageName, R.layout.date_widget)
+            val profile = WidgetHelper.resolveSizeProfile(appWidgetManager, appWidgetId)
 
             val style = prefs.getString("widgetStyle", "fff") ?: "fff"
             val numberFormat = prefs.getAll()["numberFormat"]?.toString() ?: "arabic"
@@ -68,19 +76,38 @@ class DateWidgetProvider : AppWidgetProvider() {
                 WidgetHelper.applyBackground(context, views, prefs, "date_", style)
             } catch (_: Exception) {}
 
-            // Day calligraphy image
+            // Day calligraphy image (new robust key chain with legacy fallback)
             val dayName = prefs.getString("day_name", "—") ?: "—"
-            val calligraphyDigit = DAY_MAP.entries
-                .firstOrNull { dayName.contains(it.key) }?.value ?: dayName
+            val dayCalligraphyDigit = prefs.getString("day_calligraphy_digit", null)
+            val dayIndexSun1: Int? = when (val raw = prefs.all["day_index_sun1"]) {
+                is Int -> raw
+                is Long -> raw.toInt()
+                is String -> raw.toIntOrNull()
+                else -> null
+            }
+            val resolvedDigit = WidgetHelper.resolveDayCalligraphyDigit(
+                dayCalligraphyDigit = dayCalligraphyDigit,
+                dayIndexSun1 = dayIndexSun1,
+                legacyDayName = dayName,
+            )
 
+            val calligraphySize = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 190f
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 240f
+                WidgetHelper.WidgetSizeProfile.LARGE -> 290f
+            }
             val dayBitmap = WidgetHelper.renderTextAsBitmap(
-                context, calligraphyDigit, textColor, R.font.calligraphy_days
+                context,
+                resolvedDigit,
+                textColor,
+                R.font.calligraphy_days,
+                textSize = calligraphySize,
             )
             if (dayBitmap != null) {
                 views.setImageViewBitmap(R.id.dayImage, dayBitmap)
-                views.setViewVisibility(R.id.dayImage, android.view.View.VISIBLE)
+                views.setViewVisibility(R.id.dayImage, View.VISIBLE)
             } else {
-                views.setViewVisibility(R.id.dayImage, android.view.View.GONE)
+                views.setViewVisibility(R.id.dayImage, View.GONE)
             }
 
             // Date texts
@@ -95,6 +122,36 @@ class DateWidgetProvider : AppWidgetProvider() {
             views.setTextColor(R.id.txtHijri, textColor)
             views.setTextColor(R.id.txtDate, textColor)
             views.setTextColor(R.id.txtDivider, textColor)
+
+            val rootPadding = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 6
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 8
+                WidgetHelper.WidgetSizeProfile.LARGE -> 10
+            }
+            val rootPaddingPx = WidgetHelper.dp(context, rootPadding)
+            views.setViewPadding(R.id.widgetRoot, rootPaddingPx, rootPaddingPx, rootPaddingPx, rootPaddingPx)
+
+            val dateTextSize = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 14f
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 17f
+                WidgetHelper.WidgetSizeProfile.LARGE -> 20f
+            }
+            val dividerTextSize = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 12f
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 15f
+                WidgetHelper.WidgetSizeProfile.LARGE -> 18f
+            }
+            views.setTextViewTextSize(R.id.txtDate, TypedValue.COMPLEX_UNIT_SP, dateTextSize)
+            views.setTextViewTextSize(R.id.txtHijri, TypedValue.COMPLEX_UNIT_SP, dateTextSize)
+            views.setTextViewTextSize(R.id.txtDivider, TypedValue.COMPLEX_UNIT_SP, dividerTextSize)
+
+            if (profile == WidgetHelper.WidgetSizeProfile.COMPACT) {
+                views.setViewVisibility(R.id.txtDate, View.GONE)
+                views.setViewVisibility(R.id.txtDivider, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.txtDate, View.VISIBLE)
+                views.setViewVisibility(R.id.txtDivider, View.VISIBLE)
+            }
 
             // Launch app on click
             if (!prefs.getBoolean("disableWidgetClick", false)) {

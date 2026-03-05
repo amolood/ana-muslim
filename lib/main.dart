@@ -90,7 +90,11 @@ class MyApp extends ConsumerWidget {
         final appLanguage = ref.watch(appLanguageProvider);
         final appFontSize = ref.watch(fontSizeProvider);
 
-        final themeMode = appTheme == 'فاتح' ? ThemeMode.light : ThemeMode.dark;
+        final themeMode = switch (appTheme) {
+          'فاتح' => ThemeMode.light,
+          'نظام' => ThemeMode.system,
+          _ => ThemeMode.dark, // 'داكن' and any legacy value
+        };
         final locale = switch (appLanguage) {
           'English' => const Locale('en'),
           'Français' => const Locale('fr'),
@@ -106,7 +110,7 @@ class MyApp extends ConsumerWidget {
             : TextDirection.ltr;
 
         return MaterialApp.router(
-          title: "انا المسلم",
+          title: "أنا المسلم",
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

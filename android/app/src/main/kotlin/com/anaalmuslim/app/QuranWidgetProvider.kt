@@ -4,6 +4,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
+import android.util.TypedValue
+import android.view.View
 import android.widget.RemoteViews
 
 /**
@@ -22,12 +25,20 @@ class QuranWidgetProvider : AppWidgetProvider() {
         }
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        updateWidget(context, appWidgetManager, appWidgetId)
+    }
+
     companion object {
-        // home_widget plugin's SharedPreferences file name (matches HomeWidgetPlugin.kt PREFERENCES constant)
-        private const val PREFS_NAME = "HomeWidgetPreferences"
 
         fun advanceVerseIndex(context: Context) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences(WidgetHelper.PREFS_NAME, Context.MODE_PRIVATE)
             val count = prefs.getInt("verse_count", 0)
             if (count > 0) {
                 val current = prefs.getInt("verse_index", 0)
@@ -50,7 +61,7 @@ class QuranWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences(WidgetHelper.PREFS_NAME, Context.MODE_PRIVATE)
             val count = prefs.getInt("verse_count", 0)
             val index = prefs.getInt("verse_index", 0)
 
@@ -66,8 +77,44 @@ class QuranWidgetProvider : AppWidgetProvider() {
             }
 
             val views = RemoteViews(context.packageName, R.layout.quran_widget)
+            val profile = WidgetHelper.resolveSizeProfile(appWidgetManager, appWidgetId)
             views.setTextViewText(R.id.widget_verse, verseText)
             views.setTextViewText(R.id.widget_ref, verseRef)
+
+            val contentPadding = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 8
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 12
+                WidgetHelper.WidgetSizeProfile.LARGE -> 16
+            }
+            val contentPaddingPx = WidgetHelper.dp(context, contentPadding)
+            views.setViewPadding(
+                R.id.widget_content,
+                contentPaddingPx,
+                contentPaddingPx,
+                contentPaddingPx,
+                contentPaddingPx,
+            )
+
+            val verseTextSize = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 16f
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 20f
+                WidgetHelper.WidgetSizeProfile.LARGE -> 22f
+            }
+            val refTextSize = when (profile) {
+                WidgetHelper.WidgetSizeProfile.COMPACT -> 10f
+                WidgetHelper.WidgetSizeProfile.MEDIUM -> 11f
+                WidgetHelper.WidgetSizeProfile.LARGE -> 12f
+            }
+            views.setTextViewTextSize(R.id.widget_verse, TypedValue.COMPLEX_UNIT_SP, verseTextSize)
+            views.setTextViewTextSize(R.id.widget_ref, TypedValue.COMPLEX_UNIT_SP, refTextSize)
+
+            if (profile == WidgetHelper.WidgetSizeProfile.COMPACT) {
+                views.setViewVisibility(R.id.widget_brand, View.GONE)
+                views.setViewVisibility(R.id.widget_divider, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.widget_brand, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_divider, View.VISIBLE)
+            }
 
             // Apply the dark background programmatically so the XML layout can safely
             // declare android:background="@android:color/transparent". This avoids the

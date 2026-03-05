@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Mp3QuranService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
-use App\Services\Mp3QuranService;
 
 class QuranRecitersApiController extends Controller
 {
     protected Mp3QuranService $mp3Quran;
+
+    /**
+     * Hosts known to fail TLS validation and must not be served to clients.
+     */
+    private const BLOCKED_AUDIO_HOSTS = [
+        'download.quran.islamway.net',
+    ];
 
     /**
      * Nationality mapping for well-known reciters by mp3quran.net ID.
@@ -137,7 +144,7 @@ class QuranRecitersApiController extends Controller
 
     public function index(): JsonResponse
     {
-        if (!\App\Models\AnaMuslimSetting::isEnabled('mp3quran_enabled')) {
+        if (! \App\Models\AnaMuslimSetting::isEnabled('mp3quran_enabled')) {
             return response()->json(['reciters' => [], 'data' => ['reciters' => []]]);
         }
 
@@ -146,13 +153,14 @@ class QuranRecitersApiController extends Controller
             $nameMap = []; // Keyed by normalized name, value is ID
 
             // Helper to normalize names for comparison (remove spaces, symbols, and standardize common Arabic characters)
-            $normalize = function($name) {
+            $normalize = function ($name) {
                 // Remove spaces and punctuation
                 $name = preg_replace('/[^\p{L}\p{N}]/u', '', $name);
                 // Standardize Arabic characters (Alif, Ta Marbuta, etc.)
                 $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
                 $name = str_replace('ة', 'ه', $name);
                 $name = str_replace('ى', 'ي', $name);
+
                 return mb_strtolower($name);
             };
 
@@ -164,8 +172,8 @@ class QuranRecitersApiController extends Controller
             foreach ($dbReciters as $reciter) {
                 if ($reciter->base_url === 'json://') {
                     $payload = $this->buildReciterPayload((int) $reciter->id, (string) $reciter->name, [
-                        base_path('docs/backend/' . $reciter->path),
-                        base_path('data/reciters/' . $reciter->path),
+                        base_path('docs/backend/'.$reciter->path),
+                        base_path('data/reciters/'.$reciter->path),
                     ]);
                 } else {
                     $payload = $this->buildStaticReciterPayload([
@@ -198,7 +206,14 @@ class QuranRecitersApiController extends Controller
                     $normName = $normalize($r['name']);
 
                     // Only add if not already in uniqueList AND not present in nameMap
-                    if (!isset($uniqueList[$id]) && !isset($nameMap[$normName])) {
+                    if (! isset($uniqueList[$id]) && ! isset($nameMap[$normName])) {
+                        $moshaf = $this->filterBlockedMoshafEntries(
+                            is_array($r['moshaf'] ?? null) ? $r['moshaf'] : []
+                        );
+                        if ($moshaf === []) {
+                            continue;
+                        }
+
                         $nationality = $this->resolveNationality($id, '');
                         $uniqueList[$id] = [
                             'id' => $id,
@@ -206,7 +221,7 @@ class QuranRecitersApiController extends Controller
                             'letter' => (string) $r['letter'],
                             'nationality' => $nationality,
                             'priority' => false,
-                            'moshaf' => $r['moshaf'] ?? [],
+                            'moshaf' => $moshaf,
                         ];
                         $nameMap[$normName] = $id;
                     }
@@ -245,12 +260,18 @@ class QuranRecitersApiController extends Controller
         return $dbValue;
     }
 
-    private function buildStaticReciterPayload(array $data): array
+    private function buildStaticReciterPayload(array $data): ?array
     {
+        $base = trim((string) ($data['base'] ?? ''));
+        if ($base === '' || $this->isBlockedAudioHost($base)) {
+            return null;
+        }
+
+        $path = trim((string) ($data['path'] ?? ''));
         $directUrls = [];
         for ($i = 1; $i <= 114; $i++) {
             $num = str_pad($i, 3, '0', STR_PAD_LEFT);
-            $directUrls[(string) $i] = $data['base'] . $data['path'] . $num . ".mp3";
+            $directUrls[(string) $i] = $base.$path.$num.'.mp3';
         }
 
         return [
@@ -277,7 +298,7 @@ class QuranRecitersApiController extends Controller
     private function buildReciterPayload(int $reciterId, string $name, array $candidates): ?array
     {
         $raw = $this->readJsonFromCandidates($candidates);
-        if (!is_array($raw)) {
+        if (! is_array($raw)) {
             return null;
         }
 
@@ -297,7 +318,10 @@ class QuranRecitersApiController extends Controller
             }
 
             $uri = parse_url($url);
-            if ($uri === false || !isset($uri['scheme']) || !in_array($uri['scheme'], ['http', 'https'], true)) {
+            if ($uri === false || ! isset($uri['scheme']) || ! in_array($uri['scheme'], ['http', 'https'], true)) {
+                continue;
+            }
+            if ($this->isBlockedAudioHost($url)) {
                 continue;
             }
 
@@ -330,10 +354,77 @@ class QuranRecitersApiController extends Controller
         ];
     }
 
+    private function isBlockedAudioHost(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (! is_string($host) || $host === '') {
+            return false;
+        }
+
+        return in_array(mb_strtolower($host), self::BLOCKED_AUDIO_HOSTS, true);
+    }
+
+    private function filterBlockedMoshafEntries(array $moshafList): array
+    {
+        $filtered = [];
+
+        foreach ($moshafList as $moshaf) {
+            if (! is_array($moshaf)) {
+                continue;
+            }
+
+            $server = trim((string) ($moshaf['server'] ?? ''));
+            if ($server !== '' && $this->isBlockedAudioHost($server)) {
+                $server = '';
+            }
+
+            $directUrls = is_array($moshaf['direct_surah_urls'] ?? null)
+                ? $moshaf['direct_surah_urls']
+                : [];
+            if ($directUrls !== []) {
+                $directUrls = array_filter(
+                    $directUrls,
+                    fn ($url): bool => is_string($url) &&
+                        $url !== '' &&
+                        ! $this->isBlockedAudioHost($url)
+                );
+            }
+
+            if ($server === '' && $directUrls === []) {
+                continue;
+            }
+
+            $moshaf['server'] = $server;
+            if ($directUrls !== []) {
+                ksort($directUrls, SORT_NATURAL);
+                $moshaf['direct_surah_urls'] = $directUrls;
+            }
+
+            if ($server === '' && $directUrls !== []) {
+                $surahNumbers = array_values(array_filter(
+                    array_map('intval', array_keys($directUrls)),
+                    fn (int $number): bool => $number >= 1 && $number <= 114
+                ));
+
+                if ($surahNumbers === []) {
+                    continue;
+                }
+
+                sort($surahNumbers, SORT_NUMERIC);
+                $moshaf['surah_list'] = implode(',', $surahNumbers);
+                $moshaf['surah_total'] = count($surahNumbers);
+            }
+
+            $filtered[] = $moshaf;
+        }
+
+        return array_values($filtered);
+    }
+
     private function readJsonFromCandidates(array $candidates): mixed
     {
         foreach ($candidates as $path) {
-            if (!is_string($path) || $path === '' || !File::exists($path)) {
+            if (! is_string($path) || $path === '' || ! File::exists($path)) {
                 continue;
             }
 

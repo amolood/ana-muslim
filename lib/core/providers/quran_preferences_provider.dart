@@ -86,48 +86,6 @@ class QuranFontSizeNotifier extends Notifier<double> {
   }
 }
 
-// Quran Font Family Provider
-final quranFontFamilyProvider = NotifierProvider<QuranFontFamilyNotifier, String>(
-  QuranFontFamilyNotifier.new,
-);
-
-class QuranFontFamilyNotifier extends Notifier<String> {
-  static const _key = 'quran_font_family';
-
-  // Available Quran fonts
-  static const String kfgqpcUthmanic = 'KFGQPC Uthmanic Script';
-  static const String amiri = 'Amiri';
-  static const String naskh = 'naskh';
-
-  static const List<String> availableFonts = [
-    kfgqpcUthmanic,
-    amiri,
-    naskh,
-  ];
-
-  static const Map<String, String> fontDisplayNames = {
-    kfgqpcUthmanic: 'خط عثماني (KFGQPC)',
-    amiri: 'خط أميري',
-    naskh: 'خط نسخ',
-  };
-
-  @override
-  String build() {
-    final val = ref.watch(sharedPreferencesProvider).getString(_key);
-    if (val == null || !availableFonts.contains(val)) {
-      return kfgqpcUthmanic; // Default font
-    }
-    return val;
-  }
-
-  Future<void> save(String fontFamily) async {
-    if (!availableFonts.contains(fontFamily)) return;
-    state = fontFamily;
-    await ref.read(sharedPreferencesProvider).setString(_key, fontFamily);
-  }
-
-  String get displayName => fontDisplayNames[state] ?? state;
-}
 
 final hadithFontSizeProvider = NotifierProvider<HadithFontSizeNotifier, double>(
   HadithFontSizeNotifier.new,

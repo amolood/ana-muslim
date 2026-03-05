@@ -112,10 +112,10 @@ abstract class AppLocalizations {
   /// **'القرآن'**
   String get navQuran;
 
-  /// Bottom navigation: Qibla tab
+  /// Bottom navigation: Tools tab (Qibla, Prayer times, Azkar, Sebha, Ramadan)
   ///
   /// In ar, this message translates to:
-  /// **'القبلة'**
+  /// **'أدوات'**
   String get navQibla;
 
   /// Bottom navigation: Hadith tab

@@ -1,11 +1,14 @@
 package com.anaalmuslim.app
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.*
 import android.os.Build
+import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.core.content.res.ResourcesCompat
+import java.util.Calendar
 
 /**
  * Shared utilities for all home-screen widgets.
@@ -13,6 +16,12 @@ import androidx.core.content.res.ResourcesCompat
  */
 object WidgetHelper {
     const val PREFS_NAME = "HomeWidgetPreferences"
+
+    enum class WidgetSizeProfile {
+        COMPACT,
+        MEDIUM,
+        LARGE,
+    }
 
     // ── Digit conversion ────────────────────────────────────────────────
     private val latinToArabic = mapOf(
@@ -31,6 +40,58 @@ object WidgetHelper {
         if (raw.isNullOrEmpty() || raw == "--:--") return formatDigits("--:--", numberFormat)
         val formatted = if (use12h) convertTo12h(raw) else raw
         return formatDigits(formatted, numberFormat)
+    }
+
+    // ── Widget size profile ─────────────────────────────────────────────
+    fun resolveSizeProfile(appWidgetManager: AppWidgetManager, appWidgetId: Int): WidgetSizeProfile {
+        val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+
+        return when {
+            minWidth <= 170 || minHeight <= 70 -> WidgetSizeProfile.COMPACT
+            minWidth >= 260 || minHeight >= 140 -> WidgetSizeProfile.LARGE
+            else -> WidgetSizeProfile.MEDIUM
+        }
+    }
+
+    fun dp(context: Context, value: Int): Int {
+        return (value * context.resources.displayMetrics.density).toInt()
+    }
+
+    // ── Day mapping (robust + backwards compatible) ───────────────────
+    fun resolveDayCalligraphyDigit(
+        dayCalligraphyDigit: String?,
+        dayIndexSun1: Int?,
+        legacyDayName: String?
+    ): String {
+        val direct = dayCalligraphyDigit?.trim()
+        if (!direct.isNullOrEmpty() && direct.length == 1 && direct[0] in '1'..'7') {
+            return direct
+        }
+
+        if (dayIndexSun1 != null && dayIndexSun1 in 1..7) {
+            return dayIndexSun1.toString()
+        }
+
+        val legacy = legacyDayName?.trim().orEmpty()
+        if (legacy.isNotEmpty()) {
+            val mapped = when {
+                legacy.contains("الأحد") -> "1"
+                legacy.contains("الاثنين") -> "2"
+                legacy.contains("الثلاثاء") -> "3"
+                legacy.contains("الأربعاء") -> "4"
+                legacy.contains("الخميس") -> "5"
+                legacy.contains("الجمعة") -> "6"
+                legacy.contains("السبت") -> "7"
+                else -> null
+            }
+            if (mapped != null) return mapped
+        }
+
+        // Fallback: current system weekday, converted to Sunday=1..Saturday=7
+        val calendarWeekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        return calendarWeekday.toString()
     }
 
     private fun convertTo12h(time24: String): String {
@@ -180,6 +241,41 @@ object WidgetHelper {
             val height = (baseline + paint.descent()).toInt() + 40
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             Canvas(bitmap).drawText(text, width / 2f, baseline + 20f, paint)
+            bitmap
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Renders [text] to a Bitmap using [fontResId] at [sizeSp] sp (auto-converts to px).
+     * [padding] adds extra space around text (ayman.widget: titles=20, times=40).
+     */
+    fun renderTextBitmapSp(
+        context: Context,
+        text: String,
+        color: Int,
+        fontResId: Int,
+        sizeSp: Float,
+        padding: Int = 20,
+    ): Bitmap? {
+        if (text.isBlank()) return null
+        return try {
+            val sizePx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP, sizeSp,
+                context.resources.displayMetrics,
+            )
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = sizePx
+                this.color = color
+                textAlign = Paint.Align.CENTER
+                typeface = ResourcesCompat.getFont(context, fontResId)
+            }
+            val baseline = -paint.ascent()
+            val width  = (paint.measureText(text) + padding * 2).toInt().coerceAtLeast(1)
+            val height = (baseline + paint.descent() + padding * 2).toInt().coerceAtLeast(1)
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            Canvas(bitmap).drawText(text, width / 2f, baseline + padding, paint)
             bitmap
         } catch (e: Exception) {
             null

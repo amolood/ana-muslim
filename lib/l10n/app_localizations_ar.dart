@@ -15,7 +15,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get navQuran => 'القرآن';
 
   @override
-  String get navQibla => 'القبلة';
+  String get navQibla => 'أدوات';
 
   @override
   String get navHadith => 'الحديث';

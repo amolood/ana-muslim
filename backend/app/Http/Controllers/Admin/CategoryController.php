@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\AnaMuslimCategory;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
@@ -15,21 +14,25 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         $query = AnaMuslimCategory::with(['parent', 'children'])->orderBy('id', 'asc');
-        
-        $currentParent = null;
 
-        if ($request->has('search') && $request->get('search') !== '') {
-            $search = $request->get('search');
-            $query->where('title', 'like', "%{$search}%");
-        } else {
-            // If no search, handle hierarchy
-            if ($request->has('parent_id') && $request->get('parent_id') !== '') {
-                $query->where('parent_id', $request->get('parent_id'));
-                $currentParent = AnaMuslimCategory::find($request->get('parent_id'));
-            } else {
-                // Default view: root categories only
-                $query->whereNull('parent_id');
-            }
+        $currentParent = null;
+        $parentId = $request->get('parent_id');
+        $search = trim((string) $request->get('search', ''));
+
+        if ($parentId !== null && $parentId !== '') {
+            $query->where('parent_id', $parentId);
+            $currentParent = AnaMuslimCategory::find($parentId);
+        } elseif ($search === '') {
+            // Default view: root categories only
+            $query->whereNull('parent_id');
+        }
+
+        if ($search !== '') {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('block_name', 'like', "%{$search}%");
+            });
         }
 
         $categories = $query->paginate(20);
@@ -51,6 +54,7 @@ class CategoryController extends Controller
     public function create()
     {
         $parentCategories = AnaMuslimCategory::orderBy('title')->get();
+
         return view('admin.categories.form', compact('parentCategories'));
     }
 
@@ -64,7 +68,7 @@ class CategoryController extends Controller
             'block_name' => 'nullable|string|max:255',
             'items_count' => 'nullable|integer',
             'language' => 'required|string|max:10',
-            'parent_id' => 'nullable|exists:ana_muslim_categories,id'
+            'parent_id' => 'nullable|exists:ana_muslim_categories,id',
         ]);
 
         AnaMuslimCategory::create($validated);
@@ -79,6 +83,7 @@ class CategoryController extends Controller
     {
         $category = AnaMuslimCategory::findOrFail($id);
         $parentCategories = AnaMuslimCategory::where('id', '!=', $id)->orderBy('title')->get();
+
         return view('admin.categories.form', compact('category', 'parentCategories'));
     }
 
@@ -94,7 +99,7 @@ class CategoryController extends Controller
             'block_name' => 'nullable|string|max:255',
             'items_count' => 'nullable|integer',
             'language' => 'required|string|max:10',
-            'parent_id' => 'nullable|exists:ana_muslim_categories,id'
+            'parent_id' => 'nullable|exists:ana_muslim_categories,id',
         ]);
 
         // Prevent setting parent_id to itself
@@ -113,7 +118,7 @@ class CategoryController extends Controller
     public function destroy(string $id)
     {
         $category = AnaMuslimCategory::findOrFail($id);
-        
+
         // Check if it has children
         if ($category->children()->count() > 0) {
             return back()->withErrors(['error' => 'لا يمكن حذف التصنيف لاحتوائه على تصنيفات فرعية.']);

@@ -19,7 +19,10 @@ class HadithScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final collectionsAsync = ref.watch(hadithCollectionsProvider);
 
-    return Scaffold(
+    // Hadith content is always Arabic — enforce RTL regardless of app language.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
@@ -54,6 +57,7 @@ class HadithScreen extends ConsumerWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

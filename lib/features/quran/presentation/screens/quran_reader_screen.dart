@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +20,7 @@ import '../providers/audio_providers.dart';
 import '../providers/bookmark_provider.dart';
 import '../widgets/colored_bookmark_sheet.dart';
 import '../widgets/quran_audio_sheet.dart';
+import '../providers/quran_api_font_providers.dart';
 import '../widgets/quran_font_size_sheet.dart';
 import '../widgets/quran_juz_picker_sheet.dart';
 import '../widgets/quran_page_jump_dialog.dart';
@@ -50,6 +54,21 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
   bool _isPageMode = false;
   int _lastKhatmahSuccessPage = -1;
+  bool _isAutoFollowInProgress = false;
+  int? _lastAutoFollowedSurah;
+  int? _lastAutoFollowedPage;
+
+  // Gesture recognizers for verse text taps — must be disposed.
+  final Map<int, TapGestureRecognizer> _verseRecognizers = {};
+
+  TapGestureRecognizer _recognizerFor(int verse) {
+    final r = _verseRecognizers.putIfAbsent(
+      verse,
+      () => TapGestureRecognizer(),
+    );
+    r.onTap = () => _selectVerse(verse);
+    return r;
+  }
 
   int get _activeSurahNumber => _isPageMode
       ? QuranService.getSurahNumberFromPage(_currentPage)
@@ -84,6 +103,10 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
   @override
   void dispose() {
+    for (final r in _verseRecognizers.values) {
+      r.dispose();
+    }
+    _verseRecognizers.clear();
     _pageController.dispose();
     super.dispose();
   }
@@ -91,9 +114,15 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final quranFontSize = ref.watch(quranFontSizeProvider);
+    final activeFontFamily =
+        ref.watch(quranActiveFontFamilyProvider).asData?.value;
     final favorites = ref.watch(favoriteSurahsProvider);
     final isFavorite = favorites.contains(widget.surahNumber);
     final controlsVisible = ref.watch(quranReaderControlsVisibleProvider);
+
+    ref.listen<QuranAudioState>(quranAudioProvider, (previous, next) {
+      unawaited(_maybeFollowAudioAutoNext(previous, next));
+    });
 
     final verseColor = context.colors.textPrimary;
     final surahVerseCount = QuranService.getVerseCount(widget.surahNumber);
@@ -140,7 +169,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                               if (widget.surahNumber != 1 &&
                                   widget.surahNumber != 9) ...[
                                 const SizedBox(height: 8),
-                                _buildBasmalah(quranFontSize, verseColor),
+                                _buildBasmalah(quranFontSize, verseColor, activeFontFamily),
                                 const SizedBox(height: 12),
                               ] else
                                 const SizedBox(height: 12),
@@ -154,6 +183,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                                         i,
                                         quranFontSize,
                                         verseColor,
+                                        activeFontFamily,
                                       ),
                                   ],
                                 ),
@@ -177,7 +207,8 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                   ? Consumer(
                       builder: (context, localRef, _) {
                         final audioState = localRef.watch(quranAudioProvider);
-                        final isListenActive = audioState.hasAudio &&
+                        final isListenActive =
+                            audioState.hasAudio &&
                             audioState.surahNumber == _activeSurahNumber;
                         return QuranReaderBottomToolbar(
                           key: const ValueKey('controls-shown'),
@@ -197,8 +228,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                           onShare: _shareSelectedVerse,
                           onTogglePlayPause: () async {
                             if (audioState.isLoading) return;
-                            final notifier =
-                                ref.read(quranAudioProvider.notifier);
+                            final notifier = ref.read(
+                              quranAudioProvider.notifier,
+                            );
                             if (audioState.isPlaying) {
                               await notifier.pause();
                             } else {
@@ -213,8 +245,8 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                               : null,
                           onNextPage:
                               _currentPage < QuranService.totalPagesCount
-                                  ? () => _goToPage(_currentPage + 1)
-                                  : null,
+                              ? () => _goToPage(_currentPage + 1)
+                              : null,
                           onJumpPage: _openPageJumpDialog,
                         );
                       },
@@ -235,8 +267,12 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
   // ─── Mode toggle ──────────────────────────────────────────────────────────
 
   void _onToggleMode() {
+    final nextIsPageMode = !_isPageMode;
+    if (nextIsPageMode && !_pageController.hasClients) {
+      _resetPageController(_currentPage);
+    }
     setState(() {
-      _isPageMode = !_isPageMode;
+      _isPageMode = nextIsPageMode;
       if (_isPageMode) _selectedVerse = -1;
     });
   }
@@ -255,10 +291,10 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
 
   // ─── Surah mode builders ──────────────────────────────────────────────────
 
-  Widget _buildBasmalah(double fontSize, Color textColor) {
+  Widget _buildBasmalah(double fontSize, Color textColor, String? fontFamily) {
     return Text(
       QuranService.basmala,
-      style: _quranTextStyle(size: fontSize + 4, color: textColor, height: 1.8),
+      style: _quranTextStyle(size: fontSize + 4, color: textColor, height: 1.8, fontFamily: fontFamily),
       textDirection: TextDirection.rtl,
       textAlign: TextAlign.center,
     );
@@ -271,18 +307,28 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     required double size,
     required Color color,
     required double height,
+    String? fontFamily,
   }) {
+    if (fontFamily != null) {
+      return TextStyle(
+        fontFamily: fontFamily,
+        fontSize: size,
+        height: height,
+        color: color,
+      );
+    }
     return QuranLibrary().hafsStyle.copyWith(
-          fontSize: size,
-          height: height,
-          color: color,
-        );
+      fontSize: size,
+      height: height,
+      color: color,
+    );
   }
 
   InlineSpan _buildVerseSpan(
     int verseNumber,
     double quranFontSize,
     Color textColor,
+    String? fontFamily,
   ) {
     final isSelected = _selectedVerse == verseNumber;
     final isSajdah = QuranService.isSajdahVerse(
@@ -293,28 +339,37 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
         ? AppColors.mushafGold
         : AppColors.mushafGold.withValues(alpha: 0.86);
 
-    final ayahId =
-        QuranService.getAyahUniqueNumber(widget.surahNumber, verseNumber);
-    final bookmarkColor =
-        ref.read(coloredBookmarksProvider.notifier).getBookmarkColor(ayahId);
+    final ayahId = QuranService.getAyahUniqueNumber(
+      widget.surahNumber,
+      verseNumber,
+    );
+    final bookmarkColor = ref
+        .read(coloredBookmarksProvider.notifier)
+        .getBookmarkColor(ayahId);
+
+    // Strip the embedded sajda character (U+06E9) — we render it explicitly below.
+    final rawText = QuranService.getVerse(
+      widget.surahNumber,
+      verseNumber,
+      verseEndSymbol: false,
+    ).replaceAll('\u06E9', '').trim();
 
     return TextSpan(
       children: [
         TextSpan(
-          text: QuranService.getVerse(
-            widget.surahNumber,
-            verseNumber,
-            verseEndSymbol: false,
-          ),
-          style: _quranTextStyle(
-            size: quranFontSize,
-            color: textColor,
-            height: 2.1,
-          ).copyWith(
-            backgroundColor: isSelected
-                ? AppColors.mushafGold.withValues(alpha: 0.12)
-                : null,
-          ),
+          text: rawText,
+          recognizer: _recognizerFor(verseNumber),
+          style:
+              _quranTextStyle(
+                size: quranFontSize,
+                color: textColor,
+                height: 2.1,
+                fontFamily: fontFamily,
+              ).copyWith(
+                backgroundColor: isSelected
+                    ? AppColors.mushafGold.withValues(alpha: 0.12)
+                    : null,
+              ),
         ),
         if (isSajdah)
           WidgetSpan(
@@ -372,16 +427,12 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
                     ),
                   Text(
                     _toArabicNumber(verseNumber),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Tajawal',
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? AppColors.mushafGold
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.8),
+                      // Always dark on gold badge — readable in all themes.
+                      color: Color(0xFF4A2800),
                       height: 1.0,
                     ),
                   ),
@@ -396,6 +447,63 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
+
+  void _resetPageController(int page) {
+    _pageController.dispose();
+    _pageController = PageController(initialPage: page - 1);
+  }
+
+  Future<void> _maybeFollowAudioAutoNext(
+    QuranAudioState? previous,
+    QuranAudioState next,
+  ) async {
+    if (!mounted || _isAutoFollowInProgress || previous == null) return;
+
+    final previousSurah = previous.surahNumber;
+    final nextSurah = next.surahNumber;
+    if (!previous.isCompleted ||
+        previousSurah == null ||
+        nextSurah == null ||
+        previousSurah == nextSurah) {
+      return;
+    }
+
+    final targetPage = QuranService.getPageNumber(nextSurah, 1);
+    if (_lastAutoFollowedSurah == nextSurah &&
+        _lastAutoFollowedPage == targetPage) {
+      return;
+    }
+
+    _isAutoFollowInProgress = true;
+    try {
+      QuranService.preloadSurah(nextSurah);
+      QuranService.preloadPage(targetPage);
+      if (targetPage > 1) QuranService.preloadPage(targetPage - 1);
+      if (targetPage < QuranService.totalPagesCount) {
+        QuranService.preloadPage(targetPage + 1);
+      }
+
+      if (!mounted) return;
+      if (!_isPageMode || _selectedVerse != -1) {
+        if (!_pageController.hasClients) {
+          _resetPageController(targetPage);
+        }
+        setState(() {
+          _isPageMode = true;
+          _selectedVerse = -1;
+          _currentPage = targetPage;
+        });
+      }
+
+      if (!mounted) return;
+      await _goToPage(targetPage);
+      if (!mounted) return;
+      _lastAutoFollowedSurah = nextSurah;
+      _lastAutoFollowedPage = targetPage;
+    } finally {
+      _isAutoFollowInProgress = false;
+    }
+  }
 
   Future<void> _goToPage(int page) async {
     final target = QuranService.clampPage(page);
@@ -440,10 +548,7 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
     await ref.read(lastReadPageProvider.notifier).save(page);
   }
 
-  Future<void> _syncReadingProgress(
-    int page, {
-    bool showMessage = true,
-  }) async {
+  Future<void> _syncReadingProgress(int page, {bool showMessage = true}) async {
     final reachedTodayTarget = await ref
         .read(khatmahControllerProvider.notifier)
         .syncFromReadingPage(page);
@@ -490,8 +595,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
   Future<void> _toggleFavorite() async {
     await ref.read(favoriteSurahsProvider.notifier).toggle(widget.surahNumber);
     if (!mounted) return;
-    final isFavorite =
-        ref.read(favoriteSurahsProvider).contains(widget.surahNumber);
+    final isFavorite = ref
+        .read(favoriteSurahsProvider)
+        .contains(widget.surahNumber);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -678,8 +784,9 @@ class _QuranReaderScreenState extends ConsumerState<QuranReaderScreen> {
       _selectedVerse,
       verseEndSymbol: false,
     );
-    final surahName =
-        QuranService.getSurahNameArabicNormalized(widget.surahNumber);
+    final surahName = QuranService.getSurahNameArabicNormalized(
+      widget.surahNumber,
+    );
     await SharePlus.instance.share(
       ShareParams(
         text:

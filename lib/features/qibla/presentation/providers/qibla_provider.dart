@@ -25,6 +25,9 @@ class QiblaNotifier extends Notifier<QiblaUiState> {
   final AudioPlayer _successPlayer = AudioPlayer();
   bool _hasPlayedSuccess = false;
 
+  static const _keyLat = 'qibla_saved_lat';
+  static const _keyLng = 'qibla_saved_lng';
+
   @override
   QiblaUiState build() {
     ref.onDispose(() {
@@ -35,6 +38,21 @@ class QiblaNotifier extends Notifier<QiblaUiState> {
       _recentHeadings.clear();
       _recentPositions.clear();
     });
+
+    // Load cached location immediately so compass works offline
+    final prefs = ref.read(sharedPreferencesProvider);
+    final savedLat = prefs.getDouble(_keyLat);
+    final savedLng = prefs.getDouble(_keyLng);
+    if (savedLat != null && savedLng != null) {
+      _calculatedQiblaBearing =
+          QiblaCalculator.calculateQiblaFromLatLng(savedLat, savedLng);
+      final distance =
+          QiblaCalculator.calculateDistanceFromLatLng(savedLat, savedLng);
+      return QiblaUiState(
+        locationName: '${distance.toStringAsFixed(0)} كم من الكعبة',
+      );
+    }
+
     return const QiblaUiState();
   }
 
@@ -91,13 +109,17 @@ class QiblaNotifier extends Notifier<QiblaUiState> {
         ),
       ).listen(_updatePositionAndCalculateQibla);
     } catch (e) {
-      // If location fails, fall back to library calculation
-      _calculatedQiblaBearing = null;
+      // If live GPS fails, keep the cached bearing (already loaded in build)
     }
   }
 
   /// Update position and recalculate Qibla bearing
   void _updatePositionAndCalculateQibla(Position position) {
+    // Persist location so it works even if permission is later revoked
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setDouble(_keyLat, position.latitude);
+    prefs.setDouble(_keyLng, position.longitude);
+
     _recentPositions.add(position);
 
     // Keep only last 5 positions for averaging
@@ -119,12 +141,14 @@ class QiblaNotifier extends Notifier<QiblaUiState> {
     );
   }
 
-  /// Stop listening to sensor stream
+  /// Stop listening to sensor stream and GPS
   void stopListening() {
     _subscription?.cancel();
     _subscription = null;
     _stabilityTimer?.cancel();
     _stabilityTimer = null;
+    _positionStream?.cancel();
+    _positionStream = null;
   }
 
   /// Process incoming sensor data with smoothing and stability logic

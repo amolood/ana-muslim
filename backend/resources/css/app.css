@@ -11,11 +11,32 @@
     --color-brand-700: #4338ca;
     --color-brand-900: #312e81;
     --color-primary: #11D4B4;
+    --color-primary-50: #ecfeff;
+    --color-primary-100: #cffafe;
+    --color-primary-300: #67e8f9;
+    --color-primary-400: #22d3ee;
+    --color-primary-500: #06b6d4;
+    --color-primary-600: #0891b2;
+    --color-primary-700: #0e7490;
+    --color-primary-800: #155e75;
+    --color-primary-900: #164e63;
+
+    --color-sand-50: #fdfbf7;
+    --color-sand-100: #f4efe6;
+    --color-sand-200: #e8dfce;
+
+    --color-gold-400: #fbbf24;
+    --color-gold-500: #d4af37;
+    --color-gold-600: #b48a27;
+
+    --font-quran: 'Amiri', serif;
 
     --animate-blob: blob 7s infinite;
     --animate-float: float 6s ease-in-out infinite;
 
     --shadow-glow: 0 0 40px -10px rgba(79, 70, 229, 0.3);
+    --shadow-soft: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 
     @keyframes blob {
         0% {

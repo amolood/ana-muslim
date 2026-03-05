@@ -12,8 +12,11 @@ import '../../prayer_times/presentation/providers/prayer_times_provider.dart';
 /// This is the **single source of truth** for prayer calculation params.
 /// Used by: display ([prayerTimesProvider]), notification scheduling
 /// ([_NotificationScheduler]), and manual reschedule triggers.
-/// Always sets [Madhab.shafi] so Asr times are consistent everywhere.
-CalculationParameters buildCalculationParams(String method) {
+/// Pass [madhab] as 'حنفي' for Hanafi Asr (shadow ratio 2×) or 'شافعي' (default, 1×).
+CalculationParameters buildCalculationParams(
+  String method, {
+  String madhab = 'شافعي',
+}) {
   final params = switch (method) {
     'رابطة العالم الإسلامي' =>
       CalculationMethod.muslim_world_league.getParameters(),
@@ -23,9 +26,15 @@ CalculationParameters buildCalculationParams(String method) {
       CalculationMethod.karachi.getParameters(),
     'الجمعية الإسلامية لأمريكا الشمالية' =>
       CalculationMethod.north_america.getParameters(),
+    'دبي' => CalculationMethod.dubai.getParameters(),
+    'الكويت' => CalculationMethod.kuwait.getParameters(),
+    'قطر' => CalculationMethod.qatar.getParameters(),
+    'تركيا' => CalculationMethod.turkey.getParameters(),
+    'إيران' => CalculationMethod.tehran.getParameters(),
+    'سنغافورة' => CalculationMethod.singapore.getParameters(),
     _ => CalculationMethod.umm_al_qura.getParameters(),
   };
-  params.madhab = Madhab.shafi;
+  params.madhab = madhab == 'حنفي' ? Madhab.hanafi : Madhab.shafi;
   return params;
 }
 
@@ -71,8 +80,9 @@ Future<void> reschedulePrayerNotifications(
     } else {
       final position = await ref.read(locationProvider.future);
       final calcMethodStr = ref.read(calculationMethodProvider);
+      final madhabStr = ref.read(madhabProvider);
       final coords = Coordinates(position.latitude, position.longitude);
-      final params = buildCalculationParams(calcMethodStr);
+      final params = buildCalculationParams(calcMethodStr, madhab: madhabStr);
       final prayerAdjust = ref.read(prayerManualOffsetsProvider);
 
       await NotificationsService.rescheduleAll(

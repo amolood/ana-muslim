@@ -8,6 +8,7 @@ import '../../../../core/providers/app_version_provider.dart';
 import '../../../../core/providers/preferences_provider.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/brand_logo.dart';
 import '../../../../core/l10n/l10n.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -195,17 +196,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Using an icon since we don't have a logo image asset
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.mosque,
+                        child: const BrandLogo(
                           size: 80,
-                          color: AppColors.primary,
+                          semanticsLabel: 'شعار تطبيق أنا المسلم في شاشة البداية',
                         ),
                       ),
                       const SizedBox(height: 24),

@@ -61,6 +61,25 @@ class CalculationMethodNotifier extends Notifier<String> {
   }
 }
 
+// ─── Madhab ───────────────────────────────────────────────────────────────
+
+final madhabProvider = NotifierProvider<MadhabNotifier, String>(
+  MadhabNotifier.new,
+);
+
+class MadhabNotifier extends Notifier<String> {
+  static const _key = 'madhab';
+
+  @override
+  String build() =>
+      ref.watch(sharedPreferencesProvider).getString(_key) ?? 'شافعي';
+
+  Future<void> save(String val) async {
+    state = val;
+    await ref.read(sharedPreferencesProvider).setString(_key, val);
+  }
+}
+
 final appThemeProvider = NotifierProvider<AppThemeNotifier, String>(
   AppThemeNotifier.new,
 );

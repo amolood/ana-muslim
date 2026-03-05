@@ -36,7 +36,7 @@ class SurahOrnamentTitle extends StatelessWidget {
               surahName,
               fontSize: 20,
               maxLines: 1,
-              color: Colors.black,
+              color: isDark ? Colors.white : Colors.black,
             ),
           ),
         ],

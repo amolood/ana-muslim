@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -30,6 +31,10 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
+
+  String? _completionMessage;
+  Timer? _messageTimer;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +54,7 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
 
   @override
   void dispose() {
+    _messageTimer?.cancel();
     _scaleController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -73,7 +79,11 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
       final doneMessage = result.switchedToNext
           ? context.l10n.goalReachedSwitched(result.completedPhrase.text)
           : context.l10n.goalReached(result.completedPhrase.text);
-      _showInfo(doneMessage);
+      _messageTimer?.cancel();
+      setState(() => _completionMessage = doneMessage);
+      _messageTimer = Timer(const Duration(seconds: 4), () {
+        if (mounted) setState(() => _completionMessage = null);
+      });
     }
   }
 
@@ -222,11 +232,49 @@ class _SebhaScreenState extends ConsumerState<SebhaScreen>
             SebhaPhraseSwitcher(selected: selected),
             const SizedBox(height: 14),
             _buildCounterCard(current: current, goal: goal, progress: progress),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _completionMessage != null
+                  ? _buildCompletionMessage(_completionMessage!)
+                  : const SizedBox.shrink(),
+            ),
             const SizedBox(height: 14),
             SebhaStatsCard(state: sebhaState),
             const SizedBox(height: 14),
             const SebhaManageCard(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletionMessage(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      key: const ValueKey('completion'),
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark
+              ? _goldAccent.withValues(alpha: 0.14)
+              : _midGreen.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? _goldAccent.withValues(alpha: 0.35)
+                : _midGreen.withValues(alpha: 0.28),
+          ),
+        ),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.tajawal(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: isDark ? _goldAccent : _midGreen,
+          ),
         ),
       ),
     );

@@ -48,11 +48,17 @@ class WidgetService {
   /// Sync all prayer times + date info to home screen widgets.
   ///
   /// [allPrayerTimes] is a map of prayer name to its raw 24h time (e.g. "05:30").
+  /// Day payload is additive: legacy [dayName] remains, while optional robust keys
+  /// [dayCalligraphyDigit], [dayIndexSun1], and [widgetPayloadVersion] support
+  /// resilient Android mapping and future migrations.
   /// Throttled to at most once every 60 seconds, unless the next prayer changes.
   static Future<void> updatePrayerWidgets({
     required String hijriDate,
     required String gregorianDate,
     required String dayName,
+    String? dayCalligraphyDigit,
+    int? dayIndexSun1,
+    int widgetPayloadVersion = 1,
     required String nextPrayerName,
     required String nextPrayerTime,
     required String countdown,
@@ -98,6 +104,17 @@ class WidgetService {
         HomeWidget.saveWidgetData<String>('hijri_date', hijriDate),
         HomeWidget.saveWidgetData<String>('gregorian_date', gregorianDate),
         HomeWidget.saveWidgetData<String>('day_name', dayName),
+        if (dayCalligraphyDigit != null && dayCalligraphyDigit.isNotEmpty)
+          HomeWidget.saveWidgetData<String>(
+            'day_calligraphy_digit',
+            dayCalligraphyDigit,
+          ),
+        if (dayIndexSun1 != null)
+          HomeWidget.saveWidgetData<int>('day_index_sun1', dayIndexSun1),
+        HomeWidget.saveWidgetData<int>(
+          'widget_payload_version',
+          widgetPayloadVersion,
+        ),
         HomeWidget.saveWidgetData<String>(
           'next_prayer_name',
           nextPrayerName,

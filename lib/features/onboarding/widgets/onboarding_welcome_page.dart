@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/brand_logo.dart';
 
 /// First onboarding page — app introduction with feature highlights.
 class OnboardingWelcomePage extends StatelessWidget {
@@ -38,7 +39,10 @@ class OnboardingWelcomePage extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(Icons.mosque, size: 60, color: Colors.white),
+            child: const BrandLogo(
+              size: 60,
+              semanticsLabel: 'شعار تطبيق أنا المسلم في الترحيب',
+            ),
           ),
           const SizedBox(height: 24),
           Text(

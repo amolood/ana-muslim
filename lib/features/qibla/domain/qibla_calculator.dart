@@ -12,25 +12,28 @@ class QiblaCalculator {
   /// يرجع الزاوية بالدرجات (0-360)
   /// 0° = شمال، 90° = شرق، 180° = جنوب، 270° = غرب
   static double calculateQiblaDirection(Position userPosition) {
-    final double userLat = userPosition.latitude;
-    final double userLng = userPosition.longitude;
-
-    return _calculateBearing(
-      userLat,
-      userLng,
-      kaabaLatitude,
-      kaabaLongitude,
+    return calculateQiblaFromLatLng(
+      userPosition.latitude,
+      userPosition.longitude,
     );
+  }
+
+  /// حساب اتجاه القبلة مباشرة من إحداثيات (بدون كائن Position)
+  static double calculateQiblaFromLatLng(double lat, double lng) {
+    return _calculateBearing(lat, lng, kaabaLatitude, kaabaLongitude);
   }
 
   /// حساب المسافة إلى الكعبة بالكيلومترات
   static double calculateDistanceToKaaba(Position userPosition) {
-    return _calculateDistance(
+    return calculateDistanceFromLatLng(
       userPosition.latitude,
       userPosition.longitude,
-      kaabaLatitude,
-      kaabaLongitude,
     );
+  }
+
+  /// حساب المسافة مباشرة من إحداثيات (بدون كائن Position)
+  static double calculateDistanceFromLatLng(double lat, double lng) {
+    return _calculateDistance(lat, lng, kaabaLatitude, kaabaLongitude);
   }
 
   /// حساب الاتجاه (Bearing) بين نقطتين جغرافيتين
